@@ -1285,8 +1285,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public FontMetrics getFontMetrics() {
-		// TODO
-		return null;
+		return new FontMetrics();
 	}
 
 	/**
@@ -2339,7 +2338,7 @@ public final class GC extends Resource {
 	 */
 	public Point textExtent(String string) {
 		// TODO
-		return null;
+		return new Point(0, 0);
 	}
 
 	/**

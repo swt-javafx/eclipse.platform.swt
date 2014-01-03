@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -112,6 +115,8 @@ import org.eclipse.swt.graphics.Region;
 public class Shell extends Decorations {
 
 	Stage stage;
+	private Shell parentShell;
+	private List<Shell> shells = new LinkedList<Shell>();
 	
 	/**
 	 * Constructs a new instance of this class. This is equivalent to calling
@@ -254,14 +259,16 @@ public class Shell extends Decorations {
 	public Shell(Display display, int style) {
 		super(null, style);
 
-		if (display.getShells().length == 0) {
+		if (Display.primaryStage != null) {
+			// First shell, use the primary stage
 			stage = Display.primaryStage;
-			Display.shells = new Shell[] { this };
+			Display.primaryStage = null;
 		} else {
-			// TODO StageStyle
-			// TODO add to display list
 			stage = new Stage();
 		}
+		
+		// TODO StageStyle
+		display.addShell(this);
 	}
 
 	@Override
@@ -297,7 +304,7 @@ public class Shell extends Decorations {
 	 *                </ul>
 	 */
 	public Shell(Shell parent) {
-		super(null, SWT.DIALOG_TRIM);
+		this(parent, SWT.DIALOG_TRIM);
 	}
 
 	/**
@@ -354,7 +361,20 @@ public class Shell extends Decorations {
 	 * @see SWT#SHEET
 	 */
 	public Shell(Shell parent, int style) {
-		super(null, style);
+		this(parent != null ? parent.getDisplay() : Display.getDefault(), style);
+		
+		if (parent != null) {
+			parentShell = parent;
+			parent.addChild(this);
+		}
+	}
+
+	void addShell(Shell childShell) {
+		shells.add(childShell);
+	}
+	
+	void removeShell(Shell childShell) {
+		shells.remove(childShell);
 	}
 
 	/**
@@ -407,6 +427,8 @@ public class Shell extends Decorations {
 
 	@Override
 	public void dispose() {
+		if (parentShell != null)
+			parentShell.removeChild(this);
 		stage = null;
 	}
 	
@@ -559,7 +581,7 @@ public class Shell extends Decorations {
 	 */
 	public Shell[] getShells() {
 		// TODO
-		return null;
+		return new Shell[0];
 	}
 
 	@Override

@@ -309,8 +309,7 @@ public class Composite extends Scrollable {
 	 *                </ul>
 	 */
 	public Layout getLayout() {
-		// TODO
-		return null;
+		return layout;
 	}
 
 	/**

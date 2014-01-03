@@ -147,11 +147,11 @@ public abstract class Device implements Drawable {
 	 * @see #checkDevice
 	 */
 	public void dispose() {
-		// TODO
+		disposed = true;
 	}
 
 	void dispose_Object(Object object) {
-		// TODO
+		// Nothing to do here
 	}
 
 	/**
@@ -170,7 +170,8 @@ public abstract class Device implements Drawable {
 	 * @see #release
 	 */
 	protected void destroy() {
-		// TODO
+		dispose();
+		release();
 	}
 
 	/**
@@ -426,9 +427,7 @@ public abstract class Device implements Drawable {
 	 *         <code>false</code> otherwise
 	 */
 	public boolean isDisposed() {
-		synchronized (Device.class) {
-			return disposed;
-		}
+		return disposed;
 	}
 
 	/**

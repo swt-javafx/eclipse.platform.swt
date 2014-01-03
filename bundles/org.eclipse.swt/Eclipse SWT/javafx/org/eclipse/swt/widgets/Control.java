@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 
 import org.eclipse.swt.SWT;
@@ -283,7 +284,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Point computeSize(int wHint, int hHint, boolean changed) {
 		// TODO
-		return null;
+		return new Point(0, 0);
 	}
 
 	/**
@@ -330,8 +331,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
-		// TODO
-		return null;
+		Bounds bounds = node.getBoundsInLocal();
+		return new Rectangle((int)bounds.getMinX(), (int)bounds.getMinY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 	}
 
 	/**

@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import javafx.application.Platform;
 import javafx.stage.Stage;
 
@@ -97,12 +100,13 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Display extends Device {
 
-	Tray tray;
 	// Not API but needs to be set by the JavaFX Application start method.
 	public static Stage primaryStage;
-	static Shell[] shells = new Shell[0];
-	static Object startupMutex = new Object();
+	
+	private static List<Shell> shells = new LinkedList<>();
 	static Display defaultDisplay;
+	private static Object sleepMutex = new Object();
+	Tray tray;
 
 	/*
 	 * TEMPORARY CODE. Install the runnable that gets the current display. This
@@ -163,6 +167,19 @@ public class Display extends Device {
 		defaultDisplay = this;
 	}
 
+	void addShell(Shell shell) {
+		shells.add(shell);
+	}
+	
+	void removeShell(Shell shell) {
+		shells.remove(shell);
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+	}
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when an event of the given type occurs anywhere in a widget. The event
@@ -265,8 +282,11 @@ public class Display extends Device {
 	 * 
 	 * @see #syncExec
 	 */
-	public void asyncExec(Runnable runnable) {
-		// TODO
+	public void asyncExec(final Runnable runnable) {
+		if (runnable != null) {
+			Platform.runLater(runnable);
+		}
+		wake();
 	}
 
 	/**
@@ -764,7 +784,7 @@ public class Display extends Device {
 	 */
 	public Monitor[] getMonitors() {
 		// TODO
-		return null;
+		return new Monitor[] { new Monitor() };
 	}
 
 	/**
@@ -776,7 +796,7 @@ public class Display extends Device {
 	 */
 	public Monitor getPrimaryMonitor() {
 		// TODO
-		return null;
+		return new Monitor();
 	}
 
 	/**
@@ -794,7 +814,7 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Shell[] getShells() {
-		return shells;
+		return shells.toArray(new Shell[shells.size()]);
 	}
 
 	/**
@@ -1377,7 +1397,6 @@ public class Display extends Device {
 	 * @see #wake
 	 */
 	public boolean readAndDispatch() {
-		// TODO
 		return false;
 	}
 
@@ -1667,12 +1686,16 @@ public class Display extends Device {
 	 * @see #wake
 	 */
 	public boolean sleep() {
-		// TODO
+		if (Platform.isFxApplicationThread()) {
+			// This will just hang everything
+			throw new SWTException(SWT.ERROR_THREAD_INVALID_ACCESS);
+		}
+
 		try {
-			Thread.sleep(500);
+			synchronized (sleepMutex) {
+				sleepMutex.wait(500);
+			}
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return false;
 	}
@@ -1761,6 +1784,8 @@ public class Display extends Device {
 				e.printStackTrace();
 			}
 		}
+		
+		wake();
 	}
 
 	/**
@@ -1795,11 +1820,13 @@ public class Display extends Device {
 	 * @see #sleep
 	 */
 	public void wake() {
-		// TODO
+		synchronized (sleepMutex) {
+			sleepMutex.notifyAll();
+		}
 	}
 
 	void wakeThread() {
-		// TODO
+		wake();
 	}
 
 }
