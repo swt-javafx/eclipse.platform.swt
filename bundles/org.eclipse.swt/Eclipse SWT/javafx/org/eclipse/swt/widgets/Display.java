@@ -1761,24 +1761,30 @@ public class Display extends Device {
 	 * @see #asyncExec
 	 */
 	public void syncExec(final Runnable runnable) {
+		if (isDisposed())
+			throw new SWTException(SWT.ERROR_DEVICE_DISPOSED);
+		
 		if (Platform.isFxApplicationThread()) {
 			runnable.run();
 			return;
 		}
 		
 		final Object mutex = new Object();
+		final Boolean[] ready = new Boolean[] { Boolean.FALSE };
 		synchronized (mutex) {
 			Platform.runLater(new Runnable() {
 				@Override
 				public void run() {
 					runnable.run();
 					synchronized (mutex) {
+						ready[0] = Boolean.TRUE;
 						mutex.notifyAll();
 					}
 				}
 			});
 			try {
-				mutex.wait();
+				while (!ready[0])
+					mutex.wait();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

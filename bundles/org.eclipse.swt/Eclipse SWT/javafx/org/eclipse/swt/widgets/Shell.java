@@ -365,7 +365,7 @@ public class Shell extends Decorations {
 		
 		if (parent != null) {
 			parentShell = parent;
-			parent.addChild(this);
+			parent.addShell(this);
 		}
 	}
 

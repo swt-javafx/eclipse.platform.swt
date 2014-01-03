@@ -438,7 +438,11 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
-		return new Rectangle(0, 0, (int)image.getWidth(), (int)image.getHeight());
+		if (image != null)
+			return new Rectangle(0, 0, (int)image.getWidth(), (int)image.getHeight());
+		else
+			// TODO
+			return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
