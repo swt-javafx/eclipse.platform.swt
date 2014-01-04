@@ -103,6 +103,9 @@ public class Display extends Device {
 	// Not API but needs to be set by the JavaFX Application start method.
 	public static Stage primaryStage;
 	
+	// Not public but needs to be set when the JavaFX thread starts
+	public static boolean running = false;
+	
 	private static List<Shell> shells = new LinkedList<>();
 	static Display defaultDisplay;
 	private static Object sleepMutex = new Object();
@@ -283,6 +286,11 @@ public class Display extends Device {
 	 * @see #syncExec
 	 */
 	public void asyncExec(final Runnable runnable) {
+		if (!running) {
+			runnable.run();
+			return;
+		}
+		
 		if (runnable != null) {
 			Platform.runLater(runnable);
 		}
@@ -1764,7 +1772,7 @@ public class Display extends Device {
 		if (isDisposed())
 			throw new SWTException(SWT.ERROR_DEVICE_DISPOSED);
 		
-		if (Platform.isFxApplicationThread()) {
+		if (Platform.isFxApplicationThread() || !running) {
 			runnable.run();
 			return;
 		}
