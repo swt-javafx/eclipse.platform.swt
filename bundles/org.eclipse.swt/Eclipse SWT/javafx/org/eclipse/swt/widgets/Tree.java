@@ -706,7 +706,7 @@ public class Tree extends Composite {
 	 */
 	public TreeItem[] getSelection() {
 		// TODO
-		return null;
+		return new TreeItem[0];
 	}
 
 	/**

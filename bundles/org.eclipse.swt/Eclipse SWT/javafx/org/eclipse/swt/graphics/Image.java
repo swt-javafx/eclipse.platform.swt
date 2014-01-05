@@ -389,7 +389,7 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, String filename) {
 		super(device);
-		image = new javafx.scene.image.Image(filename);
+		image = new javafx.scene.image.Image("file://" + filename);
 		createImageData();
 	}
 

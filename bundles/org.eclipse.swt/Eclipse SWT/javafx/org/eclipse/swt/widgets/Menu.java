@@ -74,7 +74,7 @@ public class Menu extends Widget {
 	 */
 	public Menu(Control parent) {
 		// TODO
-		super(parent, SWT.POP_UP);
+		super(parent.getShell(), SWT.POP_UP);
 	}
 
 	/**
@@ -353,7 +353,7 @@ public class Menu extends Widget {
 	 */
 	public MenuItem[] getItems() {
 		// TODO
-		return null;
+		return new MenuItem[0];
 	}
 
 	/**
@@ -393,7 +393,7 @@ public class Menu extends Widget {
 	 */
 	public Decorations getParent() {
 		// TODO
-		return null;
+		return (Decorations)parent;
 	}
 
 	/**

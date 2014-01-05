@@ -312,7 +312,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Accessible getAccessible() {
 		// TODO
-		return null;
+		return new Accessible(null);
 	}
 
 	/**
@@ -331,6 +331,9 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
+		if (node == null)
+			// TODO
+			return new Rectangle(0, 0, 0, 0);
 		Bounds bounds = node.getBoundsInLocal();
 		return new Rectangle((int)bounds.getMinX(), (int)bounds.getMinY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 	}
@@ -1699,7 +1702,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Color getBackground() {
 		// TODO
-		return null;
+		return new Color(getDisplay(), 0, 0, 0);
 	}
 
 	/**
@@ -1841,7 +1844,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Color getForeground() {
 		// TODO
-		return null;
+		return new Color(getDisplay(), 0, 0, 0);
 	}
 
 	/**
@@ -1921,7 +1924,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Composite getParent() {
 		// TODO
-		return null;
+		return (Composite)parent;
 	}
 
 	/**
@@ -2684,7 +2687,9 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setVisible(boolean visible) {
-		node.setVisible(visible);
+		if (node != null)
+			// TODO
+			node.setVisible(visible);
 	}
 
 	/**

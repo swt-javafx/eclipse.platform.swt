@@ -13,10 +13,12 @@ package org.eclipse.swt.widgets;
 import java.util.LinkedList;
 import java.util.List;
 
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -258,7 +260,10 @@ public class Shell extends Decorations {
 	 */
 	public Shell(Display display, int style) {
 		super(null, style);
+		init();
+	}
 
+	private void init() {
 		if (Display.primaryStage != null) {
 			// First shell, use the primary stage
 			stage = Display.primaryStage;
@@ -269,8 +274,17 @@ public class Shell extends Decorations {
 		
 		// TODO StageStyle
 		display.addShell(this);
+		
+		stage.addEventHandler(WindowEvent.ANY, new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				if (event.getEventType().equals(WindowEvent.WINDOW_SHOWING)) {
+					sendEvent(SWT.Activate);
+				}
+			}
+		});
 	}
-
+	
 	@Override
 	void setNode(final Node node) {
 		super.setNode(node);
@@ -369,6 +383,15 @@ public class Shell extends Decorations {
 		}
 	}
 
+	/**
+	 * Not part of official SWT API, but part of bridge API
+	 * 
+	 * @return JavaFX Stage object this Shell represents
+	 */
+	public Stage getStage() {
+		return stage;
+	}
+	
 	void addShell(Shell childShell) {
 		shells.add(childShell);
 	}
@@ -584,6 +607,11 @@ public class Shell extends Decorations {
 		return new Shell[0];
 	}
 
+	@Override
+	public String getText() {
+		return stage.getTitle();
+	}
+	
 	@Override
 	public boolean isDisposed() {
 		return stage == null;
@@ -847,6 +875,11 @@ public class Shell extends Decorations {
 		// TODO
 	}
 
+	@Override
+	public void setText(String string) {
+		stage.setTitle(string);
+	}
+	
 	/**
 	 * If the receiver is visible, moves it to the top of the drawing order for
 	 * the display on which it was created (so that all other shells on that

@@ -62,7 +62,7 @@ public class Composite extends Scrollable {
 
 	Layout layout;
 	PaneLayout paneLayout;
-	Control[] children;
+	Control[] children = new Control[0];
 	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -141,15 +141,10 @@ public class Composite extends Scrollable {
 
 		paneLayout.addChild(child.node);
 		
-		if (children == null) {
-			children = new Control[1];
-			children[0] = child;
-		} else {
-			Control[] c = new Control[children.length + 1];
-			System.arraycopy(children, 0, c, 0, children.length);
-			c[children.length] = child;
-			children = c;
-		}
+		Control[] c = new Control[children.length + 1];
+		System.arraycopy(children, 0, c, 0, children.length);
+		c[children.length] = child;
+		children = c;
 	}
 	
 	void removeChild(Control child) {

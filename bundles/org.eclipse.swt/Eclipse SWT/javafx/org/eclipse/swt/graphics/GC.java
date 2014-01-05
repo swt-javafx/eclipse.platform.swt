@@ -2379,7 +2379,7 @@ public final class GC extends Resource {
 	 */
 	public Point textExtent(String string, int flags) {
 		// TODO
-		return null;
+		return new Point(0, 0);
 	}
 
 }

@@ -226,7 +226,7 @@ public final class TextLayout extends Resource {
 	 */
 	public Rectangle getBounds() {
 		// TODO
-		return null;
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**

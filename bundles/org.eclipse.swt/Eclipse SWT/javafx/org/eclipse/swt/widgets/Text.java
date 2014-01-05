@@ -568,7 +568,7 @@ public class Text extends Scrollable {
 	 */
 	public String getMessage() {
 		// TODO
-		return null;
+		return "";
 	}
 
 	/**

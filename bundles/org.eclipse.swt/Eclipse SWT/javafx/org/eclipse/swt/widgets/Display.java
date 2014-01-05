@@ -110,6 +110,9 @@ public class Display extends Device {
 	static Display defaultDisplay;
 	private static Object sleepMutex = new Object();
 	Tray tray;
+	
+	EventTable filterTable;
+	EventTable eventTable;
 
 	/*
 	 * TEMPORARY CODE. Install the runnable that gets the current display. This
@@ -167,6 +170,8 @@ public class Display extends Device {
 	 */
 	public Display(DeviceData data) {
 		super(data);
+		if (defaultDisplay != null)
+			throw new SWTException("JavaFX only supports one Display object.");
 		defaultDisplay = this;
 	}
 
@@ -224,7 +229,9 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public void addFilter(int eventType, Listener listener) {
-		// TODO
+		if (listener == null) throw new SWTException(SWT.ERROR_NULL_ARGUMENT);
+		if (filterTable == null) filterTable = new EventTable ();
+		filterTable.hook (eventType, listener);
 	}
 
 	/**
@@ -258,7 +265,9 @@ public class Display extends Device {
 	 * @since 2.0
 	 */
 	public void addListener(int eventType, Listener listener) {
-		// TODO
+		if (listener == null) throw new SWTException(SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) eventTable = new EventTable();
+		eventTable.hook(eventType, listener);
 	}
 
 	/**
@@ -344,8 +353,8 @@ public class Display extends Device {
 	 * @return the display for the given thread
 	 */
 	public static Display findDisplay(Thread thread) {
-		// TODO
-		return null;
+		// All threads use the same display object
+		return defaultDisplay;
 	}
 
 	/**
@@ -458,6 +467,16 @@ public class Display extends Device {
 	public Widget findWidget(Widget widget, long /* int */id) {
 		// TODO
 		return null;
+	}
+
+	boolean filterEvent (Event event) {
+		if (filterTable != null) filterTable.sendEvent (event);
+		return false;
+	}
+
+	boolean filters (int eventType) {
+		if (filterTable == null) return false;
+		return filterTable.hooks (eventType);
 	}
 
 	/**
@@ -1376,6 +1395,10 @@ public class Display extends Device {
 		return false;
 	}
 
+	void postEvent (Event event) {
+		// TODO
+	}
+
 	/**
 	 * Reads an event from the operating system's event queue, dispatches it
 	 * appropriately, and returns <code>true</code> if there is potentially more
@@ -1501,12 +1524,45 @@ public class Display extends Device {
 		return null;
 	}
 
+	/*
+	 * Not SWT API, needed to inject events from the workbench
+	 */
+	public void sendEvent (int eventType, Event event) {
+		if (eventTable == null && filterTable == null) {
+			return;
+		}
+		if (event == null) event = new Event ();
+		event.display = this;
+		event.type = eventType;
+		if (event.time == 0) event.time = (int)(System.currentTimeMillis() / 1000);
+		if (!filterEvent (event)) {
+			if (eventTable != null) sendEvent(eventTable, event);
+		}
+	}
+
+	void sendEvent(EventTable eventTable, Event event) {
+		sendPreEvent(event);
+		try {
+			eventTable.sendEvent (event);
+		} finally {
+			sendPostEvent(event);
+		}
+	}
+
 	void sendPreEvent(Event event) {
-		// TODO
+		if (event == null || (event.type != SWT.PreEvent && event.type != SWT.PostEvent)) {
+			if (this.eventTable != null && this.eventTable.hooks(SWT.PreEvent)) {
+				sendEvent(SWT.PreEvent, null);
+			}
+		}
 	}
 
 	void sendPostEvent(Event event) {
-		// TODO
+		if (event == null || (event.type != SWT.PreEvent && event.type != SWT.PostEvent)) {
+			if (this.eventTable != null && this.eventTable.hooks(SWT.PostEvent)) {
+				sendEvent(SWT.PostEvent, null);
+			}
+		}
 	}
 
 	/**

@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 
@@ -56,6 +59,8 @@ public abstract class Widget {
 	Node node;
 	
 	Display display;
+	Map<String, Object> data;
+	Object tempData; // TODO remove when we have nodes for all widgets
 
 	/* Default size for widgets */
 	static final int DEFAULT_WIDTH	= 64;
@@ -323,8 +328,7 @@ public abstract class Widget {
 	 * @see #setData(Object)
 	 */
 	public Object getData() {
-		// TODO
-		return null;
+		return node != null ? node.getUserData() : tempData;
 	}
 
 	/**
@@ -356,8 +360,7 @@ public abstract class Widget {
 	 * @see #setData(String, Object)
 	 */
 	public Object getData(String key) {
-		// TODO
-		return null;
+		return data != null ? data.get(key) : null;
 	}
 
 	/**
@@ -675,12 +678,37 @@ public abstract class Widget {
 		// TODO
 	}
 
+	void sendEvent (Event event) {
+		Display display = event.display;
+		if (!display.filterEvent (event)) {
+			if (eventTable != null) display.sendEvent(eventTable, event);
+		}
+	}
+
 	void sendEvent (int eventType) {
-		// TODO
+		sendEvent (eventType, null, true);
 	}
 
 	void sendEvent (int eventType, Event event) {
-		// TODO
+		sendEvent (eventType, event, true);
+	}
+
+	void sendEvent (int eventType, Event event, boolean send) {
+		if (eventTable == null && !display.filters (eventType)) {
+			return;
+		}
+		if (event == null) event = new Event ();
+		event.type = eventType;
+		event.display = display;
+		event.widget = this;
+		if (event.time == 0) {
+			event.time = (int)(System.currentTimeMillis() / 1000);
+		}
+		if (send) {
+			sendEvent (event);
+		} else {
+			display.postEvent (event);
+		}
 	}
 
 	void sendSelectionEvent (int eventType, Event event, boolean send) {
@@ -712,7 +740,10 @@ public abstract class Widget {
 	 * @see #getData()
 	 */
 	public void setData(Object data) {
-		// TODO
+		if (node != null)
+			node.setUserData(data);
+		else
+			tempData = data;
 	}
 
 	/**
@@ -745,7 +776,9 @@ public abstract class Widget {
 	 * @see #getData(String)
 	 */
 	public void setData(String key, Object value) {
-		// TODO
+		if (data == null)
+			data = new HashMap<>();
+		data.put(key, value);
 	}
 
 }
