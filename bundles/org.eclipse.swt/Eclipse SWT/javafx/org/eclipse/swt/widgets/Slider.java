@@ -10,6 +10,13 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.LinkedList;
+import java.util.List;
+
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.geometry.Orientation;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
@@ -72,6 +79,9 @@ import org.eclipse.swt.events.SelectionListener;
  */
 public class Slider extends Control {
 
+	List<SelectionListener> selectionListeners;
+
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -109,6 +119,24 @@ public class Slider extends Control {
 	 */
 	public Slider(Composite parent, int style) {
 		super(parent, style);
+		boolean isHorizontal = (style & SWT.HORIZONTAL) !=0;
+		javafx.scene.control.Slider slider = new javafx.scene.control.Slider();
+		slider.setOrientation(isHorizontal?Orientation.HORIZONTAL:Orientation.VERTICAL);
+		slider.valueProperty().addListener(new ChangeListener<Number>() {
+
+			@Override
+			public void changed(ObservableValue<? extends Number> arg0,
+					Number arg1, Number arg2) {
+				Event event = new Event();
+				event.widget = event.item = Slider.this;
+				SelectionEvent se = new SelectionEvent(event);
+				se.detail|=SWT.NONE;//simulate drag ended
+				if (selectionListeners != null)
+					for (SelectionListener listener : selectionListeners)
+						listener.widgetSelected(se);
+			}
+		});
+		setNode(slider);
 	}
 
 	/**
@@ -146,8 +174,9 @@ public class Slider extends Control {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
-	}
+		if (selectionListeners == null)
+			selectionListeners = new LinkedList<>();
+		selectionListeners.add(listener);	}
 
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
@@ -164,8 +193,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getIncrement() {
-		// TODO
-		return 0;
+		
+		return (int) getSlider().getBlockIncrement();
 	}
 
 	/**
@@ -182,8 +211,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		return (int) getSlider().getMax();
 	}
 
 	/**
@@ -200,8 +228,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		return (int) getSlider().getMin();
 	}
 
 	/**
@@ -219,8 +246,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getPageIncrement() {
-		// TODO
-		return 0;
+		return getIncrement();//TODO
 	}
 
 	/**
@@ -237,8 +263,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+
+		return (int) getSlider().getValue();
 	}
 
 	/**
@@ -255,8 +281,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getThumb() {
-		// TODO
-		return 0;
+
+		return getPageIncrement();
 	}
 
 	/**
@@ -282,7 +308,11 @@ public class Slider extends Control {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		if (selectionListeners != null) {
+			selectionListeners.remove(listener);
+			if (selectionListeners.isEmpty())
+				selectionListeners = null;
+		}
 	}
 
 	/**
@@ -302,7 +332,11 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setIncrement(int value) {
-		// TODO
+		getSlider().setBlockIncrement(value);
+	}
+
+	private javafx.scene.control.Slider getSlider() {
+		return (javafx.scene.control.Slider) node;
 	}
 
 	/**
@@ -323,7 +357,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		getSlider().setMax(value);
 	}
 
 	/**
@@ -343,7 +377,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		getSlider().setMin(value);
 	}
 
 	/**
@@ -363,7 +397,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setPageIncrement(int value) {
-		// TODO
+		setIncrement(value);
 	}
 
 	/**
@@ -382,7 +416,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		getSlider().setValue(value);
 	}
 
 	/**
@@ -407,7 +441,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setThumb(int value) {
-		// TODO
+		setPageIncrement(value);
 	}
 
 	/**
@@ -442,7 +476,12 @@ public class Slider extends Control {
 	 */
 	public void setValues(int selection, int minimum, int maximum, int thumb,
 			int increment, int pageIncrement) {
-		// TODO
+		setSelection(selection);
+		setMinimum(minimum);
+		setMaximum(maximum);
+		setThumb(thumb);
+		setIncrement(increment);
+		setPageIncrement(pageIncrement);
 	}
 
 }
