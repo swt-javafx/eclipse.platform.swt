@@ -24,6 +24,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.graphics.Region;
 
 /**
@@ -289,6 +290,8 @@ public class Shell extends Decorations {
 	void setNode(final Node node) {
 		super.setNode(node);
 		stage.setScene(new Scene((Parent)node, 640, 480));
+		stage.setX(10);
+		stage.setY(10);
 	}
 	
 	/**
@@ -517,8 +520,8 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public boolean getFullScreen() {
-		// TODO
-		return false;
+
+		return stage.isFullScreen();
 	}
 
 	/**
@@ -747,7 +750,7 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public void setFullScreen(boolean fullScreen) {
-		// TODO
+		stage.setFullScreen(fullScreen);
 	}
 
 	/**
@@ -824,6 +827,24 @@ public class Shell extends Decorations {
 		// TODO
 	}
 
+	@Override
+	public void setSize(int width, int height) {
+		stage.setWidth(width);
+		stage.setHeight(height);
+	}
+	
+	@Override
+	public void setBounds(int x, int y, int width, int height) {
+		stage.setX(x);
+		stage.setY(y);
+		setSize(width,height);
+	}
+	
+	@Override
+	public void setBounds(Rectangle rect) {
+		setBounds(rect.x,rect.y,rect.width,rect.height);
+	}
+	
 	/**
 	 * Sets the receiver's modified state as specified by the argument.
 	 * 
@@ -872,7 +893,10 @@ public class Shell extends Decorations {
 	 */
 	@Override
 	public void setRegion(Region region) {
-		// TODO
+		stage.setX(region.getBounds().x);
+		stage.setY(region.getBounds().y);
+		stage.setWidth(region.getBounds().width);
+		stage.setHeight(region.getBounds().height);
 	}
 
 	@Override
