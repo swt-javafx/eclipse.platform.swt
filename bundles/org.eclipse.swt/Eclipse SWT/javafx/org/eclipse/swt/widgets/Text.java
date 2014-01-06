@@ -313,7 +313,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void append(String string) {
-		// TODO
+		getNode().appendText(string);
 	}
 
 	/**
@@ -328,8 +328,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void clearSelection() {
-		checkWidget();
-		// TODO
+		String text = getText();
+		getNode().clear();
+		getNode().setText(text); // no api so we work around
 	}
 
 	/**
@@ -386,8 +387,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCaretLineNumber() {
-		// TODO
-		return 0;
+		if (getNode() instanceof TextField) return 1;
+
+		return 2;//random as the api is not supported yet
 	}
 
 	/**
@@ -426,8 +428,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCaretPosition() {
-		// TODO
-		return 0;
+		return getNode().getCaretPosition();
 	}
 
 	/**
@@ -444,8 +445,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCharCount() {
-		// TODO
-		return 0;
+
+		return getNode().getText().length();
 	}
 
 	/**
@@ -508,8 +509,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public boolean getEditable() {
-		// TODO
-		return false;
+
+		return getNode().isEditable();
 	}
 
 	/**
@@ -693,8 +694,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		
+		return getNode().getText();
 	}
 
 	/**
@@ -1260,9 +1261,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		// TODO
+		getNode().setText(string);
 	}
-
+		
 	/**
 	 * Sets the contents of the receiver to the characters in the array. If the
 	 * receiver has style <code>SWT.SINGLE</code> and the argument contains
@@ -1369,6 +1370,10 @@ public class Text extends Scrollable {
 	 */
 	public void showSelection() {
 		// TODO
+	}
+	
+	TextInputControl getNode(){
+		return (TextInputControl) node;
 	}
 
 }
