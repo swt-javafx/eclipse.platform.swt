@@ -75,6 +75,8 @@ import org.eclipse.swt.graphics.Region;
  */
 public abstract class Control extends Widget implements Drawable {
 
+	private Object layoutData;
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -677,7 +679,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setLayoutData(Object layoutData) {
-		// TODO
+		// TODO need to hook this up to JavaFX layer somehow
+		this.layoutData = layoutData;
 	}
 
 	/**
@@ -1861,8 +1864,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Object getLayoutData() {
-		// TODO
-		return null;
+		return layoutData;
 	}
 
 	/**

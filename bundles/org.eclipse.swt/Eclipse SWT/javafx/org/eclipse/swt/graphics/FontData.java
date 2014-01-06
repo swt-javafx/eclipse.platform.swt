@@ -141,7 +141,7 @@ public final class FontData {
 	 */
 	public String getName() {
 		// TODO
-		return null;
+		return "";
 	}
 
 	/**

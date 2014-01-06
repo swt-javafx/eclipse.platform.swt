@@ -459,7 +459,7 @@ public class Clipboard {
 	 */
 	public TransferData[] getAvailableTypes(int clipboards) {
 		// TODO
-		return null;
+		return new TransferData[0];
 	}
 
 	/**

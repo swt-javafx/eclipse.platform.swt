@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.ArrayList;
+
 import javafx.scene.layout.FlowPane;
 
 import org.eclipse.swt.SWT;
@@ -50,6 +52,8 @@ import org.eclipse.swt.graphics.Point;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class ToolBar extends Composite {
+
+	java.util.List<ToolItem> items = new ArrayList<>();
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -101,6 +105,10 @@ public class ToolBar extends Composite {
 		setNode(pane);
 	}
 	
+	void addItem(ToolItem item) {
+		items.add(item);
+	}
+
 	/**
 	 * Returns the item at the given, zero-relative index in the receiver.
 	 * Throws an exception if the index is out of range.
@@ -124,8 +132,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem getItem(int index) {
-		// TODO
-		return null;
+		return items.get(index);
 	}
 
 	/**
@@ -167,8 +174,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public int getItemCount() {
-		// TODO
-		return 0;
+		return items.size();
 	}
 
 	/**
@@ -190,8 +196,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem[] getItems() {
-		// TODO
-		return new ToolItem[0];
+		return items.toArray(new ToolItem[items.size()]);
 	}
 
 	/**

@@ -83,8 +83,7 @@ public class ToolItem extends Item {
 	 * @see Widget#getStyle
 	 */
 	public ToolItem(ToolBar parent, int style) {
-		super(parent, style);
-		// TODO
+		this(parent, style, -1);
 	}
 
 	/**
@@ -133,7 +132,8 @@ public class ToolItem extends Item {
 	 */
 	public ToolItem(ToolBar parent, int style, int index) {
 		super(parent, style);
-		// TODO
+		// TODO deal with index
+		parent.addItem(this);
 	}
 
 	/**
