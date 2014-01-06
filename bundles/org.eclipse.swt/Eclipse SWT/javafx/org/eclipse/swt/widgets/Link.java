@@ -10,6 +10,13 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.LinkedList;
+import java.util.List;
+
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.Hyperlink;
+
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -39,6 +46,8 @@ import org.eclipse.swt.events.SelectionListener;
  */
 public class Link extends Control {
 
+	List<SelectionListener> selectionListeners;
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -74,6 +83,20 @@ public class Link extends Control {
 	 */
 	public Link(Composite parent, int style) {
 		super(parent, style);
+		Hyperlink hyperlink = new Hyperlink();
+		hyperlink.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				Event event = new Event();
+				event.widget = event.item = Link.this;
+				SelectionEvent se = new SelectionEvent(event);
+				
+				if (selectionListeners != null)
+					for (SelectionListener listener : selectionListeners)
+						listener.widgetSelected(se);
+			}
+		});
+		setNode(hyperlink);
 	}
 
 	/**
@@ -105,7 +128,9 @@ public class Link extends Control {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		if (selectionListeners == null)
+			selectionListeners = new LinkedList<>();
+		selectionListeners.add(listener);
 	}
 
 	/**
@@ -123,8 +148,7 @@ public class Link extends Control {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		return getLink().getText();
 	}
 
 	/**
@@ -150,7 +174,11 @@ public class Link extends Control {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		if (selectionListeners != null) {
+			selectionListeners.remove(listener);
+			if (selectionListeners.isEmpty())
+				selectionListeners = null;
+		}
 	}
 
 	/**
@@ -193,7 +221,11 @@ public class Link extends Control {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		// TODO
+		getLink().setText(string);
+	}
+	
+	private Hyperlink getLink(){
+		return (Hyperlink) node;
 	}
 
 }

@@ -39,6 +39,10 @@ import org.eclipse.swt.SWTException;
  */
 public class ProgressBar extends Control {
 
+	private int maximum;
+	private int minimum;
+	private int actualValue;
+
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -78,6 +82,9 @@ public class ProgressBar extends Control {
 	 */
 	public ProgressBar(Composite parent, int style) {
 		super(parent, style);
+		javafx.scene.control.ProgressBar pBar = new javafx.scene.control.ProgressBar();
+		if ((style&SWT.INDETERMINATE) !=0) pBar.setProgress(-1);
+		setNode(pBar);
 	}
 
 	/**
@@ -94,8 +101,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		return this.maximum;
 	}
 
 	/**
@@ -112,8 +118,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		return this.minimum;
 	}
 
 	/**
@@ -130,8 +135,8 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		
+		return this.actualValue;
 	}
 
 	/**
@@ -178,7 +183,17 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		this.maximum = value;
+		updateProgress();
+	}
+
+	private void updateProgress() {
+		double x1 = minimum;
+		double x2 = maximum;
+		double x = actualValue;
+		if (x==0) getNode().setProgress(0); //protect from / 0
+		getNode().setProgress((x2-x1)/x);
+		
 	}
 
 	/**
@@ -201,7 +216,8 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		this.minimum = value;
+		updateProgress();
 	}
 
 	/**
@@ -220,7 +236,8 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		this.actualValue = value;
+		updateProgress();
 	}
 
 	/**
@@ -250,6 +267,10 @@ public class ProgressBar extends Control {
 	 */
 	public void setState(int state) {
 		// TODO
+	}
+	
+	private javafx.scene.control.ProgressBar getNode(){
+		return (javafx.scene.control.ProgressBar) node;
 	}
 
 }

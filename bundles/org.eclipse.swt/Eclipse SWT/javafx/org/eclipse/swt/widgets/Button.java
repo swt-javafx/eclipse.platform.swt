@@ -131,10 +131,16 @@ public class Button extends Control {
 			button = radioButton;
 		} else if ((style & SWT.CHECK) != 0) { 
 			button = new CheckBox();
-		} else {
+		} else if ((style & SWT.TOGGLE)!= 0){
+			button = new ToggleButton();
+		}else{
 			button = new javafx.scene.control.Button();
 		}
 
+		if ((style & SWT.WRAP)!=0){
+			button.setWrapText(true);
+		}
+		
 		button.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
