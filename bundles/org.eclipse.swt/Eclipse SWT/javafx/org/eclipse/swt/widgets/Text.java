@@ -10,6 +10,11 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ModifyListener;
@@ -131,7 +136,23 @@ public class Text extends Scrollable {
 	 */
 	public Text(Composite parent, int style) {
 		super(parent, style);
-		// TODO
+		TextInputControl text;
+		if ((style & SWT.MULTI)!=0){
+			TextArea area = new TextArea();
+			if ((style & SWT.WRAP)!=0){
+				area.setWrapText(true);
+			}
+		   text = area;	
+		}else
+		if ((style & SWT.PASSWORD)!=0){
+			text = new PasswordField();
+		}else
+			text = new TextField();
+		
+		if ((style & SWT.READ_ONLY)!=0)
+			text.setEditable(false);
+		setNode(text);
+		
 	}
 
 	/**
