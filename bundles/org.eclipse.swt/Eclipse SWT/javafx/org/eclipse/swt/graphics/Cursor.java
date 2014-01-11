@@ -44,6 +44,8 @@ import org.eclipse.swt.SWTError;
  */
 public final class Cursor extends Resource {
 
+	public javafx.scene.Cursor cursor;
+	
 	/**
 	 * Constructs a new cursor given a device and a style constant describing
 	 * the desired cursor appearance.

@@ -42,6 +42,8 @@ import org.eclipse.swt.graphics.Point;
  */
 public class Menu extends Widget {
 
+	javafx.scene.control.Menu menu;
+	
 	/**
 	 * Constructs a new instance of this class given its parent, and sets the
 	 * style for the instance so that the instance will be a popup menu on the

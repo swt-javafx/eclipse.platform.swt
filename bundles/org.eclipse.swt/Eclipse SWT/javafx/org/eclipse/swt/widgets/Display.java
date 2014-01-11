@@ -12,6 +12,7 @@ package org.eclipse.swt.widgets;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.WeakHashMap;
 
 import javafx.application.Platform;
 import javafx.stage.Stage;
@@ -114,6 +115,23 @@ public class Display extends Device {
 	EventTable filterTable;
 	EventTable eventTable;
 
+	WeakHashMap<Object, Control> controlMap = new WeakHashMap<>();
+	
+	static final int GROW_SIZE = 1024;
+
+	/* Skinning support */
+	Widget [] skinList = new Widget [GROW_SIZE];
+	int skinCount;
+	
+	/* Package Name */
+	static final String PACKAGE_PREFIX;
+	// Use the original code since JavaFX isn't supported on CLDC
+	static {
+		String name = Display.class.getName ();
+		int index = name.lastIndexOf ('.');
+		PACKAGE_PREFIX = name.substring (0, index + 1);
+	}
+
 	/*
 	 * TEMPORARY CODE. Install the runnable that gets the current display. This
 	 * code will be removed in the future.
@@ -175,10 +193,23 @@ public class Display extends Device {
 		defaultDisplay = this;
 	}
 
+	void addControl(Object o, Control control) {
+		controlMap.put(o, control);
+	}
+
 	void addShell(Shell shell) {
 		shells.add(shell);
 	}
 	
+	void addSkinnableWidget (Widget widget) {
+		if (skinCount >= skinList.length) {
+			Widget[] newSkinWidgets = new Widget [skinList.length + GROW_SIZE];
+			System.arraycopy (skinList, 0, newSkinWidgets, 0, skinList.length);
+			skinList = newSkinWidgets;
+		}
+		skinList [skinCount++] = widget;
+	}
+
 	void removeShell(Shell shell) {
 		shells.remove(shell);
 	}
@@ -568,6 +599,10 @@ public class Display extends Device {
 		return null;
 	}
 
+	Control getControl(Object o) {
+		return controlMap.get(o);
+	}
+
 	/**
 	 * Returns the application defined property of the receiver with the
 	 * specified name, or null if it has not been set.
@@ -644,8 +679,9 @@ public class Display extends Device {
 	}
 
 	static <T> boolean isValidClass(Class<T> clazz) {
-		// TODO
-		return false;
+		String name = clazz.getName ();
+		int index = name.lastIndexOf ('.');
+		return name.substring (0, index + 1).equals (PACKAGE_PREFIX);
 	}
 
 	/**
@@ -1121,8 +1157,7 @@ public class Display extends Device {
 	}
 
 	boolean isValidThread() {
-		// TODO
-		return false;
+		return Platform.isFxApplicationThread();
 	}
 
 	/**
@@ -1703,6 +1738,10 @@ public class Display extends Device {
 	 * @see #disposeExec(Runnable)
 	 */
 	public void setData(Object data) {
+		// TODO
+	}
+
+	void setHoverControl(Control hoverControl) {
 		// TODO
 	}
 

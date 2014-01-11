@@ -10,16 +10,11 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javafx.scene.Node;
-import javafx.scene.control.Label;
+import javafx.application.Platform;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.internal.SWTEventListener;
 
 /**
@@ -51,26 +46,58 @@ import org.eclipse.swt.internal.SWTEventListener;
  */
 public abstract class Widget {
 
-	int style;
-	Widget parent;
-	EventTable eventTable;
+	/* Using the same numbers as the win32 port for now */
+	/* Global state flags */
+	static final int DISPOSED		= 1<<0;
+	static final int CANVAS			= 1<<1;
+	static final int KEYED_DATA		= 1<<2;
+	static final int DISABLED		= 1<<3;
+	static final int HIDDEN			= 1<<4;
 	
-	// JavaFX root node for this widget
-	Node node;
+	/* A layout was requested on this widget */
+	static final int LAYOUT_NEEDED	= 1<<5;
 	
-	Display display;
-	Map<String, Object> data;
-	Object tempData; // TODO remove when we have nodes for all widgets
+	/* The preferred size of a child has changed */
+	static final int LAYOUT_CHANGED = 1<<6;
+	
+	/* A layout was requested in this widget hierarchy */
+	static final int LAYOUT_CHILD = 1<<7;
+	
+	/* Background flags */
+	static final int THEME_BACKGROUND = 1<<8;
+	static final int DRAW_BACKGROUND = 1<<9;
+	static final int PARENT_BACKGROUND = 1<<10;
 
-	/* Default size for widgets */
+	static final int RELEASED = 1<<11;
+	static final int DISPOSE_SENT = 1<<12;
+	
+	static final int DRAG_DETECT	= 1<<15;
+	
+	/* Notify of the opportunity to skin this widget */
+	static final int SKIN_NEEDED = 1<<21;
+	
+	/* Tom's flags */
+	static final int DATA_SET = 1<<27;
+	static final int MOUSE_EXIT = 1<<28;
+	static final int MOUSE_ENTER = 1<<29;
+	static final int CSS_PROCESSED  = 1<<30;
+	static final int NO_EVENT = 1<<31;
+	
+	static final int RESIZE_ATTACHED = 1 << 29;
+
 	static final int DEFAULT_WIDTH	= 64;
 	static final int DEFAULT_HEIGHT	= 64;
-
+	
+	EventTable eventTable;
+	Display display;
+	int style;
+	long state;
+	Object data;
+	
 	Widget() {
 		display = getDisplay();
-		// TODO
 	}
-
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -107,21 +134,16 @@ public abstract class Widget {
 	 * @see #getStyle
 	 */
 	public Widget(Widget parent, int style) {
-		this.parent = parent;
+		checkSubclass ();
+		checkParent (parent);
 		this.style = style;
-		
-		display = getDisplay();
+		display = parent.display;
+		reskinWidget ();
 	}
 
-	void createNode() {
-		// TODO until we override everywhere
-		javafx.scene.control.Label todoLabel = new Label("TODO");
-		setNode(todoLabel);
-	}
-	
-	void setNode(Node node) {
-		this.node = node;
-		node.setUserData(this);
+	void _addListener (int eventType, Listener listener) {
+		if (eventTable == null) eventTable = new EventTable ();
+		eventTable.hook (eventType, listener);
 	}
 
 	/**
@@ -155,7 +177,9 @@ public abstract class Widget {
 	 * @see #notifyListeners
 	 */
 	public void addListener(int eventType, Listener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		_addListener (eventType, listener);
 	}
 
 	/**
@@ -183,7 +207,10 @@ public abstract class Widget {
 	 * @see #removeDisposeListener
 	 */
 	public void addDisposeListener(DisposeListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Dispose, typedListener);
 	}
 
 	static int checkBits (int style, int int0, int int1, int int2, int int3, int int4, int int5) {
@@ -196,6 +223,40 @@ public abstract class Widget {
 		if ((style & int4) != 0) style = (style & ~mask) | int4;
 		if ((style & int5) != 0) style = (style & ~mask) | int5;
 		return style;
+	}
+
+	void checkOpened () {
+		/* Do nothing */
+	}
+
+	void checkOrientation (Widget parent) {
+		style &= ~SWT.MIRRORED;
+		if ((style & (SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT)) == 0) {
+			if (parent != null) {
+				if ((parent.style & SWT.LEFT_TO_RIGHT) != 0) style |= SWT.LEFT_TO_RIGHT;
+				if ((parent.style & SWT.RIGHT_TO_LEFT) != 0) style |= SWT.RIGHT_TO_LEFT;
+			}
+		}
+		style = checkBits (style, SWT.LEFT_TO_RIGHT, SWT.RIGHT_TO_LEFT, 0, 0, 0, 0);
+	}
+
+	/**
+	 * Throws an exception if the specified widget can not be
+	 * used as a parent for the receiver.
+	 *
+	 * @exception IllegalArgumentException <ul>
+	 *    <li>ERROR_NULL_ARGUMENT - if the parent is null</li>
+	 *    <li>ERROR_INVALID_ARGUMENT - if the parent is disposed</li>
+	 * </ul>
+	 * @exception SWTException <ul>
+	 *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the parent</li>
+	 * </ul>
+	 */
+	void checkParent (Widget parent) {
+		if (parent == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (parent.isDisposed ()) error (SWT.ERROR_INVALID_ARGUMENT);
+		parent.checkWidget ();
+		parent.checkOpened ();
 	}
 
 	/**
@@ -230,7 +291,7 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkSubclass() {
-		// TODO
+		if (!isValidSubclass ()) error (SWT.ERROR_INVALID_SUBCLASS);
 	}
 
 	/**
@@ -260,11 +321,13 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkWidget() {
-		// TODO
+		if (isDisposed())
+			error(SWT.ERROR_WIDGET_DISPOSED);
+		// Not throwing ERROR_THREAD_INVALID_ACCESS since JavaFX will do it for us
 	}
 
 	void destroyWidget () {
-		// TODO
+		releaseHandle();
 	}
 
 	/**
@@ -292,14 +355,15 @@ public abstract class Widget {
 	 * @see #checkWidget
 	 */
 	public void dispose() {
-		node = null;
+		/*
+		* Note:  It is valid to attempt to dispose a widget
+		* more than once.  If this happens, fail silently.
+		*/
+		if (isDisposed ()) return;
+		if (!isValidThread ()) error (SWT.ERROR_THREAD_INVALID_ACCESS);
+		release (true);
 	}
 
-	boolean drawGripper (GC gc, int x, int y, int width, int height, boolean vertical) {
-		// TODO
-		return false;
-	}
-	
 	void error (int code) {
 		SWT.error (code);
 	}
@@ -328,7 +392,8 @@ public abstract class Widget {
 	 * @see #setData(Object)
 	 */
 	public Object getData() {
-		return node != null ? node.getUserData() : tempData;
+		checkWidget();
+		return (state & KEYED_DATA) != 0 ? ((Object []) data) [0] : data;
 	}
 
 	/**
@@ -360,7 +425,15 @@ public abstract class Widget {
 	 * @see #setData(String, Object)
 	 */
 	public Object getData(String key) {
-		return data != null ? data.get(key) : null;
+		checkWidget();
+		if (key == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if ((state & KEYED_DATA) != 0) {
+			Object [] table = (Object []) data;
+			for (int i=1; i<table.length; i+=2) {
+				if (key.equals (table [i])) return table [i+1];
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -408,13 +481,23 @@ public abstract class Widget {
 	 * @since 3.4
 	 */
 	public Listener[] getListeners(int eventType) {
-		// TODO
-		return null;
+		checkWidget();
+		if (eventTable == null) return new Listener[0];
+		return eventTable.getListeners(eventType);
 	}
 
+	/*
+	 * Returns a short printable representation for the contents
+	 * of a widget. For example, a button may answer the label
+	 * text. This is used by <code>toString</code> to provide a
+	 * more meaningful description of the widget.
+	 *
+	 * @return the contents string for the widget
+	 *
+	 * @see #toString
+	 */
 	String getNameText () {
-		// TODO
-		return "";
+		return ""; //$NON-NLS-1$
 	}
 
 	/**
@@ -444,6 +527,24 @@ public abstract class Widget {
 		return style;
 	}
 
+	/*
+	 * Returns <code>true</code> if the specified eventType is
+	 * hooked, and <code>false</code> otherwise. Implementations
+	 * of SWT can avoid creating objects and sending events
+	 * when an event happens in the operating system but
+	 * there are no listeners hooked for the event.
+	 *
+	 * @param eventType the event to be checked
+	 *
+	 * @return <code>true</code> when the eventType is hooked and <code>false</code> otherwise
+	 *
+	 * @see #isListening
+	 */
+	boolean hooks (int eventType) {
+		if (eventTable == null) return false;
+		return eventTable.hooks (eventType);
+	}
+
 	/**
 	 * Returns <code>true</code> if the widget has been disposed, and
 	 * <code>false</code> otherwise.
@@ -457,8 +558,7 @@ public abstract class Widget {
 	 *         <code>false</code> otherwise
 	 */
 	public boolean isDisposed() {
-		// TODO
-		return false;
+		return (state & DISPOSED) != 0;
 	}
 
 	/**
@@ -482,15 +582,25 @@ public abstract class Widget {
 	 * @see SWT
 	 */
 	public boolean isListening(int eventType) {
-		// TODO
-		return false;
+		checkWidget();
+		return hooks (eventType);
 	}
 
 	boolean isValidSubclass() {
-		// TODO
-		return false;
+		return Display.isValidClass(getClass());
 	}
 	
+	/*
+	 * Returns <code>true</code> when the current thread is
+	 * the thread that created the widget and <code>false</code>
+	 * otherwise.
+	 *
+	 * @return <code>true</code> when the current thread is the thread that created the widget and <code>false</code> otherwise
+	 */
+	boolean isValidThread () {
+		return getDisplay().isValidThread();
+	}
+
 	/**
 	 * Notifies all of the receiver's listeners for events of the given type
 	 * that one such event has occurred by invoking their
@@ -516,31 +626,130 @@ public abstract class Widget {
 	 * @see #removeListener(int, Listener)
 	 */
 	public void notifyListeners(int eventType, Event event) {
-		// TODO
+		checkWidget();
+		if (event == null) event = new Event ();
+		sendEvent (eventType, event);
 	}
 
 	void postEvent (int eventType) {
-		// TODO
+		sendEvent (eventType, null, false);
 	}
 
+	void postEvent (int eventType, Event event) {
+		sendEvent (eventType, event, false);
+	}
+
+	/*
+	 * Releases the widget hierarchy and optionally destroys
+	 * the receiver.
+	 * <p>
+	 * Typically, a widget with children will broadcast this
+	 * message to all children so that they too can release their
+	 * resources.  The <code>releaseHandle</code> method is used
+	 * as part of this broadcast to zero the handle fields of the
+	 * children without calling <code>destroyWidget</code>.  In
+	 * this scenario, the children are actually destroyed later,
+	 * when the operating system destroys the widget tree.
+	 * </p>
+	 * 
+	 * @param destroy indicates that the receiver should be destroyed
+	 * 
+	 * @see #dispose
+	 * @see #releaseHandle
+	 * @see #releaseParent
+	 * @see #releaseWidget
+	*/
 	void release (boolean destroy) {
-		// TODO
+		if ((state & DISPOSE_SENT) == 0) {
+			state |= DISPOSE_SENT;
+			sendEvent (SWT.Dispose);
+		}
+		if ((state & DISPOSED) == 0) {
+			releaseChildren (destroy);
+		}
+		if ((state & RELEASED) == 0) {
+			state |= RELEASED;
+			if (destroy) {
+				releaseParent ();
+				releaseWidget ();
+				destroyWidget ();
+			} else {
+				releaseWidget ();
+				releaseHandle ();
+			}
+		}
 	}
 
 	void releaseChildren (boolean destroy) {
-		// TODO
 	}
 
+	/*
+	 * Releases the widget's handle by zero'ing it out.
+	 * Does not destroy or release any operating system
+	 * resources.
+	 * <p>
+	 * This method is called after <code>releaseWidget</code>
+	 * or from <code>destroyWidget</code> when a widget is being
+	 * destroyed to ensure that the widget is marked as destroyed
+	 * in case the act of destroying the widget in the operating
+	 * system causes application code to run in callback that
+	 * could access the widget.
+	 * </p>
+	 *
+	 * @see #dispose
+	 * @see #releaseChildren
+	 * @see #releaseParent
+	 * @see #releaseWidget
+	 */
 	void releaseHandle () {
-		// TODO
+		state |= DISPOSED;
+		display = null;
 	}
 
+	/*
+	 * Releases the receiver, a child in a widget hierarchy,
+	 * from its parent.
+	 * <p>
+	 * When a widget is destroyed, it may be necessary to remove
+	 * it from an internal data structure of the parent. When
+	 * a widget has no handle, it may also be necessary for the
+	 * parent to hide the widget or otherwise indicate that the
+	 * widget has been disposed. For example, disposing a menu
+	 * bar requires that the menu bar first be released from the
+	 * shell when the menu bar is active.
+	 * </p>
+	 * 
+	 * @see #dispose
+	 * @see #releaseChildren
+	 * @see #releaseWidget
+	 * @see #releaseHandle
+	 */
 	void releaseParent () {
-		// TODO
 	}
 
+	/*
+	 * Releases any internal resources back to the operating
+	 * system and clears all fields except the widget handle.
+	 * <p>
+	 * When a widget is destroyed, resources that were acquired
+	 * on behalf of the programmer need to be returned to the
+	 * operating system.  For example, if the widget made a
+	 * copy of an icon, supplied by the programmer, this copy
+	 * would be freed in <code>releaseWidget</code>.  Also,
+	 * to assist the garbage collector and minimize the amount
+	 * of memory that is not reclaimed when the programmer keeps
+	 * a reference to a disposed widget, all fields except the
+	 * handle are zero'd.  The handle is needed by <code>destroyWidget</code>.
+	 * </p>
+	 * 
+	 * @see #dispose
+	 * @see #releaseChildren
+	 * @see #releaseHandle
+	 * @see #releaseParent
+	 */
 	void releaseWidget () {
-		// TODO
+		eventTable = null;
+		data = null;
 	}
 	
 	/**
@@ -572,7 +781,10 @@ public abstract class Widget {
 	 * @see #notifyListeners
 	 */
 	public void removeListener(int eventType, Listener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (eventType, listener);
 	}
 
 	/**
@@ -603,7 +815,39 @@ public abstract class Widget {
 	 * @nooverride This method is not intended to be re-implemented or extended by clients.
 	 */
 	protected void removeListener (int eventType, SWTEventListener handler) {
-		// TODO
+		checkWidget ();
+		if (handler == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (eventType, handler);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the widget is disposed.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see DisposeListener
+	 * @see #addDisposeListener
+	 */
+	public void removeDisposeListener(DisposeListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Dispose, listener);
 	}
 
 	/**
@@ -641,41 +885,19 @@ public abstract class Widget {
 	 * @since 3.6
 	 */
 	public void reskin(int flags) {
-		// TODO
+		checkWidget ();
+		reskinWidget ();
+		if ((flags & SWT.ALL) != 0) reskinChildren (flags);
 	}
 
 	void reskinChildren (int flags) {	
-		// TODO
 	}
 
 	void reskinWidget() {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the widget is disposed.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see DisposeListener
-	 * @see #addDisposeListener
-	 */
-	public void removeDisposeListener(DisposeListener listener) {
-		// TODO
+		if ((state & SKIN_NEEDED) != SKIN_NEEDED) {
+			this.state |= SKIN_NEEDED;
+			display.addSkinnableWidget(this);
+		}
 	}
 
 	void sendEvent (Event event) {
@@ -711,8 +933,17 @@ public abstract class Widget {
 		}
 	}
 
-	void sendSelectionEvent (int eventType, Event event, boolean send) {
-		// TODO
+	void sendSelectionEvent (int type) {
+		sendSelectionEvent (type, null, false);
+	}
+
+	void sendSelectionEvent (int type, Event event, boolean send) {
+		if (eventTable == null && !display.filters (type)) {
+			return;
+		}
+		if (event == null) event = new Event ();
+		setInputState (event, type);
+		sendEvent (type, event, send);
 	}
 	
 	/**
@@ -740,10 +971,12 @@ public abstract class Widget {
 	 * @see #getData()
 	 */
 	public void setData(Object data) {
-		if (node != null)
-			node.setUserData(data);
-		else
-			tempData = data;
+		checkWidget();
+		if ((state & KEYED_DATA) != 0) {
+			((Object []) this.data) [0] = data;
+		} else {
+			this.data = data;
+		}
 	}
 
 	/**
@@ -776,9 +1009,54 @@ public abstract class Widget {
 	 * @see #getData(String)
 	 */
 	public void setData(String key, Object value) {
-		if (data == null)
-			data = new HashMap<>();
-		data.put(key, value);
+		checkWidget();
+		if (key == null) error (SWT.ERROR_NULL_ARGUMENT);
+		int index = 1;
+		Object [] table = null;
+		if ((state & KEYED_DATA) != 0) {
+			table = (Object []) data;
+			while (index < table.length) {
+				if (key.equals (table [index])) break;
+				index += 2;
+			}
+		}
+		if (value != null) {
+			if ((state & KEYED_DATA) != 0) {
+				if (index == table.length) {
+					Object [] newTable = new Object [table.length + 2];
+					System.arraycopy (table, 0, newTable, 0, table.length);
+					data = table = newTable;
+				}
+			} else {
+				table = new Object [3];
+				table [0] = data;
+				data = table;
+				state |= KEYED_DATA;
+			}
+			table [index] = key;
+			table [index + 1] = value;
+		} else {
+			if ((state & KEYED_DATA) != 0) {
+				if (index != table.length) {
+					int length = table.length - 2;
+					if (length == 1) {
+						data = table [0];
+						state &= ~KEYED_DATA;
+					} else {
+						Object [] newTable = new Object [length];
+						System.arraycopy (table, 0, newTable, 0, index);
+						System.arraycopy (table, index + 2, newTable, index, length - index);
+						data = newTable;
+					}
+				}
+			}
+		}
+		if (key.equals(SWT.SKIN_CLASS) || key.equals(SWT.SKIN_ID)) this.reskin(SWT.ALL);
+	}
+
+	boolean setInputState (Event event, int type) {
+		// TODO Used to add meta key and mouse button flags to the event stateMask
+		return false;
 	}
 
 }

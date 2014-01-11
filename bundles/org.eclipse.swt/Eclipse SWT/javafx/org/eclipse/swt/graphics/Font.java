@@ -177,4 +177,12 @@ public final class Font extends Resource {
 		return false;
 	}
 
+	/**
+	 * Not SWT API
+	 * 
+	 * @return css string for font
+	 */
+	public String toCSSString() {
+		return "";
+	}
 }

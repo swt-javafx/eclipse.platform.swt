@@ -63,6 +63,7 @@ public class Composite extends Scrollable {
 	Layout layout;
 	PaneLayout paneLayout;
 	Control[] children = new Control[0];
+	int backgroundMode;
 	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -110,6 +111,14 @@ public class Composite extends Scrollable {
 	void createNode() {
 		// Plain composites are just panes. They'll get created when the first child is added
 		// to give a chance for the layouts to get filled.
+	}
+	
+	void controlMoveAbove(Control control1, Control control2) {
+		// TODO
+	}
+	
+	void controlMoveBelow(Control control1, Control control2) {
+		// TODO
 	}
 	
 	void convertLayout() {
@@ -188,6 +197,14 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public void changed(Control[] changed) {
+		// TODO
+	}
+
+	void attachControl(Control child) {
+		// TODO
+	}
+	
+	void detachControl(Control child) {
 		// TODO
 	}
 

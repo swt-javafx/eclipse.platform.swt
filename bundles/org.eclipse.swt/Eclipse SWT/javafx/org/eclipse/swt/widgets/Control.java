@@ -10,8 +10,12 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.geometry.Bounds;
-import javafx.scene.Node;
+import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.KeyCode;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -75,8 +79,34 @@ import org.eclipse.swt.graphics.Region;
  */
 public abstract class Control extends Widget implements Drawable {
 
-	private Object layoutData;
+	javafx.scene.layout.Region nativeRegion;
+	Tooltip tooltip;
+	static Control lastEnter;
+	Event lastTypedDown;
+	Event lastLetterDown;
+
+	static EventHandler<javafx.scene.input.MouseEvent> mouseHandler;
+	static EventHandler<javafx.scene.input.KeyEvent> keyHandler;
+	static EventHandler<ContextMenuEvent> contextMenuHandler;
 	
+	Composite parent;
+	Cursor cursor;
+	Menu menu;
+	String toolTipText;
+	Object layoutData;
+	Accessible accessible;
+	Image backgroundImage;
+	Font font;
+	Region region;
+	int drawCount;
+	Color foreground, background;
+	
+	/**
+	 * Prevents uninitialized instances from being created outside the package.
+	 */
+	Control () {
+	}
+
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -114,81 +144,22 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see Widget#getStyle
 	 */
 	public Control(Composite parent, int style) {
-		super(parent, style);
-		// TODO
-	}
-
-	@Override
-	void setNode(Node node) {
-		super.setNode(node);
-		
-		if (parent != null)
-			((Composite)parent).addChild(this);
-	}
-	
-	@Override
-	public void dispose() {
-		if (parent != null)
-			((Composite)parent).removeChild(this);
-		super.dispose();
-	}
-	
-	/**
-	 * Returns the orientation of the receiver, which will be one of the
-	 * constants <code>SWT.LEFT_TO_RIGHT</code> or
-	 * <code>SWT.RIGHT_TO_LEFT</code>.
-	 * 
-	 * @return the orientation style
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.7
-	 */
-	public int getOrientation() {
-		// TODO
-		return 0;
+		super (parent, style);
+		this.parent = parent;
+		createWidget ();
 	}
 
 	/**
-	 * Returns the text direction of the receiver, which will be one of the
-	 * constants <code>SWT.LEFT_TO_RIGHT</code> or
-	 * <code>SWT.RIGHT_TO_LEFT</code>.
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the control is moved or resized, by sending it one of the messages
+	 * defined in the <code>ControlListener</code> interface.
 	 * 
-	 * @return the text direction style
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.102
-	 */
-	public int getTextDirection() {
-		// TODO
-		return 0;
-	}
-
-	/**
-	 * Prints the receiver and all children.
-	 * 
-	 * @param gc
-	 *            the gc where the drawing occurs
-	 * @return <code>true</code> if the operation was successful and
-	 *         <code>false</code> otherwise
+	 * @param listener
+	 *            the listener which should be notified
 	 * 
 	 * @exception IllegalArgumentException
 	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the gc is null</li>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the gc has been disposed</li>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
 	 *                </ul>
 	 * @exception SWTException
 	 *                <ul>
@@ -198,13 +169,480 @@ public abstract class Control extends Widget implements Drawable {
 	 *                thread that created the receiver</li>
 	 *                </ul>
 	 * 
-	 * @since 3.4
+	 * @see ControlListener
+	 * @see #removeControlListener
 	 */
-	public boolean print(GC gc) {
-		// TODO
-		return false;
+	public void addControlListener(ControlListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Resize,typedListener);
+		addListener (SWT.Move,typedListener);
 	}
 
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when a drag gesture occurs, by sending it one of the messages defined in
+	 * the <code>DragDetectListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see DragDetectListener
+	 * @see #removeDragDetectListener
+	 * 
+	 * @since 3.3
+	 */
+	public void addDragDetectListener(DragDetectListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.DragDetect,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the control gains or loses focus, by sending it one of the messages
+	 * defined in the <code>FocusListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see FocusListener
+	 * @see #removeFocusListener
+	 */
+	public void addFocusListener(FocusListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.FocusIn,typedListener);
+		addListener (SWT.FocusOut,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when gesture events are generated for the control, by sending it one of
+	 * the messages defined in the <code>GestureListener</code> interface.
+	 * <p>
+	 * NOTE: If <code>setTouchEnabled(true)</code> has previously been invoked
+	 * on the receiver then <code>setTouchEnabled(false)</code> must be invoked
+	 * on it to specify that gesture events should be sent instead of touch
+	 * events.
+	 * </p>
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see GestureListener
+	 * @see #removeGestureListener
+	 * @see #setTouchEnabled
+	 * 
+	 * @since 3.7
+	 */
+	public void addGestureListener(GestureListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Gesture, typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when help events are generated for the control, by sending it one of the
+	 * messages defined in the <code>HelpListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see HelpListener
+	 * @see #removeHelpListener
+	 */
+	public void addHelpListener(HelpListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Help, typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when keys are pressed and released on the system keyboard, by sending it
+	 * one of the messages defined in the <code>KeyListener</code> interface.
+	 * <p>
+	 * When a key listener is added to a control, the control will take part in
+	 * widget traversal. By default, all traversal keys (such as the tab key and
+	 * so on) are delivered to the control. In order for a control to take part
+	 * in traversal, it should listen for traversal events. Otherwise, the user
+	 * can traverse into a control but not out. Note that native controls such
+	 * as table and tree implement key traversal in the operating system. It is
+	 * not necessary to add traversal listeners for these controls, unless you
+	 * want to override the default traversal.
+	 * </p>
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see KeyListener
+	 * @see #removeKeyListener
+	 */
+	public void addKeyListener(KeyListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.KeyUp,typedListener);
+		addListener (SWT.KeyDown,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the platform-specific context menu trigger has occurred, by sending
+	 * it one of the messages defined in the <code>MenuDetectListener</code>
+	 * interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MenuDetectListener
+	 * @see #removeMenuDetectListener
+	 * 
+	 * @since 3.3
+	 */
+	public void addMenuDetectListener(MenuDetectListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.MenuDetect, typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when mouse buttons are pressed and released, by sending it one of the
+	 * messages defined in the <code>MouseListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseListener
+	 * @see #removeMouseListener
+	 */
+	public void addMouseListener(MouseListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.MouseDown,typedListener);
+		addListener (SWT.MouseUp,typedListener);
+		addListener (SWT.MouseDoubleClick,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the mouse passes or hovers over controls, by sending it one of the
+	 * messages defined in the <code>MouseTrackListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseTrackListener
+	 * @see #removeMouseTrackListener
+	 */
+	public void addMouseTrackListener(MouseTrackListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.MouseEnter,typedListener);
+		addListener (SWT.MouseExit,typedListener);
+		addListener (SWT.MouseHover,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the mouse moves, by sending it one of the messages defined in the
+	 * <code>MouseMoveListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseMoveListener
+	 * @see #removeMouseMoveListener
+	 */
+	public void addMouseMoveListener(MouseMoveListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.MouseMove,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the mouse wheel is scrolled, by sending it one of the messages
+	 * defined in the <code>MouseWheelListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseWheelListener
+	 * @see #removeMouseWheelListener
+	 * 
+	 * @since 3.3
+	 */
+	public void addMouseWheelListener(MouseWheelListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.MouseWheel, typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when the receiver needs to be painted, by sending it one of the messages
+	 * defined in the <code>PaintListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see PaintListener
+	 * @see #removePaintListener
+	 */
+	public void addPaintListener(PaintListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Paint,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when touch events occur, by sending it one of the messages defined in the
+	 * <code>TouchListener</code> interface.
+	 * <p>
+	 * NOTE: You must also call <code>setTouchEnabled(true)</code> to specify
+	 * that touch events should be sent, which will cause gesture events to not
+	 * be sent.
+	 * </p>
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see TouchListener
+	 * @see #removeTouchListener
+	 * @see #setTouchEnabled
+	 * 
+	 * @since 3.7
+	 */
+	public void addTouchListener(TouchListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Touch,typedListener);
+	}
+
+	/**
+	 * Adds the listener to the collection of listeners who will be notified
+	 * when traversal events occur, by sending it one of the messages defined in
+	 * the <code>TraverseListener</code> interface.
+	 * 
+	 * @param listener
+	 *            the listener which should be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see TraverseListener
+	 * @see #removeTraverseListener
+	 */
+	public void addTraverseListener(TraverseListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Traverse,typedListener);
+	}
+
+	void checkBackground () {
+		Shell shell = getShell ();
+		if (this == shell) return;
+		state &= ~PARENT_BACKGROUND;
+		Composite composite = parent;
+		do {
+			int mode = composite.backgroundMode;
+			if (mode != 0) {
+				if (mode == SWT.INHERIT_DEFAULT) {
+					Control control = this;
+					do {
+						if ((control.state & THEME_BACKGROUND) == 0) {
+							return;
+						}
+						control = control.parent;
+					} while (control != composite);
+				}
+				state |= PARENT_BACKGROUND;
+				return;
+			}
+			if (composite == shell) break;
+			composite = composite.parent;
+		} while (true);	
+	}
+
+	void checkBorder () {
+		if (getBorderWidth () == 0) style &= ~SWT.BORDER;
+	}
+
+	void checkBuffered () {
+		style |= SWT.DOUBLE_BUFFERED;
+	}
+	
 	/**
 	 * Returns the preferred size of the receiver.
 	 * <p>
@@ -238,8 +676,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see "computeTrim, getClientArea for controls that implement them"
 	 */
 	public Point computeSize(int wHint, int hHint) {
-		// TODO
-		return new Point(0, 0);
+		return computeSize (wHint, hHint, true);
 	}
 
 	/**
@@ -285,1292 +722,35 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see "computeTrim, getClientArea for controls that implement them"
 	 */
 	public Point computeSize(int wHint, int hHint, boolean changed) {
-		// TODO
-		return new Point(0, 0);
+		checkWidget ();
+		int width = DEFAULT_WIDTH;
+		int height = DEFAULT_HEIGHT;
+		if (wHint != SWT.DEFAULT) width = wHint;
+		if (hHint != SWT.DEFAULT) height = hHint;
+		int border = getBorderWidth ();
+		width += border * 2;
+		height += border * 2;
+		return new Point (width, height);
 	}
 
-	/**
-	 * Returns the accessible object for the receiver.
-	 * <p>
-	 * If this is the first time this object is requested, then the object is
-	 * created and returned. The object returned by getAccessible() does not
-	 * need to be disposed.
-	 * </p>
-	 * 
-	 * @return the accessible object
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see Accessible#addAccessibleListener
-	 * @see Accessible#addAccessibleControlListener
-	 * 
-	 * @since 2.0
-	 */
-	public Accessible getAccessible() {
-		// TODO
-		return new Accessible(null);
+	void createHandle() {
 	}
-
-	/**
-	 * Returns a rectangle describing the receiver's size and location relative
-	 * to its parent (or its display if its parent is null), unless the receiver
-	 * is a shell. In this case, the location is relative to the display.
-	 * 
-	 * @return the receiver's bounding rectangle
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public Rectangle getBounds() {
-		if (node == null)
-			// TODO
-			return new Rectangle(0, 0, 0, 0);
-		Bounds bounds = node.getBoundsInLocal();
-		return new Rectangle((int)bounds.getMinX(), (int)bounds.getMinY(), (int)bounds.getWidth(), (int)bounds.getHeight());
+	
+	void createWidget () {
+		state |= DRAG_DETECT;
+		checkOrientation (parent);
+		createHandle ();
+		checkBackground ();
+		checkBuffered ();
+		register ();
+		checkBorder ();
+		if ((state & PARENT_BACKGROUND) != 0) {
+			setBackground ();
+		}
 	}
-
-	/**
-	 * Sets the receiver's size and location to the rectangular area specified
-	 * by the argument. The <code>x</code> and <code>y</code> fields of the
-	 * rectangle are relative to the receiver's parent (or its display if its
-	 * parent is null).
-	 * <p>
-	 * Note: Attempting to set the width or height of the receiver to a negative
-	 * number will cause that value to be set to zero instead.
-	 * </p>
-	 * 
-	 * @param rect
-	 *            the new bounds for the receiver
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setBounds(Rectangle rect) {
-		// TODO
-	}
-
-	/**
-	 * Sets the receiver's size and location to the rectangular area specified
-	 * by the arguments. The <code>x</code> and <code>y</code> arguments are
-	 * relative to the receiver's parent (or its display if its parent is null),
-	 * unless the receiver is a shell. In this case, the <code>x</code> and
-	 * <code>y</code> arguments are relative to the display.
-	 * <p>
-	 * Note: Attempting to set the width or height of the receiver to a negative
-	 * number will cause that value to be set to zero instead.
-	 * </p>
-	 * 
-	 * @param x
-	 *            the new x coordinate for the receiver
-	 * @param y
-	 *            the new y coordinate for the receiver
-	 * @param width
-	 *            the new width for the receiver
-	 * @param height
-	 *            the new height for the receiver
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setBounds(int x, int y, int width, int height) {
-		// TODO
-	}
-
-	/**
-	 * Returns a point describing the receiver's location relative to its parent
-	 * (or its display if its parent is null), unless the receiver is a shell.
-	 * In this case, the point is relative to the display.
-	 * 
-	 * @return the receiver's location
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public Point getLocation() {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Sets the receiver's location to the point specified by the arguments
-	 * which are relative to the receiver's parent (or its display if its parent
-	 * is null), unless the receiver is a shell. In this case, the point is
-	 * relative to the display.
-	 * 
-	 * @param location
-	 *            the new location for the receiver
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setLocation(Point location) {
-		// TODO
-	}
-
-	/**
-	 * Sets the receiver's location to the point specified by the arguments
-	 * which are relative to the receiver's parent (or its display if its parent
-	 * is null), unless the receiver is a shell. In this case, the point is
-	 * relative to the display.
-	 * 
-	 * @param x
-	 *            the new x coordinate for the receiver
-	 * @param y
-	 *            the new y coordinate for the receiver
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setLocation(int x, int y) {
-		// TODO
-	}
-
-	/**
-	 * Returns a point describing the receiver's size. The x coordinate of the
-	 * result is the width of the receiver. The y coordinate of the result is
-	 * the height of the receiver.
-	 * 
-	 * @return the receiver's size
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public Point getSize() {
-		// TODO
-		return new Point(0, 0);
-	}
-
-	/**
-	 * Sets the receiver's size to the point specified by the argument.
-	 * <p>
-	 * Note: Attempting to set the width or height of the receiver to a negative
-	 * number will cause them to be set to zero instead.
-	 * </p>
-	 * 
-	 * @param size
-	 *            the new size for the receiver
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setSize(Point size) {
-		// TODO
-	}
-
-	/**
-	 * Sets the shape of the control to the region specified by the argument.
-	 * When the argument is null, the default shape of the control is restored.
-	 * 
-	 * @param region
-	 *            the region that defines the shape of the control (or null)
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the region has been
-	 *                disposed</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.4
-	 */
-	public void setRegion(Region region) {
-		// TODO
-	}
-
-	/**
-	 * Sets the receiver's size to the point specified by the arguments.
-	 * <p>
-	 * Note: Attempting to set the width or height of the receiver to a negative
-	 * number will cause that value to be set to zero instead.
-	 * </p>
-	 * 
-	 * @param width
-	 *            the new width for the receiver
-	 * @param height
-	 *            the new height for the receiver
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setSize(int width, int height) {
-		// TODO
-	}
-
-	/**
-	 * Moves the receiver above the specified control in the drawing order. If
-	 * the argument is null, then the receiver is moved to the top of the
-	 * drawing order. The control at the top of the drawing order will not be
-	 * covered by other controls even if they occupy intersecting areas.
-	 * 
-	 * @param control
-	 *            the sibling control (or null)
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the control has been
-	 *                disposed</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see Control#moveBelow
-	 * @see Composite#getChildren
-	 */
-	public void moveAbove(Control control) {
-		// TODO
-	}
-
-	/**
-	 * Moves the receiver below the specified control in the drawing order. If
-	 * the argument is null, then the receiver is moved to the bottom of the
-	 * drawing order. The control at the bottom of the drawing order will be
-	 * covered by all other controls which occupy intersecting areas.
-	 * 
-	 * @param control
-	 *            the sibling control (or null)
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the control has been
-	 *                disposed</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see Control#moveAbove
-	 * @see Composite#getChildren
-	 */
-	public void moveBelow(Control control) {
-		// TODO
-	}
-
-	/**
-	 * Causes the receiver to be resized to its preferred size. For a composite,
-	 * this involves computing the preferred size from its layout, if there is
-	 * one.
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see #computeSize(int, int, boolean)
-	 */
-	public void pack() {
-		// TODO
-
-	}
-
-	/**
-	 * Causes the receiver to be resized to its preferred size. For a composite,
-	 * this involves computing the preferred size from its layout, if there is
-	 * one.
-	 * <p>
-	 * If the changed flag is <code>true</code>, it indicates that the
-	 * receiver's <em>contents</em> have changed, therefore any caches that a
-	 * layout manager containing the control may have been keeping need to be
-	 * flushed. When the control is resized, the changed flag will be
-	 * <code>false</code>, so layout manager caches can be retained.
-	 * </p>
-	 * 
-	 * @param changed
-	 *            whether or not the receiver's contents have changed
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see #computeSize(int, int, boolean)
-	 */
-	public void pack(boolean changed) {
-		// TODO
-	}
-
-	/**
-	 * Sets the layout data associated with the receiver to the argument.
-	 * 
-	 * @param layoutData
-	 *            the new layout data for the receiver.
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setLayoutData(Object layoutData) {
-		// TODO need to hook this up to JavaFX layer somehow
-		this.layoutData = layoutData;
-	}
-
-	/**
-	 * Returns a point which is the result of converting the argument, which is
-	 * specified in display relative coordinates, to coordinates relative to the
-	 * receiver.
-	 * <p>
-	 * 
-	 * @param x
-	 *            the x coordinate to be translated
-	 * @param y
-	 *            the y coordinate to be translated
-	 * @return the translated coordinates
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
-	 *                called from the thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 2.1
-	 */
-	public Point toControl(int x, int y) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Returns a point which is the result of converting the argument, which is
-	 * specified in display relative coordinates, to coordinates relative to the
-	 * receiver.
-	 * <p>
-	 * 
-	 * @param point
-	 *            the point to be translated (must not be null)
-	 * @return the translated coordinates
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
-	 *                called from the thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public Point toControl(Point point) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Returns a point which is the result of converting the argument, which is
-	 * specified in coordinates relative to the receiver, to display relative
-	 * coordinates.
-	 * <p>
-	 * 
-	 * @param x
-	 *            the x coordinate to be translated
-	 * @param y
-	 *            the y coordinate to be translated
-	 * @return the translated coordinates
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
-	 *                called from the thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 2.1
-	 */
-	public Point toDisplay(int x, int y) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Returns a point which is the result of converting the argument, which is
-	 * specified in coordinates relative to the receiver, to display relative
-	 * coordinates.
-	 * <p>
-	 * 
-	 * @param point
-	 *            the point to be translated (must not be null)
-	 * @return the translated coordinates
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
-	 *                called from the thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public Point toDisplay(Point point) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the control is moved or resized, by sending it one of the messages
-	 * defined in the <code>ControlListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see ControlListener
-	 * @see #removeControlListener
-	 */
-	public void addControlListener(ControlListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when a drag gesture occurs, by sending it one of the messages defined in
-	 * the <code>DragDetectListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see DragDetectListener
-	 * @see #removeDragDetectListener
-	 * 
-	 * @since 3.3
-	 */
-	public void addDragDetectListener(DragDetectListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the control gains or loses focus, by sending it one of the messages
-	 * defined in the <code>FocusListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see FocusListener
-	 * @see #removeFocusListener
-	 */
-	public void addFocusListener(FocusListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when gesture events are generated for the control, by sending it one of
-	 * the messages defined in the <code>GestureListener</code> interface.
-	 * <p>
-	 * NOTE: If <code>setTouchEnabled(true)</code> has previously been invoked
-	 * on the receiver then <code>setTouchEnabled(false)</code> must be invoked
-	 * on it to specify that gesture events should be sent instead of touch
-	 * events.
-	 * </p>
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see GestureListener
-	 * @see #removeGestureListener
-	 * @see #setTouchEnabled
-	 * 
-	 * @since 3.7
-	 */
-	public void addGestureListener(GestureListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when help events are generated for the control, by sending it one of the
-	 * messages defined in the <code>HelpListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see HelpListener
-	 * @see #removeHelpListener
-	 */
-	public void addHelpListener(HelpListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when keys are pressed and released on the system keyboard, by sending it
-	 * one of the messages defined in the <code>KeyListener</code> interface.
-	 * <p>
-	 * When a key listener is added to a control, the control will take part in
-	 * widget traversal. By default, all traversal keys (such as the tab key and
-	 * so on) are delivered to the control. In order for a control to take part
-	 * in traversal, it should listen for traversal events. Otherwise, the user
-	 * can traverse into a control but not out. Note that native controls such
-	 * as table and tree implement key traversal in the operating system. It is
-	 * not necessary to add traversal listeners for these controls, unless you
-	 * want to override the default traversal.
-	 * </p>
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see KeyListener
-	 * @see #removeKeyListener
-	 */
-	public void addKeyListener(KeyListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the platform-specific context menu trigger has occurred, by sending
-	 * it one of the messages defined in the <code>MenuDetectListener</code>
-	 * interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MenuDetectListener
-	 * @see #removeMenuDetectListener
-	 * 
-	 * @since 3.3
-	 */
-	public void addMenuDetectListener(MenuDetectListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when mouse buttons are pressed and released, by sending it one of the
-	 * messages defined in the <code>MouseListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseListener
-	 * @see #removeMouseListener
-	 */
-	public void addMouseListener(MouseListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the mouse moves, by sending it one of the messages defined in the
-	 * <code>MouseMoveListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseMoveListener
-	 * @see #removeMouseMoveListener
-	 */
-	public void addMouseMoveListener(MouseMoveListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the mouse passes or hovers over controls, by sending it one of the
-	 * messages defined in the <code>MouseTrackListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseTrackListener
-	 * @see #removeMouseTrackListener
-	 */
-	public void addMouseTrackListener(MouseTrackListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the mouse wheel is scrolled, by sending it one of the messages
-	 * defined in the <code>MouseWheelListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseWheelListener
-	 * @see #removeMouseWheelListener
-	 * 
-	 * @since 3.3
-	 */
-	public void addMouseWheelListener(MouseWheelListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when the receiver needs to be painted, by sending it one of the messages
-	 * defined in the <code>PaintListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see PaintListener
-	 * @see #removePaintListener
-	 */
-	public void addPaintListener(PaintListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when touch events occur, by sending it one of the messages defined in the
-	 * <code>TouchListener</code> interface.
-	 * <p>
-	 * NOTE: You must also call <code>setTouchEnabled(true)</code> to specify
-	 * that touch events should be sent, which will cause gesture events to not
-	 * be sent.
-	 * </p>
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see TouchListener
-	 * @see #removeTouchListener
-	 * @see #setTouchEnabled
-	 * 
-	 * @since 3.7
-	 */
-	public void addTouchListener(TouchListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Adds the listener to the collection of listeners who will be notified
-	 * when traversal events occur, by sending it one of the messages defined in
-	 * the <code>TraverseListener</code> interface.
-	 * 
-	 * @param listener
-	 *            the listener which should be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see TraverseListener
-	 * @see #removeTraverseListener
-	 */
-	public void addTraverseListener(TraverseListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the control is moved or resized.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see ControlListener
-	 * @see #addControlListener
-	 */
-	public void removeControlListener(ControlListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when a drag gesture occurs.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see DragDetectListener
-	 * @see #addDragDetectListener
-	 * 
-	 * @since 3.3
-	 */
-	public void removeDragDetectListener(DragDetectListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the control gains or loses focus.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see FocusListener
-	 * @see #addFocusListener
-	 */
-	public void removeFocusListener(FocusListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when gesture events are generated for the control.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see GestureListener
-	 * @see #addGestureListener
-	 * 
-	 * @since 3.7
-	 */
-	public void removeGestureListener(GestureListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the help events are generated for the control.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see HelpListener
-	 * @see #addHelpListener
-	 */
-	public void removeHelpListener(HelpListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when keys are pressed and released on the system keyboard.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see KeyListener
-	 * @see #addKeyListener
-	 */
-	public void removeKeyListener(KeyListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the platform-specific context menu trigger has occurred.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MenuDetectListener
-	 * @see #addMenuDetectListener
-	 * 
-	 * @since 3.3
-	 */
-	public void removeMenuDetectListener(MenuDetectListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when mouse buttons are pressed and released.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseListener
-	 * @see #addMouseListener
-	 */
-	public void removeMouseListener(MouseListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the mouse moves.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseMoveListener
-	 * @see #addMouseMoveListener
-	 */
-	public void removeMouseMoveListener(MouseMoveListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the mouse passes or hovers over controls.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseTrackListener
-	 * @see #addMouseTrackListener
-	 */
-	public void removeMouseTrackListener(MouseTrackListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the mouse wheel is scrolled.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see MouseWheelListener
-	 * @see #addMouseWheelListener
-	 * 
-	 * @since 3.3
-	 */
-	public void removeMouseWheelListener(MouseWheelListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the receiver needs to be painted.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see PaintListener
-	 * @see #addPaintListener
-	 */
-	public void removePaintListener(PaintListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when touch events occur.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see TouchListener
-	 * @see #addTouchListener
-	 * 
-	 * @since 3.7
-	 */
-	public void removeTouchListener(TouchListener listener) {
-		// TODO
-	}
-
-	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when traversal events occur.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see TraverseListener
-	 * @see #addTraverseListener
-	 */
-	public void removeTraverseListener(TraverseListener listener) {
-		// TODO
+	
+	Font defaultFont() {
+		return display.getSystemFont();
 	}
 
 	/**
@@ -1663,6 +843,11 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
+	Control findBackgroundControl () {
+		if (background != null || backgroundImage != null) return this;
+		return (state & PARENT_BACKGROUND) != 0 ? parent.findBackgroundControl () : null;
+	}
+
 	/**
 	 * Forces the receiver to have the <em>keyboard focus</em>, causing all
 	 * keyboard events to be delivered to it.
@@ -1685,6 +870,43 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
+	void forceSizeProcessing() {
+		if ((state & CSS_PROCESSED) == 0
+				&& (nativeRegion.getScene() == null || nativeRegion.getScene().getWindow() == null
+					|| nativeRegion.getScene().getWindow().isShowing())) {
+			state |= CSS_PROCESSED;
+			nativeRegion.impl_processCSS(true);
+		}
+	}
+	
+	/**
+	 * Returns the accessible object for the receiver.
+	 * <p>
+	 * If this is the first time this object is requested, then the object is
+	 * created and returned. The object returned by getAccessible() does not
+	 * need to be disposed.
+	 * </p>
+	 * 
+	 * @return the accessible object
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see Accessible#addAccessibleListener
+	 * @see Accessible#addAccessibleControlListener
+	 * 
+	 * @since 2.0
+	 */
+	public Accessible getAccessible() {
+		// TODO
+		return new Accessible(null);
+	}
+
 	/**
 	 * Returns the receiver's background color.
 	 * <p>
@@ -1704,8 +926,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Color getBackground() {
-		// TODO
-		return new Color(getDisplay(), 0, 0, 0);
+		return background != null ? background : display.getSystemColor(SWT.COLOR_WIDGET_BACKGROUND);
 	}
 
 	/**
@@ -1747,6 +968,45 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	/**
+	 * Returns a rectangle describing the receiver's size and location relative
+	 * to its parent (or its display if its parent is null), unless the receiver
+	 * is a shell. In this case, the location is relative to the display.
+	 * 
+	 * @return the receiver's bounding rectangle
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public Rectangle getBounds() {
+		Point location = getLocation();
+		Point size = getSize();
+		return new Rectangle(location.x, location.y, size.x, size.y);
+	}
+
+	private EventHandler<ContextMenuEvent> getContextMenuHandler() {
+		if (contextMenuHandler == null) {
+			contextMenuHandler = new EventHandler<ContextMenuEvent>() {
+				@Override
+				public void handle(ContextMenuEvent event) {
+					Control control = Display.getDefault().getControl(event.getTarget());
+					if (control != null) {
+						Event evt = new Event();
+						evt.x = (int) event.getScreenX();
+						evt.y = (int) event.getScreenY();
+						sendEvent(SWT.MenuDetect, evt, true);
+					}
+				}
+			};
+		}
+		return contextMenuHandler;
+	}
+
+	/**
 	 * Returns the receiver's cursor, or null if it has not been set.
 	 * <p>
 	 * When the mouse pointer passes over a control its appearance is changed to
@@ -1766,8 +1026,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.3
 	 */
 	public Cursor getCursor() {
-		// TODO
-		return null;
+		return cursor;
 	}
 
 	/**
@@ -1810,8 +1069,8 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #isEnabled
 	 */
 	public boolean getEnabled() {
-		// TODO
-		return false;
+		checkWidget();
+		return !nativeRegion.isDisabled();
 	}
 
 	/**
@@ -1828,8 +1087,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Font getFont() {
-		// TODO
-		return getDisplay().getSystemFont();
+		checkWidget();
+		return font != null ? font : defaultFont ();
 	}
 
 	/**
@@ -1846,8 +1105,22 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Color getForeground() {
-		// TODO
-		return new Color(getDisplay(), 0, 0, 0);
+		return foreground != null ? foreground  : display.getSystemColor(SWT.COLOR_WIDGET_FOREGROUND);
+	}
+
+	private static EventHandler<javafx.scene.input.KeyEvent> getKeyEventHandler() {
+		if (keyHandler == null) {
+			keyHandler = new EventHandler<javafx.scene.input.KeyEvent>() {
+				@Override
+				public void handle(javafx.scene.input.KeyEvent event) {
+					Control c = Display.getDefault().getControl(event.getTarget());
+					if (c != null) {
+						c.sendKeyEvent(event);
+					}
+				}
+			};
+		}
+		return keyHandler;
 	}
 
 	/**
@@ -1868,6 +1141,26 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	/**
+	 * Returns a point describing the receiver's location relative to its parent
+	 * (or its display if its parent is null), unless the receiver is a shell.
+	 * In this case, the point is relative to the display.
+	 * 
+	 * @return the receiver's location
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public Point getLocation() {
+		checkWidget();
+		return new Point((int)nativeRegion.getLayoutX(), (int)nativeRegion.getLayoutY());
+	}
+
+	/**
 	 * Returns the receiver's pop up menu if it has one, or null if it does not.
 	 * All controls may optionally have a pop up menu that is displayed when the
 	 * user requests one for the control. The sequence of key strokes, button
@@ -1885,8 +1178,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Menu getMenu() {
-		// TODO
-		return null;
+		return menu;
 	}
 
 	/**
@@ -1905,8 +1197,110 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.0
 	 */
 	public Monitor getMonitor() {
-		// TODO need to create the Monitor object and fill in the fields if we can
-		return new Monitor();
+		Monitor[] monitors = getDisplay().getMonitors();
+		if (monitors.length == 1) {
+			return monitors[0];
+
+		}
+		Rectangle bounds = getBounds();
+		if (!(this instanceof Shell)) {
+			bounds = getDisplay().map(getParent(), null, bounds);
+		}
+		
+		int index = -1, value = -1;
+		for (int i = 0; i < monitors.length; i++) {
+			Rectangle rect = bounds.intersection(monitors[i].getBounds());
+			int area = rect.width * rect.height;
+			if (area > 0 && area > value) {
+				index = i;
+				value = area;
+			}
+		}
+		if (index >= 0)
+			return monitors[index];
+		int centerX = bounds.x + bounds.width / 2, centerY = bounds.y
+				+ bounds.height / 2;
+		for (int i = 0; i < monitors.length; i++) {
+			Rectangle rect = monitors[i].getBounds();
+			int x = centerX < rect.x ? rect.x - centerX : centerX > rect.x
+					+ rect.width ? centerX - rect.x - rect.width : 0;
+			int y = centerY < rect.y ? rect.y - centerY : centerY > rect.y
+					+ rect.height ? centerY - rect.y - rect.height : 0;
+			int distance = x * x + y * y;
+			if (index == -1 || distance < value) {
+				index = i;
+				value = distance;
+			}
+		}
+		return monitors[index];
+	}
+
+	static EventHandler<javafx.scene.input.MouseEvent> getMouseHandler() {
+		if (mouseHandler == null) {
+			mouseHandler = new EventHandler<javafx.scene.input.MouseEvent>() {
+				@Override
+				public void handle(javafx.scene.input.MouseEvent event) {
+					int type = SWT.None;
+
+					if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_EXITED) {
+						type = SWT.MouseExit;
+					} else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_ENTERED) {
+						type = SWT.MouseEnter;
+					} else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_MOVED
+							|| event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_DRAGGED) {
+						type = SWT.MouseMove;
+					} else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_PRESSED) {
+						type = SWT.MouseDown;
+					} else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_RELEASED) {
+						type = SWT.MouseUp;
+					}
+
+					if (type != SWT.None) {
+						Control c = Display.getDefault().getControl(
+								event.getSource());
+						if (c != null) {
+							if (type == SWT.MouseEnter) {
+								c.getDisplay().setHoverControl(c);
+							} else if (type == SWT.MouseExit) {
+								c.getDisplay().setHoverControl(null);
+							} else if (type == SWT.MouseMove) {
+								c.getDisplay().setHoverControl(c);
+							}
+
+							c.sendMouseEvent(type, event);
+
+							if (type == SWT.MouseUp
+									&& event.getClickCount() > 1) {
+								c.sendMouseEvent(SWT.MouseDoubleClick, event);
+							}
+						}
+					}
+				}
+			};
+		}
+		return mouseHandler;
+	}
+
+	/**
+	 * Returns the orientation of the receiver, which will be one of the
+	 * constants <code>SWT.LEFT_TO_RIGHT</code> or
+	 * <code>SWT.RIGHT_TO_LEFT</code>.
+	 * 
+	 * @return the orientation style
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.7
+	 */
+	public int getOrientation() {
+		checkWidget();
+		return style & (SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT);
 	}
 
 	/**
@@ -1925,8 +1319,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public Composite getParent() {
-		// TODO
-		return (Composite)parent;
+		checkWidget();
+		return parent;
 	}
 
 	/**
@@ -1946,8 +1340,8 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.4
 	 */
 	public Region getRegion() {
-		// TODO
-		return null;
+		checkWidget();
+		return region;
 	}
 
 	/**
@@ -1968,10 +1362,52 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #getParent
 	 */
 	public Shell getShell() {
-		Widget p = parent;
-		while (p != null && !(p instanceof Shell))
-			p = p.parent;
-		return (Shell)p;
+		checkWidget();
+		return parent.getShell();
+	}
+
+	/**
+	 * Returns a point describing the receiver's size. The x coordinate of the
+	 * result is the width of the receiver. The y coordinate of the result is
+	 * the height of the receiver.
+	 * 
+	 * @return the receiver's size
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public Point getSize() {
+		checkWidget();
+		forceSizeProcessing();
+		return new Point((int)nativeRegion.getWidth(), (int)nativeRegion.getHeight());
+	}
+
+	/**
+	 * Returns the text direction of the receiver, which will be one of the
+	 * constants <code>SWT.LEFT_TO_RIGHT</code> or
+	 * <code>SWT.RIGHT_TO_LEFT</code>.
+	 * 
+	 * @return the text direction style
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.102
+	 */
+	public int getTextDirection() {
+		checkWidget ();
+		/* return the widget orientation */
+		return style & (SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT);
 	}
 
 	/**
@@ -1988,8 +1424,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public String getToolTipText() {
-		// TODO
-		return null;
+		checkWidget();
+		return toolTipText;
 	}
 
 	/**
@@ -2018,7 +1454,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.7
 	 */
 	public boolean getTouchEnabled() {
-		// TODO
+		checkWidget();
 		return false;
 	}
 
@@ -2042,48 +1478,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean getVisible() {
-		// TODO
-		return false;
-	}
-
-	/**
-	 * Invokes platform specific functionality to allocate a new GC handle.
-	 * <p>
-	 * <b>IMPORTANT:</b> This method is <em>not</em> part of the public API for
-	 * <code>Control</code>. It is marked public only so that it can be shared
-	 * within the packages provided by SWT. It is not available on all
-	 * platforms, and should never be called from application code.
-	 * </p>
-	 * 
-	 * @param data
-	 *            the platform specific GC data
-	 * @return the platform specific GC handle
-	 * 
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	public long /* int */internal_new_GC(GCData data) {
-		// TODO
-		return 0;
-	}
-
-	/**
-	 * Invokes platform specific functionality to dispose a GC handle.
-	 * <p>
-	 * <b>IMPORTANT:</b> This method is <em>not</em> part of the public API for
-	 * <code>Control</code>. It is marked public only so that it can be shared
-	 * within the packages provided by SWT. It is not available on all
-	 * platforms, and should never be called from application code.
-	 * </p>
-	 * 
-	 * @param hDC
-	 *            the platform specific GC handle
-	 * @param data
-	 *            the platform specific GC data
-	 * 
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	public void internal_dispose_GC(long /* int */hDC, GCData data) {
-		// TODO
+		checkWidget();
+		return nativeRegion.isVisible();
 	}
 
 	/**
@@ -2102,8 +1498,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean isReparentable() {
-		// TODO
-		return false;
+		return true;
 	}
 
 	/**
@@ -2126,8 +1521,8 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #getEnabled
 	 */
 	public boolean isEnabled() {
-		// TODO
-		return false;
+		checkWidget();
+		return getEnabled() && parent.isEnabled();
 	}
 
 	/**
@@ -2145,8 +1540,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean isFocusControl() {
-		// TODO
-		return false;
+		return nativeRegion.isFocused();
 	}
 
 	/**
@@ -2167,10 +1561,170 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #getVisible
 	 */
 	public boolean isVisible() {
+		return getVisible() && parent.isVisible();
+	}
+
+	/**
+	 * Moves the receiver above the specified control in the drawing order. If
+	 * the argument is null, then the receiver is moved to the top of the
+	 * drawing order. The control at the top of the drawing order will not be
+	 * covered by other controls even if they occupy intersecting areas.
+	 * 
+	 * @param control
+	 *            the sibling control (or null)
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the control has been
+	 *                disposed</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see Control#moveBelow
+	 * @see Composite#getChildren
+	 */
+	public void moveAbove(Control control) {
+		parent.controlMoveAbove(this, control);
+	}
+
+	/**
+	 * Moves the receiver below the specified control in the drawing order. If
+	 * the argument is null, then the receiver is moved to the bottom of the
+	 * drawing order. The control at the bottom of the drawing order will be
+	 * covered by all other controls which occupy intersecting areas.
+	 * 
+	 * @param control
+	 *            the sibling control (or null)
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the control has been
+	 *                disposed</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see Control#moveAbove
+	 * @see Composite#getChildren
+	 */
+	public void moveBelow(Control control) {
+		parent.controlMoveBelow(this, control);
+	}
+
+	/**
+	 * Causes the receiver to be resized to its preferred size. For a composite,
+	 * this involves computing the preferred size from its layout, if there is
+	 * one.
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see #computeSize(int, int, boolean)
+	 */
+	public void pack() {
+		forceSizeProcessing();
+		// TODO is it min size??
+		setSize((int)nativeRegion.prefWidth(-1), (int)nativeRegion.prefHeight(-1));
+	}
+
+	/**
+	 * Causes the receiver to be resized to its preferred size. For a composite,
+	 * this involves computing the preferred size from its layout, if there is
+	 * one.
+	 * <p>
+	 * If the changed flag is <code>true</code>, it indicates that the
+	 * receiver's <em>contents</em> have changed, therefore any caches that a
+	 * layout manager containing the control may have been keeping need to be
+	 * flushed. When the control is resized, the changed flag will be
+	 * <code>false</code>, so layout manager caches can be retained.
+	 * </p>
+	 * 
+	 * @param changed
+	 *            whether or not the receiver's contents have changed
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see #computeSize(int, int, boolean)
+	 */
+	public void pack(boolean changed) {
+		// TODO changed?
+		forceSizeProcessing();
+		// TODO is it min size??
+		setSize((int)nativeRegion.prefWidth(-1), (int)nativeRegion.prefHeight(-1));
+	}
+
+	/**
+	 * Prints the receiver and all children.
+	 * 
+	 * @param gc
+	 *            the gc where the drawing occurs
+	 * @return <code>true</code> if the operation was successful and
+	 *         <code>false</code> otherwise
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the gc is null</li>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the gc has been disposed</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.4
+	 */
+	public boolean print(GC gc) {
 		// TODO
 		return false;
 	}
 
+	void reapplyStyle() {
+		StringBuffer b = new StringBuffer();
+		if (font != null) {
+			b.append(font.toCSSString());
+		}
+		
+		if (foreground != null) {
+			String rgb = "rgb(" + foreground.getRed() + ","
+					+ foreground.getGreen() + "," + foreground.getBlue() + ")";
+			b.append("-fx-text-inner-color: " + rgb
+					+ "; -fx-text-background-color: " + rgb + ";");
+		}
+		
+		if( background != null ) {
+			String rgb = "rgb(" + background.getRed() + ","
+					+ background.getGreen() + "," + background.getBlue() + ")";
+			b.append("-fx-background-color: " + rgb);
+		}
+		
+		nativeRegion.setStyle(b.toString());
+	}
+	
 	/**
 	 * Causes the entire bounds of the receiver to be marked as needing to be
 	 * redrawn. The next time a paint request is processed, the control will be
@@ -2237,6 +1791,698 @@ public abstract class Control extends Widget implements Drawable {
 		// TODO
 	}
 
+	void register () {
+		if (nativeRegion != null) {
+			display.addControl (nativeRegion, this);
+
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_ENTERED, getMouseHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_EXITED, getMouseHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_MOVED, getMouseHandler());
+
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, getMouseHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_RELEASED, getMouseHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, getMouseHandler());
+			
+			nativeRegion.addEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, getKeyEventHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.KeyEvent.KEY_TYPED, getKeyEventHandler());
+			nativeRegion.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, getKeyEventHandler());
+			
+			nativeRegion.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, getContextMenuHandler());
+		}
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the control is moved or resized.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see ControlListener
+	 * @see #addControlListener
+	 */
+	public void removeControlListener(ControlListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Move, listener);
+		eventTable.unhook (SWT.Resize, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when a drag gesture occurs.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see DragDetectListener
+	 * @see #addDragDetectListener
+	 * 
+	 * @since 3.3
+	 */
+	public void removeDragDetectListener(DragDetectListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.DragDetect, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the control gains or loses focus.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see FocusListener
+	 * @see #addFocusListener
+	 */
+	public void removeFocusListener(FocusListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.FocusIn, listener);
+		eventTable.unhook (SWT.FocusOut, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when gesture events are generated for the control.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see GestureListener
+	 * @see #addGestureListener
+	 * 
+	 * @since 3.7
+	 */
+	public void removeGestureListener(GestureListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook(SWT.Gesture, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the help events are generated for the control.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see HelpListener
+	 * @see #addHelpListener
+	 */
+	public void removeHelpListener(HelpListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Help, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when keys are pressed and released on the system keyboard.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see KeyListener
+	 * @see #addKeyListener
+	 */
+	public void removeKeyListener(KeyListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.KeyUp, listener);
+		eventTable.unhook (SWT.KeyDown, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the platform-specific context menu trigger has occurred.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MenuDetectListener
+	 * @see #addMenuDetectListener
+	 * 
+	 * @since 3.3
+	 */
+	public void removeMenuDetectListener(MenuDetectListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.MenuDetect, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when mouse buttons are pressed and released.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseListener
+	 * @see #addMouseListener
+	 */
+	public void removeMouseListener(MouseListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.MouseDown, listener);
+		eventTable.unhook (SWT.MouseUp, listener);
+		eventTable.unhook (SWT.MouseDoubleClick, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the mouse moves.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseMoveListener
+	 * @see #addMouseMoveListener
+	 */
+	public void removeMouseMoveListener(MouseMoveListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.MouseMove, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the mouse passes or hovers over controls.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseTrackListener
+	 * @see #addMouseTrackListener
+	 */
+	public void removeMouseTrackListener(MouseTrackListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.MouseEnter, listener);
+		eventTable.unhook (SWT.MouseExit, listener);
+		eventTable.unhook (SWT.MouseHover, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the mouse wheel is scrolled.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see MouseWheelListener
+	 * @see #addMouseWheelListener
+	 * 
+	 * @since 3.3
+	 */
+	public void removeMouseWheelListener(MouseWheelListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.MouseWheel, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the receiver needs to be painted.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see PaintListener
+	 * @see #addPaintListener
+	 */
+	public void removePaintListener(PaintListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook(SWT.Paint, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when touch events occur.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see TouchListener
+	 * @see #addTouchListener
+	 * 
+	 * @since 3.7
+	 */
+	public void removeTouchListener(TouchListener listener) {
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Touch, listener);
+	}
+
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when traversal events occur.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see TraverseListener
+	 * @see #addTraverseListener
+	 */
+	public void removeTraverseListener(TraverseListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Traverse, listener);
+	}
+
+	void sendKeyEvent(javafx.scene.input.KeyEvent event) {
+		Event evt = new Event();
+
+		if (event.getEventType() == javafx.scene.input.KeyEvent.KEY_TYPED) {
+			if (event.isAltDown())
+				evt.stateMask |= SWT.ALT;
+			if (event.isShiftDown())
+				evt.stateMask |= SWT.SHIFT;
+			if (event.isControlDown())
+				evt.stateMask |= SWT.CONTROL;
+			if (event.isMetaDown())
+				evt.stateMask |= SWT.COMMAND;
+
+			// FIXME Alt/Control modifiers don't yet work
+			evt.keyCode = lastLetterDown != null ? lastLetterDown.keyCode : 0;
+			evt.character = event.getCharacter() != javafx.scene.input.KeyEvent.CHAR_UNDEFINED
+					&& event.getCharacter().length() > 0 ? event.getCharacter()
+					.charAt(0) : (char) lastLetterDown.keyCode;
+			sendEvent(SWT.KeyDown, evt, true);
+			if (!evt.doit) {
+				event.consume();
+				lastTypedDown = null;
+			} else {
+				lastTypedDown = evt;
+			}
+		} else {
+			evt.keyCode = translateKey(event.getCode());
+
+			switch (evt.keyCode) {
+			case SWT.LF:
+				evt.keyCode = SWT.KEYPAD_CR;
+				evt.character = '\r';
+				break;
+			case SWT.BS:
+				evt.character = '\b';
+				break;
+			case SWT.CR:
+				evt.character = '\r';
+				break;
+			case SWT.DEL:
+				evt.character = 0x7F;
+				break;
+			case SWT.ESC:
+				evt.character = 0x1B;
+				break;
+			case SWT.TAB:
+				evt.character = '\t';
+				break;
+			}
+
+			if (event.getEventType() == javafx.scene.input.KeyEvent.KEY_RELEASED) {
+				if (lastTypedDown != null) {
+					sendEvent(SWT.KeyUp, lastTypedDown, true);
+					lastTypedDown = null;
+					lastLetterDown = null;
+				}
+			}
+
+			if (evt.keyCode != 0) {
+				int type;
+				if (event.getEventType() == javafx.scene.input.KeyEvent.KEY_RELEASED) {
+					type = SWT.KeyUp;
+
+					if (event.isAltDown() || event.getCode() == javafx.scene.input.KeyCode.ALT)
+						evt.stateMask |= SWT.ALT;
+					if (event.isShiftDown() || event.getCode() == javafx.scene.input.KeyCode.SHIFT)
+						evt.stateMask |= SWT.SHIFT;
+					if (event.isControlDown()
+							|| event.getCode() == javafx.scene.input.KeyCode.CONTROL)
+						evt.stateMask |= SWT.CONTROL;
+					if (event.isMetaDown() || event.getCode() == javafx.scene.input.KeyCode.META)
+						evt.stateMask |= SWT.COMMAND;
+
+				} else {
+					type = SWT.KeyDown;
+
+					if (event.isAltDown() && event.getCode() != javafx.scene.input.KeyCode.ALT)
+						evt.stateMask |= SWT.ALT;
+					if (event.isShiftDown() && event.getCode() != javafx.scene.input.KeyCode.SHIFT)
+						evt.stateMask |= SWT.SHIFT;
+					if (event.isControlDown()
+							&& event.getCode() != javafx.scene.input.KeyCode.CONTROL)
+						evt.stateMask |= SWT.CONTROL;
+					if (event.isMetaDown() && event.getCode() != javafx.scene.input.KeyCode.META)
+						evt.stateMask |= SWT.COMMAND;
+				}
+
+				sendEvent(type, evt, true);
+				if (!evt.doit) {
+					event.consume();
+					return;
+				}
+
+				if (event.getEventType() == javafx.scene.input.KeyEvent.KEY_PRESSED) {
+					Event tEvt = new Event();
+					switch (event.getCode()) {
+					case RIGHT:
+						tEvt.detail = SWT.TRAVERSE_ARROW_NEXT;
+						break;
+					case LEFT:
+						tEvt.detail = SWT.TRAVERSE_ARROW_PREVIOUS;
+						break;
+					case ESCAPE:
+						tEvt.detail = SWT.TRAVERSE_ESCAPE;
+						break;
+					case PAGE_DOWN:
+						tEvt.detail = SWT.TRAVERSE_PAGE_NEXT;
+						break;
+					case PAGE_UP:
+						tEvt.detail = SWT.TRAVERSE_PAGE_PREVIOUS;
+						break;
+					case ENTER:
+						tEvt.detail = SWT.TRAVERSE_RETURN;
+						break;
+					case TAB:
+						if (event.isShiftDown()) {
+							tEvt.detail = SWT.TRAVERSE_TAB_PREVIOUS;
+						} else {
+							tEvt.detail = SWT.TRAVERSE_TAB_NEXT;
+						}
+						break;
+					default:
+						if (event.isAltDown() && event.getCode() != javafx.scene.input.KeyCode.ALT) {
+							tEvt.detail = SWT.TRAVERSE_MNEMONIC;
+						}
+
+						break;
+					}
+					if (tEvt.detail != 0) {
+						sendEvent(SWT.Traverse, tEvt, true);
+						if (!tEvt.doit) {
+							event.consume();
+						}
+					}
+				}
+
+			} else if (event.getCode().isLetterKey()) {
+				evt.keyCode = Character.toLowerCase(event.getCode()
+						.impl_getCode());
+				lastLetterDown = evt;
+			}
+		}
+	}
+
+	void sendMouseEvent(int type, javafx.scene.input.MouseEvent event) {
+		if (type == SWT.MouseEnter && (state & MOUSE_EXIT) != MOUSE_EXIT) {
+			return;
+		}
+		if (type == SWT.MouseExit && (state & MOUSE_ENTER) != MOUSE_ENTER) {
+			return;
+		}
+
+		Event evt = new Event();
+		evt.type = type;
+		switch (type) {
+		case SWT.MouseDown:
+		case SWT.MouseUp:
+		case SWT.MouseDoubleClick:
+		case SWT.MouseMove:
+			switch (event.getButton()) {
+			case PRIMARY:
+				evt.button = 1;
+				break;
+			case SECONDARY:
+				evt.button = 2;
+				break;
+			case MIDDLE:
+				evt.button = 3;
+				break;
+			case NONE:
+				evt.button = 4;
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
+
+		if (evt.button != 0) {
+			evt.count = event.getClickCount();
+		}
+
+		evt.x = (int) event.getX();
+		evt.y = (int) event.getY();
+
+		updateStateMask(evt, event);
+
+		sendEvent(type, evt, true);
+
+		if (type == SWT.MouseExit) {
+			state &= ~MOUSE_ENTER;
+			state |= MOUSE_EXIT;
+			if (getParent() != null && event.getSceneX() > 0
+					&& event.getSceneY() > 0) {
+				Composite p = getParent();
+				Point2D p2 = getParent().nativeRegion
+						.sceneToLocal(event.getSceneX(), event.getSceneY());
+				while (p != null) {
+					if (p.nativeRegion.contains(p2)) {
+						break;
+					}
+					p = p.getParent();
+				}
+
+				if (p != null) {
+					Event e2 = new Event();
+					e2.type = SWT.MouseEnter;
+					e2.x = (int) p2.getX();
+					e2.y = (int) p2.getY();
+					e2.stateMask = evt.stateMask;
+					p.state |= MOUSE_ENTER;
+					p.state &= ~MOUSE_EXIT;
+					p.sendEvent(SWT.MouseEnter, e2, true);
+				}
+				lastEnter = p;
+			} else {
+				lastEnter = null;
+			}
+		} else if (type == SWT.MouseEnter) {
+			state |= MOUSE_ENTER;
+			state &= ~MOUSE_EXIT;
+			if (lastEnter != null) {
+				Point2D p2 = lastEnter.nativeRegion
+						.sceneToLocal(event.getSceneX(), event.getSceneY());
+				if (lastEnter.nativeRegion.contains(p2)) {
+					Event e2 = new Event();
+					e2.type = SWT.MouseExit;
+					e2.x = (int) p2.getX();
+					e2.y = (int) p2.getY();
+					e2.stateMask = evt.stateMask;
+					lastEnter.state &= ~MOUSE_ENTER;
+					lastEnter.state |= MOUSE_EXIT;
+					lastEnter.sendEvent(SWT.MouseExit, e2, true);
+				}
+			}
+			lastEnter = this;
+		} else if (type == SWT.MouseMove) {
+			// TODO We need to emulate hover
+		}
+	}
+	
+	void setBackground () {
+		Control control = findBackgroundControl ();
+		if (control == null) control = this;
+		// TODO set the background to the same as the control
+	}
+
 	/**
 	 * Sets the receiver's background color to the color specified by the
 	 * argument, or to the default system color for the control if the argument
@@ -2263,7 +2509,9 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setBackground(Color color) {
-		// TODO
+		checkWidget();
+		this.background = color;
+		reapplyStyle();
 	}
 
 	/**
@@ -2297,6 +2545,64 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setBackgroundImage(Image image) {
 		// TODO
+	}
+
+	/**
+	 * Sets the receiver's size and location to the rectangular area specified
+	 * by the argument. The <code>x</code> and <code>y</code> fields of the
+	 * rectangle are relative to the receiver's parent (or its display if its
+	 * parent is null).
+	 * <p>
+	 * Note: Attempting to set the width or height of the receiver to a negative
+	 * number will cause that value to be set to zero instead.
+	 * </p>
+	 * 
+	 * @param rect
+	 *            the new bounds for the receiver
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setBounds(Rectangle rect) {
+		setBounds(rect.x, rect.y, rect.width, rect.height);
+	}
+
+	/**
+	 * Sets the receiver's size and location to the rectangular area specified
+	 * by the arguments. The <code>x</code> and <code>y</code> arguments are
+	 * relative to the receiver's parent (or its display if its parent is null),
+	 * unless the receiver is a shell. In this case, the <code>x</code> and
+	 * <code>y</code> arguments are relative to the display.
+	 * <p>
+	 * Note: Attempting to set the width or height of the receiver to a negative
+	 * number will cause that value to be set to zero instead.
+	 * </p>
+	 * 
+	 * @param x
+	 *            the new x coordinate for the receiver
+	 * @param y
+	 *            the new y coordinate for the receiver
+	 * @param width
+	 *            the new width for the receiver
+	 * @param height
+	 *            the new height for the receiver
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setBounds(int x, int y, int width, int height) {
+		checkWidget();
+		nativeRegion.resizeRelocate(x,  y,  width, height);
 	}
 
 	/**
@@ -2346,7 +2652,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setCursor(Cursor cursor) {
-		// TODO
+		nativeRegion.setCursor(cursor.cursor);
 	}
 
 	/**
@@ -2388,8 +2694,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setEnabled(boolean enabled) {
-		if (node != null)
-			node.setDisable(!enabled);
+		checkWidget();
+		nativeRegion.setDisable(!enabled);
 	}
 
 	/**
@@ -2411,8 +2717,9 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #forceFocus
 	 */
 	public boolean setFocus() {
-		// TODO
-		return false;
+		checkWidget();
+		nativeRegion.requestFocus();
+		return nativeRegion.isFocused();
 	}
 
 	/**
@@ -2437,7 +2744,9 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setFont(Font font) {
-		// TODO
+		checkWidget();
+		this.font = font;
+		reapplyStyle();
 	}
 
 	/**
@@ -2465,7 +2774,73 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setForeground(Color color) {
-		// TODO
+		checkWidget();
+		this.foreground = color;
+		reapplyStyle();
+	}
+
+	/**
+	 * Sets the layout data associated with the receiver to the argument.
+	 * 
+	 * @param layoutData
+	 *            the new layout data for the receiver.
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setLayoutData(Object layoutData) {
+		checkWidget();
+		this.layoutData = layoutData;
+	}
+
+	/**
+	 * Sets the receiver's location to the point specified by the arguments
+	 * which are relative to the receiver's parent (or its display if its parent
+	 * is null), unless the receiver is a shell. In this case, the point is
+	 * relative to the display.
+	 * 
+	 * @param location
+	 *            the new location for the receiver
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setLocation(Point location) {
+		setLocation(location.x, location.y);
+	}
+
+	/**
+	 * Sets the receiver's location to the point specified by the arguments
+	 * which are relative to the receiver's parent (or its display if its parent
+	 * is null), unless the receiver is a shell. In this case, the point is
+	 * relative to the display.
+	 * 
+	 * @param x
+	 *            the new x coordinate for the receiver
+	 * @param y
+	 *            the new y coordinate for the receiver
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setLocation(int x, int y) {
+		checkWidget();
+		nativeRegion.relocate(x,  y);
 	}
 
 	/**
@@ -2500,7 +2875,11 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setMenu(Menu menu) {
-		// TODO
+		this.menu = menu;
+		if (nativeRegion instanceof javafx.scene.control.Control) {
+			javafx.scene.control.Control c = (javafx.scene.control.Control)nativeRegion;
+			c.setContextMenu((ContextMenu) (menu != null ? menu.menu : menu));
+		}
 	}
 
 	/**
@@ -2550,8 +2929,10 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean setParent(Composite parent) {
-		// TODO
-		return false;
+		this.parent.detachControl(this);
+		parent.attachControl(this);
+		this.parent = parent;
+		return true;
 	}
 
 	/**
@@ -2582,6 +2963,84 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setRedraw(boolean redraw) {
 		// TODO
+	}
+
+	/**
+	 * Sets the shape of the control to the region specified by the argument.
+	 * When the argument is null, the default shape of the control is restored.
+	 * 
+	 * @param region
+	 *            the region that defines the shape of the control (or null)
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the region has been
+	 *                disposed</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.4
+	 */
+	public void setRegion(Region region) {
+		this.region = region;
+		// TODO
+	}
+
+	/**
+	 * Sets the receiver's size to the point specified by the argument.
+	 * <p>
+	 * Note: Attempting to set the width or height of the receiver to a negative
+	 * number will cause them to be set to zero instead.
+	 * </p>
+	 * 
+	 * @param size
+	 *            the new size for the receiver
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setSize(Point size) {
+		setSize(size.x, size.y);
+	}
+
+	/**
+	 * Sets the receiver's size to the point specified by the arguments.
+	 * <p>
+	 * Note: Attempting to set the width or height of the receiver to a negative
+	 * number will cause that value to be set to zero instead.
+	 * </p>
+	 * 
+	 * @param width
+	 *            the new width for the receiver
+	 * @param height
+	 *            the new height for the receiver
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setSize(int width, int height) {
+		checkWidget();
+		nativeRegion.resize(width, height);
 	}
 
 	/**
@@ -2640,7 +3099,20 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setToolTipText(String string) {
-		// TODO
+		this.toolTipText = string;
+		if (nativeRegion instanceof javafx.scene.control.Control) {
+			javafx.scene.control.Control control = (javafx.scene.control.Control)nativeRegion;
+			if (string == null || string.length() == 0) {
+				tooltip = null;
+			} else {
+				if (tooltip == null) {
+					tooltip = new Tooltip();
+				}
+				tooltip.setText(string);
+			}
+
+			control.setTooltip(tooltip);
+		}
 	}
 
 	/**
@@ -2689,9 +3161,240 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setVisible(boolean visible) {
-		if (node != null)
-			// TODO
-			node.setVisible(visible);
+		checkWidget();
+		nativeRegion.setVisible(visible);
+	}
+
+	/**
+	 * Returns a point which is the result of converting the argument, which is
+	 * specified in display relative coordinates, to coordinates relative to the
+	 * receiver.
+	 * <p>
+	 * 
+	 * @param x
+	 *            the x coordinate to be translated
+	 * @param y
+	 *            the y coordinate to be translated
+	 * @return the translated coordinates
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
+	 *                called from the thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 2.1
+	 */
+	public Point toControl(int x, int y) {
+		// TODO
+		return null;
+	}
+
+	/**
+	 * Returns a point which is the result of converting the argument, which is
+	 * specified in display relative coordinates, to coordinates relative to the
+	 * receiver.
+	 * <p>
+	 * 
+	 * @param point
+	 *            the point to be translated (must not be null)
+	 * @return the translated coordinates
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
+	 *                called from the thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public Point toControl(Point point) {
+		return toControl(point.x, point.y);
+	}
+
+	/**
+	 * Returns a point which is the result of converting the argument, which is
+	 * specified in coordinates relative to the receiver, to display relative
+	 * coordinates.
+	 * <p>
+	 * 
+	 * @param x
+	 *            the x coordinate to be translated
+	 * @param y
+	 *            the y coordinate to be translated
+	 * @return the translated coordinates
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
+	 *                called from the thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 2.1
+	 */
+	public Point toDisplay(int x, int y) {
+		// TODO
+		return null;
+	}
+
+	/**
+	 * Returns a point which is the result of converting the argument, which is
+	 * specified in coordinates relative to the receiver, to display relative
+	 * coordinates.
+	 * <p>
+	 * 
+	 * @param point
+	 *            the point to be translated (must not be null)
+	 * @return the translated coordinates
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the point is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
+	 *                called from the thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public Point toDisplay(Point point) {
+		return toDisplay(point.x, point.y);
+	}
+
+	private static int translateKey(KeyCode keyCode) {
+		switch (keyCode) {
+		case ALT:
+			return SWT.ALT;
+		case SHIFT:
+			return SWT.SHIFT;
+		case CONTROL:
+			return SWT.CONTROL;
+		case COMMAND:
+			return SWT.COMMAND;
+		case UP:
+			return SWT.ARROW_UP;
+		case DOWN:
+			return SWT.ARROW_DOWN;
+		case LEFT:
+			return SWT.ARROW_LEFT;
+		case RIGHT:
+			return SWT.ARROW_RIGHT;
+		case PAGE_UP:
+			return SWT.PAGE_UP;
+		case PAGE_DOWN:
+			return SWT.PAGE_DOWN;
+		case HOME:
+			return SWT.HOME;
+		case END:
+			return SWT.END;
+		case BACK_SPACE:
+			return SWT.BS;
+		case DELETE:
+			return SWT.DEL;
+		case ESCAPE:
+			return SWT.ESC;
+		case TAB:
+			return SWT.TAB;
+			// case ...:
+			// return SWT.CR;
+			// case ...:
+			// return SWT.LF;
+		case F1:
+			return SWT.F1;
+		case F2:
+			return SWT.F2;
+		case F3:
+			return SWT.F3;
+		case F4:
+			return SWT.F4;
+		case F5:
+			return SWT.F5;
+		case F6:
+			return SWT.F6;
+		case F7:
+			return SWT.F7;
+		case F8:
+			return SWT.F8;
+		case F9:
+			return SWT.F9;
+		case F10:
+			return SWT.F10;
+		case F11:
+			return SWT.F11;
+		case F12:
+			return SWT.F12;
+		case F13:
+			return SWT.F13;
+		case F14:
+			return SWT.F14;
+		case F15:
+			return SWT.F15;
+		case F16:
+			return SWT.F16;
+		case F17:
+			return SWT.F17;
+		case F18:
+			return SWT.F18;
+		case F19:
+			return SWT.F19;
+		case F20:
+			return SWT.F20;
+		case MULTIPLY:
+			return SWT.KEYPAD_MULTIPLY;
+		case ADD:
+			return SWT.KEYPAD_ADD;
+		case ENTER:
+			return SWT.KEYPAD_CR;
+		case SUBTRACT:
+			return SWT.KEYPAD_SUBTRACT;
+		case DECIMAL:
+			return SWT.KEYPAD_DECIMAL;
+		case DIVIDE:
+			return SWT.KEYPAD_DIVIDE;
+		case NUMPAD0:
+			return SWT.KEYPAD_0;
+		case NUMPAD1:
+			return SWT.KEYPAD_1;
+		case NUMPAD2:
+			return SWT.KEYPAD_2;
+		case NUMPAD3:
+			return SWT.KEYPAD_3;
+		case NUMPAD4:
+			return SWT.KEYPAD_4;
+		case NUMPAD5:
+			return SWT.KEYPAD_5;
+		case NUMPAD6:
+			return SWT.KEYPAD_6;
+		case NUMPAD7:
+			return SWT.KEYPAD_7;
+		case NUMPAD8:
+			return SWT.KEYPAD_8;
+		case NUMPAD9:
+			return SWT.KEYPAD_9;
+		case EQUALS:
+			return SWT.KEYPAD_EQUAL;
+		case CAPS:
+			return SWT.CAPS_LOCK;
+		case NUM_LOCK:
+			return SWT.NUM_LOCK;
+		case SCROLL_LOCK:
+			return SWT.SCROLL_LOCK;
+		case PAUSE:
+			return SWT.PAUSE;
+		case PRINTSCREEN:
+			return SWT.PRINT_SCREEN;
+		case HELP:
+			return SWT.HELP;
+		default:
+			break;
+		}
+		return 0;
 	}
 
 	/**
@@ -2841,4 +3544,82 @@ public abstract class Control extends Widget implements Drawable {
 		// TODO
 	}
 
+	void updateStateMask(Event swtEvent, javafx.scene.input.MouseEvent event) {
+		if (event.isAltDown()) {
+			swtEvent.stateMask |= SWT.ALT;
+		}
+		if (event.isShiftDown()) {
+			swtEvent.stateMask |= SWT.SHIFT;
+		}
+		if (event.isControlDown()) {
+			swtEvent.stateMask |= SWT.CONTROL;
+		}
+		// TODO Is this correct???
+		if (event.isMetaDown()) {
+			swtEvent.stateMask |= SWT.COMMAND;
+		}
+
+		if (swtEvent.type == SWT.MouseDown || swtEvent.type == SWT.MouseMove) {
+			switch (swtEvent.button) {
+			case 1:
+				swtEvent.stateMask |= SWT.BUTTON1;
+				break;
+			case 2:
+				swtEvent.stateMask |= SWT.BUTTON2;
+				break;
+			case 3:
+				swtEvent.stateMask |= SWT.BUTTON3;
+				break;
+			case 4:
+				swtEvent.stateMask |= SWT.BUTTON4;
+				break;
+			case 5:
+				swtEvent.stateMask |= SWT.BUTTON5;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Invokes platform specific functionality to allocate a new GC handle.
+	 * <p>
+	 * <b>IMPORTANT:</b> This method is <em>not</em> part of the public API for
+	 * <code>Control</code>. It is marked public only so that it can be shared
+	 * within the packages provided by SWT. It is not available on all
+	 * platforms, and should never be called from application code.
+	 * </p>
+	 * 
+	 * @param data
+	 *            the platform specific GC data
+	 * @return the platform specific GC handle
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public long /* int */internal_new_GC(GCData data) {
+		// TODO
+		return 0;
+	}
+
+	/**
+	 * Invokes platform specific functionality to dispose a GC handle.
+	 * <p>
+	 * <b>IMPORTANT:</b> This method is <em>not</em> part of the public API for
+	 * <code>Control</code>. It is marked public only so that it can be shared
+	 * within the packages provided by SWT. It is not available on all
+	 * platforms, and should never be called from application code.
+	 * </p>
+	 * 
+	 * @param hDC
+	 *            the platform specific GC handle
+	 * @param data
+	 *            the platform specific GC data
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public void internal_dispose_GC(long /* int */hDC, GCData data) {
+		// TODO
+	}
+	
 }
