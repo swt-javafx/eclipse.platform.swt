@@ -10,7 +10,10 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.text.TextAlignment;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.scene.control.Separator;
+import javafx.scene.image.ImageView;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -51,8 +54,6 @@ import org.eclipse.swt.graphics.Image;
  */
 public class Label extends Control {
 
-	int alignment;
-	String text;
 	private Image image;
 	
 	/**
@@ -100,29 +101,23 @@ public class Label extends Control {
 	 */
 	public Label(Composite parent, int style) {
 		super(parent, style);
-		
-		javafx.scene.control.Label label = new javafx.scene.control.Label();
-		
-		if ((style & SWT.SEPARATOR)!=0) alignment = SWT.NONE;
-		else {
-			if ((style & SWT.LEFT)  != 0) {
-				alignment = SWT.LEFT;
-				label.setTextAlignment(TextAlignment.LEFT);
-			}
-			else if ((style & SWT.RIGHT)  != 0) {
-					alignment = SWT.RIGHT;
-					label.setTextAlignment(TextAlignment.RIGHT);
-			}
-			else if ((style & SWT.CENTER)  != 0) {
-					alignment = SWT.CENTER;
-					label.setTextAlignment(TextAlignment.CENTER);
-			}
-		}
-//		setNode(label);
 	}
 
-	private javafx.scene.control.Label getNode() {
+	javafx.scene.control.Label getNativeLabel() {
 		return (javafx.scene.control.Label)getNativeControl();
+	}
+	
+	@Override
+	void createNativeControl() {
+		if( (style & SWT.SEPARATOR) != 0 ) {
+			Separator separator = new Separator();
+			separator.setOrientation((style & SWT.VERTICAL) == SWT.VERTICAL ? Orientation.VERTICAL : Orientation.HORIZONTAL);
+			setNativeControl(separator);
+		} else {
+			javafx.scene.control.Label label = new javafx.scene.control.Label();
+			label.setWrapText((style & SWT.WRAP) == SWT.WRAP);
+			setNativeControl(label);
+		}
 	}
 	
 	/**
@@ -142,7 +137,11 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public int getAlignment() {
-		return alignment;
+		checkWidget();
+		if ((style & SWT.SEPARATOR) != 0) return SWT.LEFT;
+		if ((style & SWT.CENTER) != 0) return SWT.CENTER;
+		if ((style & SWT.RIGHT) != 0) return SWT.RIGHT;
+		return SWT.LEFT;
 	}
 
 	/**
@@ -177,8 +176,10 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public String getText() {
-		if ((getNode()==null) || ((style&SWT.SEPARATOR) != 0)) return "";
-		return getNode().getText()==null?"":getNode().getText();
+		checkWidget ();
+		if ((style & SWT.SEPARATOR) != 0) return "";
+		String text = getNativeLabel().getText();
+		return text != null ? text : null;
 	}
 
 	/**
@@ -199,15 +200,26 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public void setAlignment(int alignment) {
-		this.alignment = alignment;
-		switch (alignment){
-			case SWT.CENTER: getNode().setTextAlignment(TextAlignment.CENTER);
-				break;
-			case SWT.LEFT: getNode().setTextAlignment(TextAlignment.LEFT);
-				break;
-			case SWT.RIGHT: getNode().setTextAlignment(TextAlignment.RIGHT);
+		checkWidget ();
+		if ((style & SWT.SEPARATOR) != 0) return;
+		if ((alignment & (SWT.LEFT | SWT.RIGHT | SWT.CENTER)) == 0) return;
+		style &= ~(SWT.LEFT | SWT.RIGHT | SWT.CENTER);
+		style |= alignment & (SWT.LEFT | SWT.RIGHT | SWT.CENTER);
+		
+		Pos p;
+		switch (alignment) {
+		case SWT.RIGHT:
+			p = Pos.CENTER_RIGHT;
+			break;
+		case SWT.CENTER:
+			p = Pos.CENTER;
+			break;
+		default:
+			p = Pos.CENTER_LEFT;
+			break;
 		}
 		
+		getNativeLabel().setAlignment(p);
 	}
 
 	/**
@@ -231,7 +243,9 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public void setImage(Image image) {
-//		getNode().setGraphic(new ImageView(image.getImage()));
+		checkWidget();
+		if ((style & SWT.SEPARATOR) != 0) return;
+		getNativeLabel().setGraphic(image == null ? null : new ImageView(image.getNativeImage()));
 	}
 
 	/**
@@ -266,7 +280,10 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		getNode().setText(string);
+		checkWidget ();
+		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if ((style & SWT.SEPARATOR) != 0) return;
+		getNativeLabel().setText(string);
 	}
 
 }

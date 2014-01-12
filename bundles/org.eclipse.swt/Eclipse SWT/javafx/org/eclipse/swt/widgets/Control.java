@@ -722,15 +722,15 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see "computeTrim, getClientArea for controls that implement them"
 	 */
 	public Point computeSize(int wHint, int hHint, boolean changed) {
-		checkWidget ();
-		int width = DEFAULT_WIDTH;
-		int height = DEFAULT_HEIGHT;
+		checkWidget();
+		forceSizeProcessing();
+		int width = (int)Math.ceil(getNativeControl().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE));
+		int height = (int)Math.ceil(getNativeControl().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE));
+		
 		if (wHint != SWT.DEFAULT) width = wHint;
 		if (hHint != SWT.DEFAULT) height = hHint;
-		int border = getBorderWidth ();
-		width += border * 2;
-		height += border * 2;
-		return new Point (width, height);
+
+		return new Point(width, height);
 	}
 
 	void createNativeControl() {
