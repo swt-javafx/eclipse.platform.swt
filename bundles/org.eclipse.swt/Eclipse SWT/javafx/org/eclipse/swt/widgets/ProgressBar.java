@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 
@@ -80,6 +82,18 @@ public class ProgressBar extends Control {
 		super(parent, style);
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Returns the maximum value which the receiver will allow.
 	 * 

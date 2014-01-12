@@ -62,6 +62,8 @@ import org.eclipse.swt.graphics.Point;
  */
 public class Button extends Control {
 
+	private ButtonBase button;
+	
 	Image image;
 	ToggleGroup toggleGroup;
 	
@@ -170,24 +172,24 @@ public class Button extends Control {
 	}
 	
 	@Override
-	void createNativeControl() {
+	void createNativeObject() {
 		if( (style & SWT.RADIO) != 0 ) {
-			setNativeControl(new RadioButton());
+			button = new RadioButton();
 		} else if( (style & SWT.CHECK) != 0 ) {
 			CheckBox checkBox = new CheckBox();
 			checkBox.setAllowIndeterminate(false);
-			setNativeControl(checkBox);
+			button = checkBox;
 		} else if( (style & SWT.TOGGLE) != 0 ) {
-			setNativeControl(new ToggleButton());
+			button = new ToggleButton();
 		} else if( (style & SWT.ARROW) != 0 ) {
 			// TODO
-			setNativeControl(new javafx.scene.control.Button());
+			button = new javafx.scene.control.Button();
 		} else {
-			setNativeControl(new javafx.scene.control.Button());
+			button = new javafx.scene.control.Button();
 		}
 		
 		if( (style & SWT.WRAP) != 0 ) {
-			getNativeButton().setWrapText(true);
+			button.setWrapText(true);
 		}
 	}
 	
@@ -266,10 +268,10 @@ public class Button extends Control {
 		return image;
 	}
 
-	ButtonBase getNativeButton() {
-		return getNativeControl() instanceof ButtonBase ? (ButtonBase)getNativeControl() : null;
-	}
-
+	javafx.scene.layout.Region getNativeObject() {
+		return button;
+	};
+	
 	/**
 	 * Returns <code>true</code> if the receiver is selected, and false
 	 * otherwise.
@@ -290,7 +292,6 @@ public class Button extends Control {
 	 */
 	public boolean getSelection() {
 		checkWidget ();
-		ButtonBase button = getNativeButton();
 		if (button instanceof ToggleButton)
 			return ((ToggleButton)button).isSelected();
 		else if (button instanceof CheckBox)
@@ -315,7 +316,7 @@ public class Button extends Control {
 	 */
 	public String getText() {
 		checkWidget ();
-		String text = getNativeButton().getText();
+		String text = button.getText();
 		return text != null ? text : "";
 	}
 
@@ -414,7 +415,7 @@ public class Button extends Control {
 			break;
 		}
 		
-		getNativeButton().setAlignment(jAlignment);
+		button.setAlignment(jAlignment);
 	}
 
 	/**
@@ -471,9 +472,9 @@ public class Button extends Control {
 		this.image = image;
 		
 		if (image != null) {
-			getNativeButton().setGraphic(new ImageView(image.getNativeImage()));
+			button.setGraphic(new ImageView(image.getNativeImage()));
 		} else {
-			getNativeButton().setGraphic(null);
+			button.setGraphic(null);
 		}
 	}
 
@@ -498,7 +499,6 @@ public class Button extends Control {
 	 */
 	public void setSelection(boolean selected) {
 		checkWidget ();
-		ButtonBase button = getNativeButton();
 		if (button instanceof ToggleButton)
 			((ToggleButton)button).setSelected(selected);
 		else if (button instanceof CheckBox)
@@ -542,7 +542,7 @@ public class Button extends Control {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		getNativeButton().setText(string);
+		button.setText(string);
 	}
 
 }

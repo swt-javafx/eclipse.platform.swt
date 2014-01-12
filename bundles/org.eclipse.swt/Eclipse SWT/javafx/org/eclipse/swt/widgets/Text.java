@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ModifyListener;
@@ -329,6 +331,12 @@ public class Text extends Scrollable {
 		// TODO
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	/**
 	 * Cuts the selected text.
 	 * <p>
@@ -571,6 +579,12 @@ public class Text extends Scrollable {
 		return "";
 	}
 
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Returns a <code>Point</code> whose x coordinate is the character position
 	 * representing the start of the selected text, and whose y coordinate is

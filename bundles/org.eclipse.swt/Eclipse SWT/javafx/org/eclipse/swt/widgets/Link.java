@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -108,6 +110,18 @@ public class Link extends Control {
 		// TODO
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Returns the receiver's text, which will be an empty string if it has
 	 * never been set.

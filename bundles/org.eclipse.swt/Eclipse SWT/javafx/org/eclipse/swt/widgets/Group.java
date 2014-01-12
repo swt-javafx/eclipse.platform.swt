@@ -88,21 +88,6 @@ public class Group extends Composite {
 		super(parent, style);
 	}
 	
-	@Override
-	void createNode() {
-		vbox = new VBox();
-		vbox.setStyle("-fx-border-width: 1px; -fx-border-color: #222222; -fx-padding: 5;");
-		vbox.setFillWidth(true);
-		
-//		setNode(vbox);
-	}
-	
-	@Override
-	void createPane() {
-		convertLayout();
-		vbox.getChildren().add(paneLayout.getPane());
-	}
-	
 	/**
 	 * Returns the receiver's text, which is the string that the is used as the
 	 * <em>title</em>. If the text has not previously been set, returns an empty

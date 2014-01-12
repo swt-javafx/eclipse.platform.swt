@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionListener;
@@ -110,6 +112,12 @@ public class Scale extends Control {
 		// TODO
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * up/down (or right/left) arrows are pressed.
@@ -165,6 +173,12 @@ public class Scale extends Control {
 		return 0;
 	}
 
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * page increment/decrement areas are selected.

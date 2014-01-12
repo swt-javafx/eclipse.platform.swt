@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
@@ -149,6 +151,12 @@ public class Slider extends Control {
 		// TODO
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * up/down (or right/left) arrows are pressed.
@@ -346,6 +354,12 @@ public class Slider extends Control {
 		// TODO
 	}
 
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Sets the amount that the receiver's value will be modified by when the
 	 * page increment/decrement areas are selected to the argument, which must

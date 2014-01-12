@@ -99,7 +99,6 @@ public class ToolBar extends Composite {
 		// TODO
 	}
 
-	@Override
 	void createNode() {
 		FlowPane pane = new FlowPane();
 //		setNode(pane);

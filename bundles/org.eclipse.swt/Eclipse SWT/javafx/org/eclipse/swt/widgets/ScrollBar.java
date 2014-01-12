@@ -212,6 +212,11 @@ public class ScrollBar extends Widget {
 		return 0;
 	}
 
+	public javafx.scene.control.ScrollBar getNativeObject() {
+		// TODO
+		return null;
+	}
+
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * page increment/decrement areas are selected.

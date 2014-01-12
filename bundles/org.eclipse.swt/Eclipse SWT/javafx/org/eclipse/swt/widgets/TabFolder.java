@@ -94,7 +94,6 @@ public class TabFolder extends Composite {
 		super(parent, style);
 	}
 
-	@Override
 	void createNode() {
 		TabPane pane = new TabPane();
 //		setNode(pane);
@@ -105,7 +104,7 @@ public class TabFolder extends Composite {
 	}
 	
 	@Override
-	void addChild(Control child) {
+	void addControl(Control control) {
 		// JavaFX doesn't record the child controls here. They go only on the Tabs.
 	}
 	

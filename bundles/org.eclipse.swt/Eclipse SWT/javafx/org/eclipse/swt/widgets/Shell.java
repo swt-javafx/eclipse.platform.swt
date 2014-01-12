@@ -450,7 +450,7 @@ public class Shell extends Decorations {
 	@Override
 	public void dispose() {
 		if (parentShell != null)
-			parentShell.removeChild(this);
+			parentShell.removeControl(this);
 		stage = null;
 	}
 	

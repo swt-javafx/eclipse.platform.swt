@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ContextMenu;
@@ -79,7 +81,6 @@ import org.eclipse.swt.graphics.Region;
  */
 public abstract class Control extends Widget implements Drawable {
 
-	javafx.scene.layout.Region nativeControl;
 	Tooltip tooltip;
 	static Control lastEnter;
 	Event lastTypedDown;
@@ -353,6 +354,24 @@ public abstract class Control extends Widget implements Drawable {
 		addListener (SWT.KeyDown,typedListener);
 	}
 
+	@Override
+	public void addListener(int eventType, Listener listener) {
+		super.addListener(eventType, listener);
+		if (eventType == SWT.Resize
+				&& (state & RESIZE_ATTACHED) != RESIZE_ATTACHED) {
+			InvalidationListener l = new InvalidationListener() {
+
+				@Override
+				public void invalidated(Observable observable) {
+					Event evt = new Event();
+					sendEvent(SWT.Resize, evt, true);
+				}
+			};
+			getNativeControl().widthProperty().addListener(l);
+			getNativeControl().heightProperty().addListener(l);
+		}
+	}
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the platform-specific context menu trigger has occurred, by sending
@@ -724,22 +743,35 @@ public abstract class Control extends Widget implements Drawable {
 	public Point computeSize(int wHint, int hHint, boolean changed) {
 		checkWidget();
 		forceSizeProcessing();
-		int width = (int)Math.ceil(getNativeControl().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE));
-		int height = (int)Math.ceil(getNativeControl().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE));
+		int width = (int)getNativeObject().prefWidth(
+				javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int)getNativeObject().prefHeight(
+				javafx.scene.control.Control.USE_COMPUTED_SIZE);
 		
-		if (wHint != SWT.DEFAULT) width = wHint;
-		if (hHint != SWT.DEFAULT) height = hHint;
+		if (width <= 0) {
+			width = DEFAULT_WIDTH;
+		}
 
+		if (height <= 0) {
+			height = DEFAULT_HEIGHT;
+		}
+
+		if (wHint != SWT.DEFAULT)
+			width = wHint;
+		if (hHint != SWT.DEFAULT)
+			height = hHint;
+		int border = getBorderWidth();
+		width += border * 2;
+		height += border * 2;
 		return new Point(width, height);
 	}
 
-	void createNativeControl() {
-	}
+	abstract void createNativeObject();
 	
 	void createWidget () {
 		state |= DRAG_DETECT;
 		checkOrientation (parent);
-		createNativeControl ();
+		createNativeObject ();
 		checkBackground ();
 		checkBuffered ();
 		register ();
@@ -875,13 +907,13 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	void forceSizeProcessing() {
-		javafx.scene.layout.Region control = getNativeControl();
+		javafx.scene.layout.Region control = getNativeObject();
 		if ((state & CSS_PROCESSED) == 0
 				&& (control.getScene() == null
 					|| control.getScene().getWindow() == null
 					|| control.getScene().getWindow().isShowing())) {
 			state |= CSS_PROCESSED;
-			getNativeControl().impl_processCSS(true);
+			control.impl_processCSS(true);
 		}
 	}
 	
@@ -1076,7 +1108,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public boolean getEnabled() {
 		checkWidget();
-		return !getNativeControl().isDisabled();
+		return !getNativeObject().isDisabled();
 	}
 
 	/**
@@ -1163,7 +1195,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Point getLocation() {
 		checkWidget();
-		javafx.scene.layout.Region control = getNativeControl();
+		javafx.scene.layout.Region control = getNativeObject();
 		return new Point((int)control.getLayoutX(), (int)control.getLayoutY());
 	}
 
@@ -1288,8 +1320,10 @@ public abstract class Control extends Widget implements Drawable {
 		return mouseHandler;
 	}
 
+	abstract javafx.scene.layout.Region getNativeObject();
+	
 	javafx.scene.layout.Region getNativeControl() {
-		return nativeControl;
+		return getNativeObject();
 	}
 
 	/**
@@ -1491,7 +1525,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public boolean getVisible() {
 		checkWidget();
-		return getNativeControl().isVisible();
+		return getNativeObject().isVisible();
 	}
 
 	/**
@@ -1576,6 +1610,10 @@ public abstract class Control extends Widget implements Drawable {
 		return getVisible() && parent.isVisible();
 	}
 
+	void markLayout(boolean changed, boolean all) {
+		// Do nothing
+	}
+	
 	/**
 	 * Moves the receiver above the specified control in the drawing order. If
 	 * the argument is null, then the receiver is moved to the top of the
@@ -1736,7 +1774,7 @@ public abstract class Control extends Widget implements Drawable {
 			b.append("-fx-background-color: " + rgb);
 		}
 		
-		getNativeControl().setStyle(b.toString());
+		getNativeObject().setStyle(b.toString());
 	}
 	
 	/**
@@ -2617,7 +2655,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setBounds(int x, int y, int width, int height) {
 		checkWidget();
-		getNativeControl().resizeRelocate(x,  y,  width, height);
+		getNativeObject().resizeRelocate(x,  y,  width, height);
 	}
 
 	/**
@@ -2667,7 +2705,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setCursor(Cursor cursor) {
-		getNativeControl().setCursor(cursor.cursor);
+		getNativeObject().setCursor(cursor.cursor);
 	}
 
 	/**
@@ -2710,7 +2748,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setEnabled(boolean enabled) {
 		checkWidget();
-		getNativeControl().setDisable(!enabled);
+		getNativeObject().setDisable(!enabled);
 	}
 
 	/**
@@ -2856,7 +2894,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setLocation(int x, int y) {
 		checkWidget();
-		getNativeControl().relocate(x,  y);
+		getNativeObject().relocate(x,  y);
 	}
 
 	/**
@@ -2896,10 +2934,6 @@ public abstract class Control extends Widget implements Drawable {
 			javafx.scene.control.Control c = (javafx.scene.control.Control)getNativeControl();
 			c.setContextMenu((ContextMenu) (menu != null ? menu.menu : menu));
 		}
-	}
-
-	void setNativeControl(javafx.scene.layout.Region nativeControl) {
-		this.nativeControl = nativeControl;
 	}
 
 	/**
@@ -2949,8 +2983,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean setParent(Composite parent) {
-		this.parent.detachControl(this);
-		parent.attachControl(this);
+		this.parent.removeControl(this);
+		parent.addControl(this);
 		this.parent = parent;
 		return true;
 	}
@@ -3060,7 +3094,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setSize(int width, int height) {
 		checkWidget();
-		getNativeControl().resize(width, height);
+		getNativeObject().resize(width, height);
 	}
 
 	/**
@@ -3182,7 +3216,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setVisible(boolean visible) {
 		checkWidget();
-		getNativeControl().setVisible(visible);
+		getNativeObject().setVisible(visible);
 	}
 
 	/**
@@ -3562,6 +3596,10 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void update() {
 		// TODO
+	}
+
+	void updateLayout (boolean resize, boolean all) {
+		/* Do nothing */
 	}
 
 	void updateStateMask(Event swtEvent, javafx.scene.input.MouseEvent event) {

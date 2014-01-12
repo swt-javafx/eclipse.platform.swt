@@ -54,6 +54,9 @@ import org.eclipse.swt.graphics.Image;
  */
 public class Label extends Control {
 
+	private javafx.scene.control.Label label;
+	private Separator separator;
+	
 	private Image image;
 	
 	/**
@@ -103,20 +106,20 @@ public class Label extends Control {
 		super(parent, style);
 	}
 
-	javafx.scene.control.Label getNativeLabel() {
-		return (javafx.scene.control.Label)getNativeControl();
-	}
+	javafx.scene.layout.Region getNativeObject() {
+		if (label != null)
+			return label;
+		return separator;
+	};
 	
 	@Override
-	void createNativeControl() {
+	void createNativeObject() {
 		if( (style & SWT.SEPARATOR) != 0 ) {
-			Separator separator = new Separator();
+			separator = new Separator();
 			separator.setOrientation((style & SWT.VERTICAL) == SWT.VERTICAL ? Orientation.VERTICAL : Orientation.HORIZONTAL);
-			setNativeControl(separator);
 		} else {
-			javafx.scene.control.Label label = new javafx.scene.control.Label();
+			label = new javafx.scene.control.Label();
 			label.setWrapText((style & SWT.WRAP) == SWT.WRAP);
-			setNativeControl(label);
 		}
 	}
 	
@@ -178,7 +181,7 @@ public class Label extends Control {
 	public String getText() {
 		checkWidget ();
 		if ((style & SWT.SEPARATOR) != 0) return "";
-		String text = getNativeLabel().getText();
+		String text = label.getText();
 		return text != null ? text : null;
 	}
 
@@ -219,7 +222,7 @@ public class Label extends Control {
 			break;
 		}
 		
-		getNativeLabel().setAlignment(p);
+		label.setAlignment(p);
 	}
 
 	/**
@@ -245,7 +248,7 @@ public class Label extends Control {
 	public void setImage(Image image) {
 		checkWidget();
 		if ((style & SWT.SEPARATOR) != 0) return;
-		getNativeLabel().setGraphic(image == null ? null : new ImageView(image.getNativeImage()));
+		label.setGraphic(image == null ? null : new ImageView(image.getNativeImage()));
 	}
 
 	/**
@@ -283,7 +286,7 @@ public class Label extends Control {
 		checkWidget ();
 		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
 		if ((style & SWT.SEPARATOR) != 0) return;
-		getNativeLabel().setText(string);
+		label.setText(string);
 	}
 
 }

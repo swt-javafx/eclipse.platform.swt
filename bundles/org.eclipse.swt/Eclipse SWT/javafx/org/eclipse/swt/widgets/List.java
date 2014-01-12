@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
@@ -172,6 +174,12 @@ public class List extends Scrollable {
 		// TODO
 	}
 
+	@Override
+	void createNativeObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	/**
 	 * Deselects the item at the given zero-relative index in the receiver. If
 	 * the item at the index was already deselected, it remains deselected.
@@ -363,6 +371,12 @@ public class List extends Scrollable {
 		return null;
 	}
 
+	@Override
+	Region getNativeObject() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Returns an array of <code>String</code>s that are currently selected in
 	 * the receiver. The order of the items is unspecified. An empty array

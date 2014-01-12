@@ -10,18 +10,20 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
+import java.util.ArrayList;
+
+import javafx.scene.Node;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.internal.GridPaneLayout;
-import org.eclipse.swt.internal.PaneLayout;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.graphics.Rectangle;
 
 /**
  * Instances of this class are controls which are capable of containing other
@@ -60,10 +62,18 @@ import org.eclipse.swt.layout.GridLayout;
  */
 public class Composite extends Scrollable {
 
+	private AnchorPane scrollable;
+	private Pane controlContainer;
+	private ScrollBar vScroll;
+	private ScrollBar hScroll;
+	private Node corner;
+	private ToggleGroup toggleGroup;
+
+	private static final double SCROLLBAR_WIDTH = 20.0;
+
 	Layout layout;
-	PaneLayout paneLayout;
-	Control[] children = new Control[0];
-	int backgroundMode;
+	java.util.List<Control> children = new ArrayList<>();
+	int backgroundMode, layoutCount;
 	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -104,14 +114,8 @@ public class Composite extends Scrollable {
 	 */
 	public Composite(Composite parent, int style) {
 		super(parent, style);
-		createNode();
 	}
 
-	void createNode() {
-		// Plain composites are just panes. They'll get created when the first child is added
-		// to give a chance for the layouts to get filled.
-	}
-	
 	void controlMoveAbove(Control control1, Control control2) {
 		// TODO
 	}
@@ -120,53 +124,16 @@ public class Composite extends Scrollable {
 		// TODO
 	}
 	
-	void convertLayout() {
-		if (layout != null) {
-			if (layout instanceof FillLayout) {
-				if (((FillLayout)layout).type == SWT.VERTICAL) {
-					paneLayout = new PaneLayout(new VBox());
-				} else {
-					paneLayout = new PaneLayout(new HBox());
-				}
-				return;
-			} else if (layout instanceof GridLayout) {
-				paneLayout = new GridPaneLayout(new GridPane(), (GridLayout)layout);
-				return;
+	void addControl(Control control) {
+		if (control instanceof Button && (control.getStyle() & SWT.RADIO) != 0
+				&& (getStyle() & SWT.NO_RADIO_GROUP) == 0) {
+			if (toggleGroup == null) {
+				toggleGroup = new ToggleGroup();
 			}
+			toggleGroup.getToggles().add((Toggle)control.getNativeObject());
 		}
-
-		paneLayout = new PaneLayout(new Pane());
-	}
-	
-	void createPane() {
-		convertLayout();
-//		setNode(paneLayout.getPane());
-	}
-
-	void addChild(Control child) {
-		if (paneLayout == null)
-			createPane();
-
-//		paneLayout.addChild(child.node);
-		
-		Control[] c = new Control[children.length + 1];
-		System.arraycopy(children, 0, c, 0, children.length);
-		c[children.length] = child;
-		children = c;
-	}
-	
-	void removeChild(Control child) {
-//		if (paneLayout != null)
-//			paneLayout.removeChild(child.node);
-
-		if (children != null)
-			for (int i = 0; i < children.length; ++i)
-				if (children[i] == child) {
-					Control[] c = new Control[children.length - 1];
-					System.arraycopy(children, 0, children, 0, i);
-					System.arraycopy(children, i + 1, c, i, children.length - i - 1);
-					break;
-				}
+		children.add(control);
+		controlContainer.getChildren().add(control.getNativeObject());
 	}
 	
 	/**
@@ -199,14 +166,138 @@ public class Composite extends Scrollable {
 		// TODO
 	}
 
-	void attachControl(Control child) {
-		// TODO
+	protected void applyBorderStyle() {
+		if( (style & SWT.BORDER) == SWT.BORDER && getNativeObject() != null ) {
+			getNativeObject().setStyle("-fx-boder-style: solid; -fx-border-width: 1px; -fx-border-color: gray;");	
+		}
 	}
 	
-	void detachControl(Control child) {
-		// TODO
-	}
+	@Override
+	void createNativeObject() {
+		scrollable = new AnchorPane() {
+			@Override
+			protected void layoutChildren() {
+				super.layoutChildren();
+				double endCorrection = 0;
+				if( corner != null && vScroll.getVisible() && hScroll.getVisible() ) {
+					endCorrection = SCROLLBAR_WIDTH;
+				}
+				
+				if( vScroll != null ) {
+					vScroll.getNativeObject().resizeRelocate(getWidth()-SCROLLBAR_WIDTH, 0, SCROLLBAR_WIDTH, getHeight()-endCorrection);	
+				}
+				
+				if( hScroll != null ) {
+					hScroll.getNativeObject().resizeRelocate(0, getHeight()-SCROLLBAR_WIDTH, getWidth()-endCorrection, SCROLLBAR_WIDTH);
+				}
+				
+				if( corner != null ) {
+					if( hScroll.getVisible() && vScroll.getVisible() ) {
+						corner.setVisible(true);	
+					} else {
+						corner.setVisible(false);
+					}
+					corner.resizeRelocate(getWidth()-SCROLLBAR_WIDTH, getHeight()-SCROLLBAR_WIDTH, SCROLLBAR_WIDTH, SCROLLBAR_WIDTH);
+				}
+				
+			}
+		};
+		
+		scrollable.getStyleClass().add(getStyleClassname());
+		controlContainer = new Pane() {
+			@Override 
+			protected double computeMinWidth(double height) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, 0, 0, true).x;
+				}
+				return super.computeMinWidth(height);
+			}
+			
+			@Override
+			protected double computeMinHeight(double width) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, 0, 0, true).y;
+				}
+				return super.computeMinHeight(width);
+			}
+			
+			@Override
+			protected double computeMaxHeight(double width) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, Integer.MAX_VALUE, Integer.MAX_VALUE, true).y;
+				}
+				return super.computeMaxHeight(width);
+			}
+			
+			@Override
+			protected double computeMaxWidth(double height) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, Integer.MAX_VALUE, Integer.MAX_VALUE, true).x;
+				}
+				return super.computeMaxWidth(height);
+			}
+			
+			@Override
+			protected double computePrefHeight(double width) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, SWT.DEFAULT, SWT.DEFAULT, true).y;
+				}
+				return super.computePrefHeight(width);
+			}
+			
+			@Override
+			protected double computePrefWidth(double height) {
+				if (layout != null) {
+					return layout.computeSize(Composite.this, SWT.DEFAULT, SWT.DEFAULT, true).x;
+				}
+				return super.computePrefWidth(height);
+			}
+			
+			@Override
+			protected void layoutChildren() {
+				if (layout != null) {
+					layout.layout(Composite.this, true);
+				} else {
+					//Do not call super else nodes resized absolutely are
+					//are resized to their minimal value			
+				}
+			}			
+		};
+		
+		AnchorPane.setLeftAnchor(controlContainer, 0.0);
+		AnchorPane.setTopAnchor(controlContainer, 0.0);
+		
+		scrollable.getChildren().add(controlContainer);
+		
+		if( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) {
+			AnchorPane.setRightAnchor(controlContainer, SCROLLBAR_WIDTH);
+			vScroll = new ScrollBar(this,SWT.VERTICAL);
+			Node n = vScroll.getNativeObject();
+			n.setManaged(false);
+			scrollable.getChildren().add(n);
+		} else {
+			AnchorPane.setRightAnchor(controlContainer, 0.0);
+		}
+		
+		if( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) {
+			AnchorPane.setBottomAnchor(controlContainer, SCROLLBAR_WIDTH);
+			hScroll = new ScrollBar(this,SWT.HORIZONTAL);
+			Node n = hScroll.getNativeObject();
+			n.setManaged(false);
+			scrollable.getChildren().add(n);
+		} else {
+			AnchorPane.setBottomAnchor(controlContainer, 0.0);
+		}
+		
+		if( hScroll != null && vScroll != null ) {
+			corner = new StackPane();
+	        corner.getStyleClass().setAll("corner");
+	        scrollable.getChildren().add(corner);
+		}
 
+		applyBorderStyle();
+	}
+	
 	/**
 	 * Fills the interior of the rectangle specified by the arguments, with the
 	 * receiver's background.
@@ -250,6 +341,10 @@ public class Composite extends Scrollable {
 	public void drawBackground(GC gc, int x, int y, int width, int height,
 			int offsetX, int offsetY) {
 		// TODO
+	}
+
+	Composite findDeferredControl () {
+		return layoutCount > 0 ? this : parent.findDeferredControl ();
 	}
 
 	/**
@@ -302,7 +397,18 @@ public class Composite extends Scrollable {
 	 *                </ul>
 	 */
 	public Control[] getChildren() {
-		return children;
+		return children.toArray(new Control[children.size()]);
+	}
+
+	@Override
+	public Rectangle getClientArea() {
+		forceSizeProcessing();
+		return new Rectangle(0, 0, (int)controlContainer.getWidth(), (int)controlContainer.getHeight());
+	}
+	
+	@Override
+	public ScrollBar getHorizontalBar() {
+		return hScroll;
 	}
 
 	/**
@@ -347,6 +453,20 @@ public class Composite extends Scrollable {
 		return false;
 	}
 
+	@Override
+	Region getNativeControl() {
+		return controlContainer;
+	}
+	
+	@Override
+	Region getNativeObject() {
+		return scrollable;
+	}
+	
+	protected String getStyleClassname() {
+		return "swt-composite";
+	}
+
 	/**
 	 * Gets the (possibly empty) tabbing order for the control.
 	 * 
@@ -364,7 +484,12 @@ public class Composite extends Scrollable {
 	 */
 	public Control[] getTabList() {
 		// TODO
-		return null;
+		return getChildren();
+	}
+
+	@Override
+	public ScrollBar getVerticalBar() {
+		return vScroll;
 	}
 
 	/**
@@ -414,7 +539,7 @@ public class Composite extends Scrollable {
 	 *                </ul>
 	 */
 	public void layout() {
-		// TODO
+		layout(true);
 	}
 
 	/**
@@ -451,7 +576,8 @@ public class Composite extends Scrollable {
 	 *                </ul>
 	 */
 	public void layout(boolean changed) {
-		// TODO
+		if (layout == null) return;
+		layout (changed, false);
 	}
 
 	/**
@@ -494,7 +620,10 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public void layout(boolean changed, boolean all) {
-		// TODO
+		checkWidget ();
+		if (layout == null && !all) return;
+		markLayout (changed, all);
+		updateLayout (all);
 	}
 
 	/**
@@ -533,7 +662,8 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public void layout(Control[] changed) {
-		// TODO
+		if (changed == null) error (SWT.ERROR_INVALID_ARGUMENT);
+		layout (changed, SWT.NONE);
 	}
 
 	/**
@@ -604,13 +734,83 @@ public class Composite extends Scrollable {
 	 * @since 3.6
 	 */
 	public void layout(Control[] changed, int flags) {
-		// TODO
+		checkWidget ();
+		if (changed != null) {
+			for (int i=0; i<changed.length; i++) {
+				Control control = changed [i];
+				if (control == null) error (SWT.ERROR_INVALID_ARGUMENT);
+				if (control.isDisposed ()) error (SWT.ERROR_INVALID_ARGUMENT);
+				boolean ancestor = false;
+				Composite composite = control.parent;
+				while (composite != null) {
+					ancestor = composite == this;
+					if (ancestor) break;
+					composite = composite.parent;
+				}
+				if (!ancestor) error (SWT.ERROR_INVALID_PARENT);
+			}
+			int updateCount = 0;
+			Composite [] update = new Composite [16];
+			for (int i=0; i<changed.length; i++) {
+				Control child = changed [i];
+				Composite composite = child.parent;
+				while (child != this) {
+					if (composite.layout != null) {
+						composite.state |= LAYOUT_NEEDED;
+						if (!composite.layout.flushCache (child)) {
+							composite.state |= LAYOUT_CHANGED;
+						}
+					}
+					if (updateCount == update.length) {
+						Composite [] newUpdate = new Composite [update.length + 16];
+						System.arraycopy (update, 0, newUpdate, 0, update.length);
+						update = newUpdate;
+					}
+					child = update [updateCount++] = composite;
+					composite = child.parent;
+				}
+			}
+			if ((flags & SWT.DEFER) != 0) {
+				setLayoutDeferred (true);
+//				display.addLayoutDeferred (this);
+			}
+			for (int i=updateCount-1; i>=0; i--) {
+				update [i].updateLayout (false);
+			}
+		} else {
+			if (layout == null && (flags & SWT.ALL) == 0) return;
+			markLayout ((flags & SWT.CHANGED) != 0, (flags & SWT.ALL) != 0);
+			if ((flags & SWT.DEFER) != 0) {
+				setLayoutDeferred (true);
+//				display.addLayoutDeferred (this);
+			}
+			updateLayout ((flags & SWT.ALL) != 0);
+		}
 	}
 
-	void removeControl (Control control) {
-		// TODO
+	@Override
+	void markLayout (boolean changed, boolean all) {
+		if (layout != null) {
+			state |= LAYOUT_NEEDED;
+			if (changed) state |= LAYOUT_CHANGED;
+		}
+		if (all) {
+			for (Control child : children)
+				child.markLayout(changed, all);
+		}
 	}
 
+	void removeControl(Control control) {
+		if (control instanceof Button && (control.getStyle() & SWT.RADIO) != 0
+				&& (getStyle() & SWT.NO_RADIO_GROUP) == 0 ) {
+			if (toggleGroup != null) {
+				toggleGroup.getToggles().remove(control.getNativeObject());
+			}
+		}
+		children.remove(control);
+		controlContainer.getChildren().remove(control.getNativeObject());
+	}
+	
 	/**
 	 * Sets the background drawing mode to the argument which should be one of
 	 * the following constants defined in class <code>SWT</code>:
@@ -711,4 +911,30 @@ public class Composite extends Scrollable {
 		// TODO
 	}
 
+	void updateLayout (boolean all) {
+		updateLayout (true, all);
+	}
+
+	@Override
+	void updateLayout(boolean resize, boolean all) {
+		Composite parent = findDeferredControl ();
+		if (parent != null) {
+			parent.state |= LAYOUT_CHILD;
+			return;
+		}
+		if ((state & LAYOUT_NEEDED) != 0) {
+			boolean changed = (state & LAYOUT_CHANGED) != 0;
+			state &= ~(LAYOUT_NEEDED | LAYOUT_CHANGED);
+//			display.runSkin();
+//			if (resize) setResizeChildren (false);
+			layout.layout (this, changed);
+//			if (resize) setResizeChildren (true);
+		}
+		if (all) {
+			state &= ~LAYOUT_CHILD;
+			for (Control child : children)
+				child.updateLayout(resize, all);
+		}
+	}
+	
 }
