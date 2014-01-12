@@ -1178,7 +1178,7 @@ public class Combo extends Composite {
 	
 	@SuppressWarnings("unchecked")
 	ComboBox<String> getCombo(){
-		return (ComboBox<String>) nativeRegion;
+		return (ComboBox<String>)getNativeControl();
 	}
 	
 }

@@ -122,7 +122,7 @@ public class Label extends Control {
 	}
 
 	private javafx.scene.control.Label getNode() {
-		return (javafx.scene.control.Label)nativeRegion;
+		return (javafx.scene.control.Label)getNativeControl();
 	}
 	
 	/**

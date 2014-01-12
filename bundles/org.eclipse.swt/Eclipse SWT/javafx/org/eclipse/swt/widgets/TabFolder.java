@@ -110,7 +110,7 @@ public class TabFolder extends Composite {
 	}
 	
 	private TabPane getTabPane() {
-		return (TabPane)nativeRegion;
+		return (TabPane)getNativeControl();
 	}
 
 	/**

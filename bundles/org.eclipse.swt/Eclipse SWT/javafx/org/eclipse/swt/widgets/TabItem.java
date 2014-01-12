@@ -225,7 +225,7 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public void setControl(Control control) {
-		tab.setContent(control.nativeRegion);
+		tab.setContent(control.getNativeControl());
 	}
 
 	/**
