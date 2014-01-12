@@ -107,7 +107,6 @@ public class Composite extends Scrollable {
 		createNode();
 	}
 
-	@Override
 	void createNode() {
 		// Plain composites are just panes. They'll get created when the first child is added
 		// to give a chance for the layouts to get filled.
@@ -141,14 +140,14 @@ public class Composite extends Scrollable {
 	
 	void createPane() {
 		convertLayout();
-		setNode(paneLayout.getPane());
+//		setNode(paneLayout.getPane());
 	}
 
 	void addChild(Control child) {
 		if (paneLayout == null)
 			createPane();
 
-		paneLayout.addChild(child.node);
+//		paneLayout.addChild(child.node);
 		
 		Control[] c = new Control[children.length + 1];
 		System.arraycopy(children, 0, c, 0, children.length);
@@ -157,8 +156,8 @@ public class Composite extends Scrollable {
 	}
 	
 	void removeChild(Control child) {
-		if (paneLayout != null)
-			paneLayout.removeChild(child.node);
+//		if (paneLayout != null)
+//			paneLayout.removeChild(child.node);
 
 		if (children != null)
 			for (int i = 0; i < children.length; ++i)

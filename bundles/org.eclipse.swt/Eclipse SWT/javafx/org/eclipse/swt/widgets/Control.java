@@ -843,6 +843,10 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
+	boolean drawGripper (GC gc, int x, int y, int width, int height, boolean vertical) {
+		return false;
+	}
+
 	Control findBackgroundControl () {
 		if (background != null || backgroundImage != null) return this;
 		return (state & PARENT_BACKGROUND) != 0 ? parent.findBackgroundControl () : null;

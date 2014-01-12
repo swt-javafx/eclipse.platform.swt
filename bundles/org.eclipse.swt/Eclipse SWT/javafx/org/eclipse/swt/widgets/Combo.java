@@ -162,7 +162,7 @@ public class Combo extends Composite {
 				
 			}
 		});
-		setNode(comboBox);
+//		setNode(comboBox);
 	}
 
 	/**
@@ -1178,7 +1178,7 @@ public class Combo extends Composite {
 	
 	@SuppressWarnings("unchecked")
 	ComboBox<String> getCombo(){
-		return (ComboBox<String>) node;
+		return (ComboBox<String>) nativeRegion;
 	}
 	
 }

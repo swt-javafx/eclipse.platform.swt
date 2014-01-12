@@ -285,9 +285,8 @@ public class Shell extends Decorations {
 		});
 	}
 	
-	@Override
 	void setNode(final Node node) {
-		super.setNode(node);
+//		super.setNode(node);
 		stage.setScene(new Scene((Parent)node, 640, 480));
 	}
 	

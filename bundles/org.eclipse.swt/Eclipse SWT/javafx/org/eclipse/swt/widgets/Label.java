@@ -118,11 +118,11 @@ public class Label extends Control {
 					label.setTextAlignment(TextAlignment.CENTER);
 			}
 		}
-		setNode(label);
+//		setNode(label);
 	}
 
 	private javafx.scene.control.Label getNode() {
-		return (javafx.scene.control.Label)node;
+		return (javafx.scene.control.Label)nativeRegion;
 	}
 	
 	/**

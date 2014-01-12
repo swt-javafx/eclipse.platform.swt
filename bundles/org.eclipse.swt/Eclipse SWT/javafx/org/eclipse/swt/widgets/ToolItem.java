@@ -297,7 +297,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public ToolBar getParent() {
-		return (ToolBar)parent;
+		return (ToolBar)null;
 	}
 
 	/**

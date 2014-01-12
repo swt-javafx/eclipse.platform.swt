@@ -94,7 +94,7 @@ public class Group extends Composite {
 		vbox.setStyle("-fx-border-width: 1px; -fx-border-color: #222222; -fx-padding: 5;");
 		vbox.setFillWidth(true);
 		
-		setNode(vbox);
+//		setNode(vbox);
 	}
 	
 	@Override

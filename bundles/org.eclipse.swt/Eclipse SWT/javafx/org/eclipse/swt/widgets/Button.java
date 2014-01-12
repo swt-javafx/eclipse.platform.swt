@@ -148,11 +148,11 @@ public class Button extends Control {
 			}
 		});
 
-		setNode(button);
+//		setNode(button);
 	}
 
 	ButtonBase getButton() {
-		return (ButtonBase)node;
+		return (ButtonBase)nativeRegion;
 	}
 	
 	/**
@@ -290,10 +290,10 @@ public class Button extends Control {
 	 *                </ul>
 	 */
 	public boolean getSelection() {
-		if (node instanceof ToggleButton)
-			return ((ToggleButton)node).isSelected();
-		else if (node instanceof CheckBox)
-			return ((CheckBox)node).isSelected();
+		if (nativeRegion instanceof ToggleButton)
+			return ((ToggleButton)nativeRegion).isSelected();
+		else if (nativeRegion instanceof CheckBox)
+			return ((CheckBox)nativeRegion).isSelected();
 		else
 			return false;
 	}
@@ -450,10 +450,10 @@ public class Button extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(boolean selected) {
-		if (node instanceof ToggleButton)
-			((ToggleButton)node).setSelected(selected);
-		else if (node instanceof CheckBox)
-			((CheckBox)node).setSelected(selected);
+		if (nativeRegion instanceof ToggleButton)
+			((ToggleButton)nativeRegion).setSelected(selected);
+		else if (nativeRegion instanceof CheckBox)
+			((CheckBox)nativeRegion).setSelected(selected);
 	}
 
 	/**

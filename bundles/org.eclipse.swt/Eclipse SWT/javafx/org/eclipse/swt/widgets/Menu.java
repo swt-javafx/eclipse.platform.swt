@@ -395,7 +395,7 @@ public class Menu extends Widget {
 	 */
 	public Decorations getParent() {
 		// TODO
-		return (Decorations)parent;
+		return null;
 	}
 
 	/**

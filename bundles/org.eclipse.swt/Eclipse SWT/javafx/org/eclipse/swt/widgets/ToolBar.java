@@ -102,7 +102,7 @@ public class ToolBar extends Composite {
 	@Override
 	void createNode() {
 		FlowPane pane = new FlowPane();
-		setNode(pane);
+//		setNode(pane);
 	}
 	
 	void addItem(ToolItem item) {

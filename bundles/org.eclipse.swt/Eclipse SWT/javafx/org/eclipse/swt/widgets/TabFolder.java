@@ -97,7 +97,7 @@ public class TabFolder extends Composite {
 	@Override
 	void createNode() {
 		TabPane pane = new TabPane();
-		setNode(pane);
+//		setNode(pane);
 	}
 	
 	void addItem(TabItem item) {
@@ -110,7 +110,7 @@ public class TabFolder extends Composite {
 	}
 	
 	private TabPane getTabPane() {
-		return (TabPane)node;
+		return (TabPane)nativeRegion;
 	}
 
 	/**
