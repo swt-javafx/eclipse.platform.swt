@@ -37,7 +37,9 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class TabItem extends Item {
 
+	TabFolder parent;
 	Tab tab;
+	Control control;
 	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -121,11 +123,14 @@ public class TabItem extends Item {
 	 */
 	public TabItem(TabFolder parent, int style, int index) {
 		super(parent, style);
-		
-		tab = new Tab();
-		((TabFolder)parent).addItem(this);
+		this.parent = parent;
+		createWidget();
 	}
 
+	void createNativeObject() {
+		tab = new Tab();
+	};
+	
 	/**
 	 * Returns a rectangle describing the receiver's size and location relative
 	 * to its parent.
@@ -163,8 +168,11 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public Control getControl() {
-		// TODO
-		return null;
+		return control;
+	}
+
+	public Tab getNativeObject() {
+		return tab;
 	}
 
 	/**
@@ -203,6 +211,11 @@ public class TabItem extends Item {
 		return null;
 	}
 
+	@Override
+	void register() {
+		parent.addItem(this);
+	}
+	
 	/**
 	 * Sets the control that is used to fill the client area of the tab folder
 	 * when the user selects the tab item.
@@ -225,7 +238,8 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public void setControl(Control control) {
-		tab.setContent(control.getNativeControl());
+		this.control = control;
+		tab.setContent(control.getNativeObject());
 	}
 
 	/**
@@ -258,6 +272,7 @@ public class TabItem extends Item {
 	 */
 	@Override
 	public void setText(String string) {
+		super.setText(string);
 		tab.setText(string);
 	}
 

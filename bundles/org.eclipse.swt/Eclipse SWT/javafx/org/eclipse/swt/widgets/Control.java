@@ -742,6 +742,9 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Point computeSize(int wHint, int hHint, boolean changed) {
 		checkWidget();
+		if (getNativeObject() == null)
+			// TODO
+			return new Point(0, 0);
 		forceSizeProcessing();
 		int width = (int)getNativeObject().prefWidth(
 				javafx.scene.control.Control.USE_COMPUTED_SIZE);
@@ -908,7 +911,7 @@ public abstract class Control extends Widget implements Drawable {
 
 	void forceSizeProcessing() {
 		javafx.scene.layout.Region control = getNativeObject();
-		if ((state & CSS_PROCESSED) == 0
+		if (control != null && (state & CSS_PROCESSED) == 0
 				&& (control.getScene() == null
 					|| control.getScene().getWindow() == null
 					|| control.getScene().getWindow().isShowing())) {
@@ -1844,6 +1847,9 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	void register () {
+		if (parent != null)
+			parent.addControl(this);
+
 		javafx.scene.layout.Region control = getNativeControl();
 		if (control != null) {
 			display.addControl (control, this);
@@ -2655,7 +2661,9 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setBounds(int x, int y, int width, int height) {
 		checkWidget();
-		getNativeObject().resizeRelocate(x,  y,  width, height);
+		if (getNativeObject() != null)
+			// TODO remove the check
+			getNativeObject().resizeRelocate(x,  y,  width, height);
 	}
 
 	/**
@@ -3094,7 +3102,9 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setSize(int width, int height) {
 		checkWidget();
-		getNativeObject().resize(width, height);
+		if (getNativeObject() != null)
+			// TODO remove check
+			getNativeObject().resize(width, height);
 	}
 
 	/**

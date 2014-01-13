@@ -10,7 +10,11 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javafx.scene.control.TabPane;
+import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -54,6 +58,9 @@ import org.eclipse.swt.graphics.Point;
  */
 public class TabFolder extends Composite {
 
+	TabPane tabPane;
+	List<TabItem> items = new ArrayList<>();
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -94,13 +101,9 @@ public class TabFolder extends Composite {
 		super(parent, style);
 	}
 
-	void createNode() {
-		TabPane pane = new TabPane();
-//		setNode(pane);
-	}
-	
 	void addItem(TabItem item) {
-		getTabPane().getTabs().add(item.tab);
+		items.add(item);
+		tabPane.getTabs().add(item.getNativeObject());
 	}
 	
 	@Override
@@ -108,10 +111,11 @@ public class TabFolder extends Composite {
 		// JavaFX doesn't record the child controls here. They go only on the Tabs.
 	}
 	
-	private TabPane getTabPane() {
-		return (TabPane)getNativeControl();
+	@Override
+	void createNativeObject() {
+		tabPane = new TabPane();
 	}
-
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the user changes the receiver's selection, by sending it one of the
@@ -142,7 +146,11 @@ public class TabFolder extends Composite {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Selection,typedListener);
+		addListener (SWT.DefaultSelection,typedListener);
 	}
 
 	/**
@@ -168,8 +176,7 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public TabItem getItem(int index) {
-		// TODO
-		return null;
+		return items.get(index);
 	}
 
 	/**
@@ -214,8 +221,7 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public int getItemCount() {
-		// TODO
-		return 0;
+		return items.size();
 	}
 
 	/**
@@ -237,10 +243,19 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public TabItem[] getItems() {
-		// TODO
-		return null;
+		return items.toArray(new TabItem[items.size()]);
 	}
 
+	@Override
+	Region getNativeObject() {
+		return tabPane;
+	}
+	
+	@Override
+	Region getNativeControl() {
+		return tabPane;
+	}
+	
 	/**
 	 * Returns an array of <code>TabItem</code>s that are currently selected in
 	 * the receiver. An empty array indicates that no items are selected.
@@ -332,7 +347,11 @@ public class TabFolder extends Composite {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Selection, listener);
+		eventTable.unhook (SWT.DefaultSelection,listener);	
 	}
 
 	/**

@@ -10,11 +10,93 @@
  *******************************************************************************/
 package org.eclipse.swt.browser;
 
+import org.eclipse.swt.widgets.Composite;
+
 
 class BrowserFactory {
 
 	WebBrowser createWebBrowser(int style) {
-		return null;
+		return new WebBrowser() {
+
+			@Override
+			public boolean back() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public void create(Composite parent, int style) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public boolean execute(String script) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public boolean forward() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public String getBrowserType() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public String getText() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public String getUrl() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public boolean isBackEnabled() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public boolean isForwardEnabled() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public void refresh() {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public boolean setText(String html, boolean trusted) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public boolean setUrl(String url, String postData, String[] headers) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public void stop() {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		};
 	}
 
 }

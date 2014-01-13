@@ -75,6 +75,9 @@ public class Composite extends Scrollable {
 	java.util.List<Control> children = new ArrayList<>();
 	int backgroundMode, layoutCount;
 	
+	Composite() {
+	}
+
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -133,7 +136,9 @@ public class Composite extends Scrollable {
 			toggleGroup.getToggles().add((Toggle)control.getNativeObject());
 		}
 		children.add(control);
-		controlContainer.getChildren().add(control.getNativeObject());
+		if (control.getNativeObject() != null)
+			// TODO shouldn't need this check
+			controlContainer.getChildren().add(control.getNativeObject());
 	}
 	
 	/**
@@ -344,7 +349,8 @@ public class Composite extends Scrollable {
 	}
 
 	Composite findDeferredControl () {
-		return layoutCount > 0 ? this : parent.findDeferredControl ();
+		return this;
+		// TODO return layoutCount > 0 ? this : parent.findDeferredControl ();
 	}
 
 	/**

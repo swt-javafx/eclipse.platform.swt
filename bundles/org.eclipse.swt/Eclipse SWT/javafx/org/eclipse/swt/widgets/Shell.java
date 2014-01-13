@@ -14,8 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javafx.event.EventHandler;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -117,7 +115,6 @@ import org.eclipse.swt.graphics.Region;
 public class Shell extends Decorations {
 
 	Stage stage;
-	private Shell parentShell;
 	private List<Shell> shells = new LinkedList<Shell>();
 	
 	/**
@@ -259,37 +256,26 @@ public class Shell extends Decorations {
 	 * @see SWT#SHEET
 	 */
 	public Shell(Display display, int style) {
-		super(null, style);
-		init();
+		this(display, null, style);
 	}
 
-	private void init() {
-		if (Display.primaryStage != null) {
-			// First shell, use the primary stage
-			stage = Display.primaryStage;
-			Display.primaryStage = null;
-		} else {
-			stage = new Stage();
+	Shell (Display display, Shell parent, int style) {
+		checkSubclass ();
+		if (display == null) display = Display.getCurrent ();
+		if (display == null) display = Display.getDefault ();
+		if (!display.isValidThread ()) {
+			error (SWT.ERROR_THREAD_INVALID_ACCESS);
 		}
-		
-		// TODO StageStyle
-		display.addShell(this);
-		
-		stage.addEventHandler(WindowEvent.ANY, new EventHandler<WindowEvent>() {
-			@Override
-			public void handle(WindowEvent event) {
-				if (event.getEventType().equals(WindowEvent.WINDOW_SHOWING)) {
-					sendEvent(SWT.Activate);
-				}
-			}
-		});
+		if (parent != null && parent.isDisposed ()) {
+			error (SWT.ERROR_INVALID_ARGUMENT);	
+		}
+		this.style = style;
+		this.display = display;
+		this.parent = parent;
+		reskinWidget();
+		createWidget();
 	}
-	
-	void setNode(final Node node) {
-//		super.setNode(node);
-		stage.setScene(new Scene((Parent)node, 640, 480));
-	}
-	
+
 	/**
 	 * Constructs a new instance of this class given only its parent. It is
 	 * created with style <code>SWT.DIALOG_TRIM</code>.
@@ -375,11 +361,6 @@ public class Shell extends Decorations {
 	 */
 	public Shell(Shell parent, int style) {
 		this(parent != null ? parent.getDisplay() : Display.getDefault(), style);
-		
-		if (parent != null) {
-			parentShell = parent;
-			parent.addShell(this);
-		}
 	}
 
 	/**
@@ -448,9 +429,34 @@ public class Shell extends Decorations {
 	}
 
 	@Override
+	void createNativeObject() {
+		super.createNativeObject();
+		if (Display.primaryStage != null) {
+			// First shell, use the primary stage
+			stage = Display.primaryStage;
+			Display.primaryStage = null;
+		} else {
+			stage = new Stage();
+		}
+		
+		// TODO StageStyle
+		display.addShell(this);
+		
+		stage.addEventHandler(WindowEvent.ANY, new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				if (event.getEventType().equals(WindowEvent.WINDOW_SHOWING)) {
+					sendEvent(SWT.Activate);
+				}
+			}
+		});
+
+		stage.setScene(new Scene(getNativeObject(), 1024, 768));
+	}
+	
+	@Override
 	public void dispose() {
-		if (parentShell != null)
-			parentShell.removeControl(this);
+		super.dispose();
 		stage = null;
 	}
 	
@@ -587,6 +593,11 @@ public class Shell extends Decorations {
 		return 0;
 	}
 
+	@Override
+	public Shell getShell() {
+		return this;
+	}
+
 	/**
 	 * Returns an array containing all shells which are descendants of the
 	 * receiver.
@@ -668,6 +679,15 @@ public class Shell extends Decorations {
 		// TODO
 	}
 
+	@Override
+	void register() {
+		super.register();
+		
+		if (parent != null) {
+			((Shell)parent).addShell(this);
+		}
+	}
+	
 	/**
 	 * If the receiver is visible, moves it to the top of the drawing order for
 	 * the display on which it was created (so that all other shells on that

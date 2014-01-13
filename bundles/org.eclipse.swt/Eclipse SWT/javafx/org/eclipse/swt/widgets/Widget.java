@@ -319,9 +319,18 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkWidget() {
-		if (isDisposed())
-			error(SWT.ERROR_WIDGET_DISPOSED);
+//		if (isDisposed())
+//			error(SWT.ERROR_WIDGET_DISPOSED);
 		// Not throwing ERROR_THREAD_INVALID_ACCESS since JavaFX will do it for us
+	}
+
+	void createNativeObject() {
+	}
+	
+	void createWidget () {
+		createNativeObject ();
+		setOrientation();
+		register ();
 	}
 
 	void destroyWidget () {
@@ -635,6 +644,9 @@ public abstract class Widget {
 
 	void postEvent (int eventType, Event event) {
 		sendEvent (eventType, event, false);
+	}
+
+	void register() {
 	}
 
 	/*
@@ -1055,6 +1067,9 @@ public abstract class Widget {
 	boolean setInputState (Event event, int type) {
 		// TODO Used to add meta key and mouse button flags to the event stateMask
 		return false;
+	}
+
+	void setOrientation () {
 	}
 
 }

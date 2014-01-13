@@ -10,8 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.TitledPane;
+import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -43,8 +43,7 @@ import org.eclipse.swt.SWTException;
  */
 public class Group extends Composite {
 
-	VBox vbox;
-	Label label;
+	TitledPane titledPane;
 	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -88,6 +87,20 @@ public class Group extends Composite {
 		super(parent, style);
 	}
 	
+	@Override
+	void createNativeObject() {
+		super.createNativeObject();
+		
+		Region compRoot = super.getNativeObject();
+		titledPane = new TitledPane();
+		titledPane.setContent(compRoot);
+	}
+	
+	@Override
+	Region getNativeObject() {
+		return titledPane;
+	}
+	
 	/**
 	 * Returns the receiver's text, which is the string that the is used as the
 	 * <em>title</em>. If the text has not previously been set, returns an empty
@@ -104,7 +117,7 @@ public class Group extends Composite {
 	 *                </ul>
 	 */
 	public String getText() {
-		return label.getText();
+		return titledPane.getText();
 	}
 
 	/**
@@ -133,11 +146,7 @@ public class Group extends Composite {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		label = new Label();
-		label.setStyle("-fx-padding: 2;");
-		label.setText(string);
-
-		vbox.getChildren().add(0, label);
+		titledPane.setText(string);
 	}
 
 }

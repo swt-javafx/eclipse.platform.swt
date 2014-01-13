@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.geometry.Orientation;
+
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -88,12 +91,14 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class ScrollBar extends Widget {
 
+	javafx.scene.control.ScrollBar scrollBar;
+	
 	/**
 	 * Creates a new instance of the widget.
 	 */
 	ScrollBar(Scrollable parent, int style) {
 		super(parent, style);
-		// TODO
+		createWidget();
 	}
 
 	/**
@@ -131,9 +136,24 @@ public class ScrollBar extends Widget {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener(listener);
+		addListener(SWT.Selection,typedListener);
+		addListener(SWT.DefaultSelection,typedListener);
 	}
 
+	@Override
+	void createNativeObject() {
+		scrollBar = new javafx.scene.control.ScrollBar();
+		Orientation o;
+		if ((style & SWT.HORIZONTAL) != 0)
+			o = Orientation.HORIZONTAL;
+		else
+			o = Orientation.VERTICAL;
+		scrollBar.setOrientation(o);
+	}
+	
 	/**
 	 * Returns <code>true</code> if the receiver is enabled, and
 	 * <code>false</code> otherwise. A disabled control is typically not
@@ -213,8 +233,7 @@ public class ScrollBar extends Widget {
 	}
 
 	public javafx.scene.control.ScrollBar getNativeObject() {
-		// TODO
-		return null;
+		return scrollBar;
 	}
 
 	/**
@@ -447,7 +466,11 @@ public class ScrollBar extends Widget {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook(SWT.Selection, listener);
+		eventTable.unhook(SWT.DefaultSelection,listener);
 	}
 
 	/**

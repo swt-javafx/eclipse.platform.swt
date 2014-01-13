@@ -85,6 +85,9 @@ import org.eclipse.swt.graphics.Image;
  */
 public class Decorations extends Canvas {
 
+	Decorations() {
+	}
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.

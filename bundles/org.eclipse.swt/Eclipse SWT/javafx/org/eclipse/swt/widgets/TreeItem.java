@@ -164,7 +164,7 @@ public class TreeItem extends Item {
 	 * @see Widget#getStyle
 	 */
 	public TreeItem(TreeItem parentItem, int style) {
-		super(null, style);
+		super(parentItem, style);
 		// TODO
 	}
 

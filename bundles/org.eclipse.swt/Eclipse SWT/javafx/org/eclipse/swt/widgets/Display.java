@@ -576,7 +576,7 @@ public class Display extends Device {
 	 */
 	public Point getCursorLocation() {
 		// TODO
-		return null;
+		return new Point(0, 0);
 	}
 
 	/**

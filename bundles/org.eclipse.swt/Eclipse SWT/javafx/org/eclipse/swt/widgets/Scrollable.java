@@ -34,6 +34,9 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public abstract class Scrollable extends Control {
 
+	Scrollable() {
+	}
+
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
