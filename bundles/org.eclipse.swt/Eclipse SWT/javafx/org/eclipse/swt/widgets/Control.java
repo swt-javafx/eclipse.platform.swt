@@ -769,7 +769,8 @@ public abstract class Control extends Widget implements Drawable {
 		return new Point(width, height);
 	}
 
-	abstract void createNativeObject();
+	void createNativeObject() {
+	}
 	
 	void createWidget () {
 		state |= DRAG_DETECT;
@@ -786,6 +787,14 @@ public abstract class Control extends Widget implements Drawable {
 	
 	Font defaultFont() {
 		return display.getSystemFont();
+	}
+
+	@Override
+	void deregister() {
+		super.deregister();
+		
+		if (parent != null)
+			parent.removeControl(this);
 	}
 
 	/**

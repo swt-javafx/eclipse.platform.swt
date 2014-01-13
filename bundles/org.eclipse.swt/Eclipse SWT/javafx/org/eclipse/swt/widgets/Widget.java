@@ -333,8 +333,12 @@ public abstract class Widget {
 		register ();
 	}
 
+	void deregister() {
+	}
+
 	void destroyWidget () {
-		releaseHandle();
+		deregister();
+		releaseNativeObject();
 	}
 
 	/**
@@ -685,12 +689,16 @@ public abstract class Widget {
 				destroyWidget ();
 			} else {
 				releaseWidget ();
-				releaseHandle ();
+				releaseNativeObject ();
 			}
 		}
 	}
 
 	void releaseChildren (boolean destroy) {
+	}
+
+	void releaseHandle() {
+		releaseNativeObject();
 	}
 
 	/*
@@ -711,7 +719,7 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 * @see #releaseWidget
 	 */
-	void releaseHandle () {
+	void releaseNativeObject () {
 		state |= DISPOSED;
 		display = null;
 	}

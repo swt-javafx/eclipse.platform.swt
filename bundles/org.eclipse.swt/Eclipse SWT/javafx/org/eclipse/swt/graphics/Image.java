@@ -74,7 +74,7 @@ import org.eclipse.swt.SWTException;
  */
 public final class Image extends Resource implements Drawable {
 	
-	private javafx.scene.image.Image image;
+	private WritableImage image;
 	
 	/**
 	 * Constructs an empty instance of this class with the specified width and
@@ -119,61 +119,6 @@ public final class Image extends Resource implements Drawable {
 	}
 
 	/**
-	 * Constructs a new instance of this class based on the provided image, with
-	 * an appearance that varies depending on the value of the flag. The
-	 * possible flag values are:
-	 * <dl>
-	 * <dt><b>{@link SWT#IMAGE_COPY}</b></dt>
-	 * <dd>the result is an identical copy of srcImage</dd>
-	 * <dt><b>{@link SWT#IMAGE_DISABLE}</b></dt>
-	 * <dd>the result is a copy of srcImage which has a <em>disabled</em> look</dd>
-	 * <dt><b>{@link SWT#IMAGE_GRAY}</b></dt>
-	 * <dd>the result is a copy of srcImage which has a <em>gray scale</em> look
-	 * </dd>
-	 * </dl>
-	 * 
-	 * @param device
-	 *            the device on which to create the image
-	 * @param srcImage
-	 *            the image to use as the source
-	 * @param flag
-	 *            the style, either <code>IMAGE_COPY</code>,
-	 *            <code>IMAGE_DISABLE</code> or <code>IMAGE_GRAY</code>
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
-	 *                no current device</li>
-	 *                <li>ERROR_NULL_ARGUMENT - if srcImage is null</li>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the flag is not one of
-	 *                <code>IMAGE_COPY</code>, <code>IMAGE_DISABLE</code> or
-	 *                <code>IMAGE_GRAY</code></li>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the image has been
-	 *                disposed</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_INVALID_IMAGE - if the image is not a bitmap or
-	 *                an icon, or is otherwise in an invalid state</li>
-	 *                <li>ERROR_UNSUPPORTED_DEPTH - if the depth of the image is
-	 *                not supported</li>
-	 *                </ul>
-	 * @exception SWTError
-	 *                <ul>
-	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
-	 *                image creation</li>
-	 *                </ul>
-	 */
-	public Image(Device device, Image srcImage, int flag) {
-		super(device);
-		// TODO interpret the flag
-		image = new WritableImage(
-				srcImage.image.getPixelReader(),
-				(int)srcImage.image.getWidth(),
-				(int)srcImage.image.getHeight());
-	}
-
-	/**
 	 * Constructs an empty instance of this class with the width and height of
 	 * the specified rectangle. The result may be drawn upon by creating a GC
 	 * and using any of its drawing operations, as shown in the following
@@ -212,76 +157,7 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public Image(Device device, Rectangle bounds) {
-		// TODO do the x and y mean anything?
 		this(device, bounds.width, bounds.height);
-	}
-
-	/**
-	 * Constructs an instance of this class from the given
-	 * <code>ImageData</code>.
-	 * 
-	 * @param device
-	 *            the device on which to create the image
-	 * @param data
-	 *            the image data to create the image from (must not be null)
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
-	 *                no current device</li>
-	 *                <li>ERROR_NULL_ARGUMENT - if the image data is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_UNSUPPORTED_DEPTH - if the depth of the
-	 *                ImageData is not supported</li>
-	 *                </ul>
-	 * @exception SWTError
-	 *                <ul>
-	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
-	 *                image creation</li>
-	 *                </ul>
-	 */
-	public Image(Device device, ImageData data) {
-		super(device);
-		// TODO
-	}
-
-	/**
-	 * Constructs an instance of this class, whose type is <code>SWT.ICON</code>
-	 * , from the two given <code>ImageData</code> objects. The two images must
-	 * be the same size. Pixel transparency in either image will be ignored.
-	 * <p>
-	 * The mask image should contain white wherever the icon is to be visible,
-	 * and black wherever the icon is to be transparent. In addition, the source
-	 * image should contain black wherever the icon is to be transparent.
-	 * </p>
-	 * 
-	 * @param device
-	 *            the device on which to create the icon
-	 * @param source
-	 *            the color data for the icon
-	 * @param mask
-	 *            the mask data for the icon
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
-	 *                no current device</li>
-	 *                <li>ERROR_NULL_ARGUMENT - if either the source or mask is
-	 *                null</li>
-	 *                <li>ERROR_INVALID_ARGUMENT - if source and mask are
-	 *                different sizes</li>
-	 *                </ul>
-	 * @exception SWTError
-	 *                <ul>
-	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
-	 *                image creation</li>
-	 *                </ul>
-	 */
-	public Image(Device device, ImageData source, ImageData mask) {
-		super(device);
-		// TODO
 	}
 
 	/**
@@ -347,8 +223,9 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, InputStream stream) {
 		super(device);
-		image = new javafx.scene.image.Image(stream);
-		createImageData();
+		javafx.scene.image.Image image = new javafx.scene.image.Image(stream);
+		this.image = new WritableImage(image.getPixelReader(),
+				(int) image.getWidth(), (int) image.getHeight());
 	}
 
 	/**
@@ -389,14 +266,245 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, String filename) {
 		super(device);
-		image = new javafx.scene.image.Image("file://" + filename);
-		createImageData();
+		javafx.scene.image.Image image = new javafx.scene.image.Image(filename);
+		this.image = new WritableImage(image.getPixelReader(),
+				(int) image.getWidth(), (int) image.getHeight());
 	}
 
-	void createImageData() {
-		
+	/**
+	 * Constructs a new instance of this class based on the provided image, with
+	 * an appearance that varies depending on the value of the flag. The
+	 * possible flag values are:
+	 * <dl>
+	 * <dt><b>{@link SWT#IMAGE_COPY}</b></dt>
+	 * <dd>the result is an identical copy of srcImage</dd>
+	 * <dt><b>{@link SWT#IMAGE_DISABLE}</b></dt>
+	 * <dd>the result is a copy of srcImage which has a <em>disabled</em> look</dd>
+	 * <dt><b>{@link SWT#IMAGE_GRAY}</b></dt>
+	 * <dd>the result is a copy of srcImage which has a <em>gray scale</em> look
+	 * </dd>
+	 * </dl>
+	 * 
+	 * @param device
+	 *            the device on which to create the image
+	 * @param srcImage
+	 *            the image to use as the source
+	 * @param flag
+	 *            the style, either <code>IMAGE_COPY</code>,
+	 *            <code>IMAGE_DISABLE</code> or <code>IMAGE_GRAY</code>
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
+	 *                no current device</li>
+	 *                <li>ERROR_NULL_ARGUMENT - if srcImage is null</li>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the flag is not one of
+	 *                <code>IMAGE_COPY</code>, <code>IMAGE_DISABLE</code> or
+	 *                <code>IMAGE_GRAY</code></li>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the image has been
+	 *                disposed</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_INVALID_IMAGE - if the image is not a bitmap or
+	 *                an icon, or is otherwise in an invalid state</li>
+	 *                <li>ERROR_UNSUPPORTED_DEPTH - if the depth of the image is
+	 *                not supported</li>
+	 *                </ul>
+	 * @exception SWTError
+	 *                <ul>
+	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
+	 *                image creation</li>
+	 *                </ul>
+	 */
+	public Image(Device device, Image srcImage, int flag) {
+		super(device);
+		switch (flag) {
+		case SWT.IMAGE_COPY:
+			image = new WritableImage(srcImage.image.getPixelReader(),
+					(int) srcImage.image.getWidth(),
+					(int) srcImage.image.getHeight());
+			break;
+		default:
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Constructs an instance of this class from the given
+	 * <code>ImageData</code>.
+	 * 
+	 * @param device
+	 *            the device on which to create the image
+	 * @param data
+	 *            the image data to create the image from (must not be null)
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
+	 *                no current device</li>
+	 *                <li>ERROR_NULL_ARGUMENT - if the image data is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_UNSUPPORTED_DEPTH - if the depth of the
+	 *                ImageData is not supported</li>
+	 *                </ul>
+	 * @exception SWTError
+	 *                <ul>
+	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
+	 *                image creation</li>
+	 *                </ul>
+	 */
+	public Image(Device device, ImageData data) {
+		super(device);
+		image = fromData(data);
+	}
+
+	/**
+	 * Constructs an instance of this class, whose type is <code>SWT.ICON</code>
+	 * , from the two given <code>ImageData</code> objects. The two images must
+	 * be the same size. Pixel transparency in either image will be ignored.
+	 * <p>
+	 * The mask image should contain white wherever the icon is to be visible,
+	 * and black wherever the icon is to be transparent. In addition, the source
+	 * image should contain black wherever the icon is to be transparent.
+	 * </p>
+	 * 
+	 * @param device
+	 *            the device on which to create the icon
+	 * @param source
+	 *            the color data for the icon
+	 * @param mask
+	 *            the mask data for the icon
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if device is null and there is
+	 *                no current device</li>
+	 *                <li>ERROR_NULL_ARGUMENT - if either the source or mask is
+	 *                null</li>
+	 *                <li>ERROR_INVALID_ARGUMENT - if source and mask are
+	 *                different sizes</li>
+	 *                </ul>
+	 * @exception SWTError
+	 *                <ul>
+	 *                <li>ERROR_NO_HANDLES if a handle could not be obtained for
+	 *                image creation</li>
+	 *                </ul>
+	 */
+	public Image(Device device, ImageData source, ImageData mask) {
+		super(device);
+		image = fromData(source, ImageData.convertMask(mask));
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+		image = null;
 	}
 	
+	private WritableImage fromData(ImageData data) {
+		WritableImage img = new WritableImage(data.width, data.height);
+		ImageData transparencyMask = data.getTransparencyMask();
+		for (int x = data.width - 1; x >= 0; x--) {
+			for (int y = data.height - 1; y >= 0; y--) {
+				RGB rgb = data.palette.getRGB(data.getPixel(x, y));
+				int pixel = rgb.red << 16 | rgb.green << 8 | rgb.blue;
+				rgb = transparencyMask.palette.getRGB(transparencyMask
+						.getPixel(x, y));
+				int mask = rgb.red << 16 | rgb.green << 8 | rgb.blue;
+				if (mask != 0) {
+					int alpha = data.getAlpha(x, y);
+					if (alpha > 0) {
+						pixel = pixel & 0x00FFFFFF | alpha << 24;
+						img.getPixelWriter().setArgb(x, y, pixel);
+					}
+				}
+			}
+		}
+		return img;
+	}
+
+	private WritableImage fromData(ImageData source, ImageData mask) {
+		ImageData imageData;
+		int blackIndex = 0;
+		if (source.palette.isDirect) {
+			imageData = new ImageData(source.width, source.height,
+					source.depth, source.palette);
+		} else {
+			RGB black = new RGB(0, 0, 0);
+			RGB[] rgbs = source.getRGBs();
+			if (source.transparentPixel != -1) {
+				/*
+				 * The source had transparency, so we can use the transparent
+				 * pixel for black.
+				 */
+				RGB[] newRGBs = new RGB[rgbs.length];
+				System.arraycopy(rgbs, 0, newRGBs, 0, rgbs.length);
+				if (source.transparentPixel >= newRGBs.length) {
+					/* Grow the palette with black */
+					rgbs = new RGB[source.transparentPixel + 1];
+					System.arraycopy(newRGBs, 0, rgbs, 0, newRGBs.length);
+					for (int i = newRGBs.length; i <= source.transparentPixel; i++) {
+						rgbs[i] = new RGB(0, 0, 0);
+					}
+				} else {
+					newRGBs[source.transparentPixel] = black;
+					rgbs = newRGBs;
+				}
+				blackIndex = source.transparentPixel;
+				imageData = new ImageData(source.width, source.height,
+						source.depth, new PaletteData(rgbs));
+			} else {
+				while (blackIndex < rgbs.length) {
+					if (rgbs[blackIndex].equals(black))
+						break;
+					blackIndex++;
+				}
+				if (blackIndex == rgbs.length) {
+					/*
+					 * We didn't find black in the palette, and there is no
+					 * transparent pixel we can use.
+					 */
+					if ((1 << source.depth) > rgbs.length) {
+						/* We can grow the palette and add black */
+						RGB[] newRGBs = new RGB[rgbs.length + 1];
+						System.arraycopy(rgbs, 0, newRGBs, 0, rgbs.length);
+						newRGBs[rgbs.length] = black;
+						rgbs = newRGBs;
+					} else {
+						/* No room to grow the palette */
+						blackIndex = -1;
+					}
+				}
+				imageData = new ImageData(source.width, source.height,
+						source.depth, new PaletteData(rgbs));
+			}
+		}
+		if (blackIndex == -1) {
+			/* There was no black in the palette, so just copy the data over */
+			System.arraycopy(source.data, 0, imageData.data, 0,
+					imageData.data.length);
+		} else {
+			/* Modify the source image to contain black wherever the mask is 0 */
+			int[] imagePixels = new int[imageData.width];
+			int[] maskPixels = new int[mask.width];
+			for (int y = 0; y < imageData.height; y++) {
+				source.getPixels(0, y, imageData.width, imagePixels, 0);
+				mask.getPixels(0, y, mask.width, maskPixels, 0);
+				for (int i = 0; i < imagePixels.length; i++) {
+					if (maskPixels[i] == 0)
+						imagePixels[i] = blackIndex;
+				}
+				imageData.setPixels(0, y, source.width, imagePixels, 0);
+			}
+		}
+		imageData.maskPad = mask.scanlinePad;
+		imageData.maskData = mask.data;
+		return fromData(imageData);
+	}
+
 	/**
 	 * Returns the color to which to map the transparent pixel, or null if the
 	 * receiver has no transparent pixel.
@@ -438,11 +546,7 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
-		if (image != null)
-			return new Rectangle(0, 0, (int)image.getWidth(), (int)image.getHeight());
-		else
-			// TODO
-			return new Rectangle(0, 0, 0, 0);
+		return new Rectangle(0, 0, (int)image.getWidth(), (int)image.getHeight());
 	}
 
 	/**
@@ -463,7 +567,7 @@ public final class Image extends Resource implements Drawable {
 	 * @see ImageData
 	 */
 	public ImageData getImageData() {
-		// TODO really?
+		// TODO
 		return new ImageData(
 				(int)image.getWidth(), 
 				(int)image.getHeight(),
@@ -487,8 +591,7 @@ public final class Image extends Resource implements Drawable {
 	 */
 	@Override
 	public boolean isDisposed() {
-		// TODO
-		return false;
+		return image == null;
 	}
 
 	/**

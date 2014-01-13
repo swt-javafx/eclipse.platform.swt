@@ -193,6 +193,12 @@ public class Button extends Control {
 		}
 	}
 	
+	@Override
+	void releaseNativeObject() {
+		super.releaseNativeObject();
+		button = null;
+	}
+
 	/**
 	 * Returns a value which describes the position of the text or image in the
 	 * receiver. The value will be one of <code>LEFT</code>, <code>RIGHT</code>
