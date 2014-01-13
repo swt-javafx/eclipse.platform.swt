@@ -115,6 +115,8 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, int width, int height) {
 		super(device);
+		if (width == 0 || height == 0)
+			SWT.error(SWT.ERROR_INVALID_ARGUMENT);
 		image = new WritableImage(width, height);
 	}
 
@@ -266,7 +268,7 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, String filename) {
 		super(device);
-		javafx.scene.image.Image image = new javafx.scene.image.Image(filename);
+		javafx.scene.image.Image image = new javafx.scene.image.Image("file://" + filename);
 		this.image = new WritableImage(image.getPixelReader(),
 				(int) image.getWidth(), (int) image.getHeight());
 	}

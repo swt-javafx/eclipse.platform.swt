@@ -44,6 +44,8 @@ public class Menu extends Widget {
 
 	javafx.scene.control.Menu menu;
 	
+	Decorations parent;
+	
 	/**
 	 * Constructs a new instance of this class given its parent, and sets the
 	 * style for the instance so that the instance will be a popup menu on the
@@ -75,8 +77,8 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Control parent) {
-		// TODO
-		super(parent.getShell(), SWT.POP_UP);
+		// TODO menuShell or do we not need this?
+		this(parent.getShell(), SWT.POP_UP);
 	}
 
 	/**
@@ -125,7 +127,21 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Decorations parent, int style) {
-		super(parent, style);
+		checkSubclass ();
+		checkParent (parent);
+		this.style = style;
+		if (parent != null) {
+			display = parent.display;
+		} else {
+			display = Display.getCurrent ();
+			if (display == null) display = Display.getDefault ();
+			if (!display.isValidThread ()) {
+				error (SWT.ERROR_THREAD_INVALID_ACCESS);
+			}
+		}
+		this.parent = parent;
+		reskinWidget();
+		createWidget();
 	}
 
 	/**
@@ -158,8 +174,7 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Menu parentMenu) {
-		// TODO
-		this(null, SWT.DROP_DOWN);
+		this(parentMenu.getParent(), SWT.DROP_DOWN);
 	}
 
 	/**
@@ -192,7 +207,7 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(MenuItem parentItem) {
-		super(null, 0);
+		this(parentItem.getParent().getParent(), 0);
 	}
 
 	/**
@@ -247,6 +262,14 @@ public class Menu extends Widget {
 	 */
 	public void addHelpListener(HelpListener listener) {
 		// TODO
+	}
+
+	void checkParent (Widget parent) {
+		// TODO allow null parent for now
+		if (parent != null) {
+			if (parent.isDisposed()) error (SWT.ERROR_INVALID_ARGUMENT);
+			parent.checkWidget();
+		}
 	}
 
 	/**
@@ -394,8 +417,7 @@ public class Menu extends Widget {
 	 *                </ul>
 	 */
 	public Decorations getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
 	/**

@@ -12,8 +12,6 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
-import javafx.scene.layout.FlowPane;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Point;
@@ -99,15 +97,16 @@ public class ToolBar extends Composite {
 		// TODO
 	}
 
-	void createNode() {
-		FlowPane pane = new FlowPane();
-//		setNode(pane);
-	}
-	
 	void addItem(ToolItem item) {
 		items.add(item);
 	}
 
+	@Override
+	public void dispose() {
+		// TODO Auto-generated method stub
+		super.dispose();
+	}
+	
 	/**
 	 * Returns the item at the given, zero-relative index in the receiver.
 	 * Throws an exception if the index is out of range.
@@ -244,6 +243,10 @@ public class ToolBar extends Composite {
 	public int indexOf(ToolItem item) {
 		// TODO
 		return 0;
+	}
+
+	void removeItem(ToolItem item) {
+		items.remove(item);
 	}
 
 }

@@ -75,13 +75,11 @@ public abstract class Widget {
 	static final int SKIN_NEEDED = 1<<21;
 	
 	/* Tom's flags */
+	static final int RESIZE_ATTACHED = 1<<26;
 	static final int DATA_SET = 1<<27;
 	static final int MOUSE_EXIT = 1<<28;
 	static final int MOUSE_ENTER = 1<<29;
 	static final int CSS_PROCESSED  = 1<<30;
-	static final int NO_EVENT = 1<<31;
-	
-	static final int RESIZE_ATTACHED = 1 << 29;
 
 	static final int DEFAULT_WIDTH	= 64;
 	static final int DEFAULT_HEIGHT	= 64;
@@ -90,7 +88,7 @@ public abstract class Widget {
 	Display display;
 	int style;
 	long state;
-	Object data;
+	private Object data;
 	
 	Widget() {
 		display = getDisplay();
@@ -132,11 +130,11 @@ public abstract class Widget {
 	 * @see #getStyle
 	 */
 	public Widget(Widget parent, int style) {
-		checkSubclass ();
-		checkParent (parent);
+		checkSubclass();
+		checkParent(parent);
 		this.style = style;
 		display = parent.display;
-		reskinWidget ();
+		reskinWidget();
 	}
 
 	void _addListener (int eventType, Listener listener) {
@@ -289,7 +287,8 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkSubclass() {
-		if (!isValidSubclass ()) error (SWT.ERROR_INVALID_SUBCLASS);
+		// TODO allow subclassing for now
+		//if (!isValidSubclass ()) error (SWT.ERROR_INVALID_SUBCLASS);
 	}
 
 	/**
@@ -319,8 +318,8 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkWidget() {
-//		if (isDisposed())
-//			error(SWT.ERROR_WIDGET_DISPOSED);
+		if (isDisposed())
+			error(SWT.ERROR_WIDGET_DISPOSED);
 		// Not throwing ERROR_THREAD_INVALID_ACCESS since JavaFX will do it for us
 	}
 
@@ -337,7 +336,6 @@ public abstract class Widget {
 	}
 
 	void destroyWidget () {
-		deregister();
 		releaseNativeObject();
 	}
 
@@ -766,6 +764,7 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 */
 	void releaseWidget () {
+		deregister ();
 		eventTable = null;
 		data = null;
 	}
@@ -912,8 +911,8 @@ public abstract class Widget {
 	}
 
 	void reskinWidget() {
-		if ((state & SKIN_NEEDED) != SKIN_NEEDED) {
-			this.state |= SKIN_NEEDED;
+		if ((state & SKIN_NEEDED) == 0) {
+			state |= SKIN_NEEDED;
 			display.addSkinnableWidget(this);
 		}
 	}
@@ -991,7 +990,7 @@ public abstract class Widget {
 	public void setData(Object data) {
 		checkWidget();
 		if ((state & KEYED_DATA) != 0) {
-			((Object []) this.data) [0] = data;
+			((Object [])this.data)[0] = data;
 		} else {
 			this.data = data;
 		}
@@ -1069,6 +1068,7 @@ public abstract class Widget {
 				}
 			}
 		}
+
 		if (key.equals(SWT.SKIN_CLASS) || key.equals(SWT.SKIN_ID)) this.reskin(SWT.ALL);
 	}
 

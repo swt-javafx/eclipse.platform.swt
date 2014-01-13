@@ -42,6 +42,8 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class ToolItem extends Item {
 
+	private ToolBar parent;
+	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
 	 * <code>ToolBar</code>) and a style value describing its behavior and
@@ -83,7 +85,8 @@ public class ToolItem extends Item {
 	 * @see Widget#getStyle
 	 */
 	public ToolItem(ToolBar parent, int style) {
-		this(parent, style, -1);
+		super(parent, style);
+		this.parent = parent;
 	}
 
 	/**
@@ -132,6 +135,7 @@ public class ToolItem extends Item {
 	 */
 	public ToolItem(ToolBar parent, int style, int index) {
 		super(parent, style);
+		this.parent = parent;
 		// TODO deal with index
 		parent.addItem(this);
 	}
@@ -179,6 +183,12 @@ public class ToolItem extends Item {
 		// TODO
 	}
 
+	@Override
+	void deregister() {
+		super.deregister();
+		parent.removeItem(this);
+	}
+	
 	/**
 	 * Returns a rectangle describing the receiver's size and location relative
 	 * to its parent.
@@ -297,7 +307,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public ToolBar getParent() {
-		return (ToolBar)null;
+		return parent;
 	}
 
 	/**
@@ -383,6 +393,12 @@ public class ToolItem extends Item {
 		return false;
 	}
 
+	@Override
+	void register() {
+		super.register();
+		parent.addItem(this);
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.

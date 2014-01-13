@@ -358,7 +358,7 @@ public abstract class Control extends Widget implements Drawable {
 	public void addListener(int eventType, Listener listener) {
 		super.addListener(eventType, listener);
 		if (eventType == SWT.Resize
-				&& (state & RESIZE_ATTACHED) != RESIZE_ATTACHED) {
+				&& (state & RESIZE_ATTACHED) == 0) {
 			InvalidationListener l = new InvalidationListener() {
 
 				@Override
@@ -1598,7 +1598,11 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean isFocusControl() {
-		return getNativeControl().isFocused();
+		if (getNativeControl() != null)
+			// TODO remove check
+			return getNativeControl().isFocused();
+		else
+			return false;
 	}
 
 	/**
@@ -1619,7 +1623,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see #getVisible
 	 */
 	public boolean isVisible() {
-		return getVisible() && parent.isVisible();
+		return getVisible() && (parent != null && parent.isVisible());
 	}
 
 	void markLayout(boolean changed, boolean all) {
@@ -1652,7 +1656,8 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see Composite#getChildren
 	 */
 	public void moveAbove(Control control) {
-		parent.controlMoveAbove(this, control);
+		// TODO
+//		parent.controlMoveAbove(this, control);
 	}
 
 	/**
@@ -1786,7 +1791,9 @@ public abstract class Control extends Widget implements Drawable {
 			b.append("-fx-background-color: " + rgb);
 		}
 		
-		getNativeObject().setStyle(b.toString());
+		if (getNativeObject() != null)
+			// TODO remove check
+			getNativeObject().setStyle(b.toString());
 	}
 	
 	/**
@@ -2447,10 +2454,10 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	void sendMouseEvent(int type, javafx.scene.input.MouseEvent event) {
-		if (type == SWT.MouseEnter && (state & MOUSE_EXIT) != MOUSE_EXIT) {
+		if (type == SWT.MouseEnter && (state & MOUSE_EXIT) == 0) {
 			return;
 		}
-		if (type == SWT.MouseExit && (state & MOUSE_ENTER) != MOUSE_ENTER) {
+		if (type == SWT.MouseExit && (state & MOUSE_ENTER) == 0) {
 			return;
 		}
 
@@ -2722,7 +2729,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public void setCursor(Cursor cursor) {
-		getNativeObject().setCursor(cursor.cursor);
+		// TODO getNativeObject().setCursor(cursor.cursor);
 	}
 
 	/**
@@ -3235,7 +3242,9 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setVisible(boolean visible) {
 		checkWidget();
-		getNativeObject().setVisible(visible);
+		if (getNativeObject() != null)
+			// TODO remove later
+			getNativeObject().setVisible(visible);
 	}
 
 	/**
