@@ -104,7 +104,8 @@ public class Display extends Device {
 	// Not API but needs to be set by the JavaFX Application start method.
 	public static Stage primaryStage;
 	
-	// Not public but needs to be set when the JavaFX thread starts
+	Stage modalStage;
+	
 	public static boolean running = false;
 	
 	private static List<Shell> shells = new LinkedList<>();
@@ -1789,17 +1790,8 @@ public class Display extends Device {
 	 * @see #wake
 	 */
 	public boolean sleep() {
-		if (Platform.isFxApplicationThread()) {
-			// This will just hang everything
-			throw new SWTException(SWT.ERROR_THREAD_INVALID_ACCESS);
-		}
-
-		try {
-			synchronized (sleepMutex) {
-				sleepMutex.wait(500);
-			}
-		} catch (InterruptedException e) {
-		}
+		if (modalStage != null)
+			modalStage.showAndWait();
 		return false;
 	}
 

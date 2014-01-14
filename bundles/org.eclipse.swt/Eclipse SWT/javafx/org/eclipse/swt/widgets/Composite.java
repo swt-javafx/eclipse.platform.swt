@@ -12,9 +12,12 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
+import javafx.event.EventHandler;
 import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -70,6 +73,7 @@ public class Composite extends Scrollable {
 	private ToggleGroup toggleGroup;
 
 	private static final double SCROLLBAR_WIDTH = 20.0;
+	private static EventHandler<ContextMenuEvent> contextMenuHandler;
 
 	Layout layout;
 	java.util.List<Control> children = new ArrayList<>();
@@ -412,6 +416,26 @@ public class Composite extends Scrollable {
 		return new Rectangle(0, 0, (int)controlContainer.getWidth(), (int)controlContainer.getHeight());
 	}
 	
+	private static EventHandler<ContextMenuEvent> getContextMenuHandler() {
+		if (contextMenuHandler == null) {
+			contextMenuHandler = new EventHandler<ContextMenuEvent>() {
+				@Override
+				public void handle(ContextMenuEvent event) {
+					Node n = (Node) event.getTarget();
+					Control c = Display.getDefault().getControl(n);
+					
+					if (c != null) {
+						ContextMenu ctm = (ContextMenu) c.getMenu().getNativeObject();
+						ctm.show(n, event.getScreenX(), event.getScreenY());	
+					}
+					
+					//TODO Do we need more code e.g. to hide?
+				}
+			};
+		}
+		return contextMenuHandler;
+	}
+
 	@Override
 	public ScrollBar getHorizontalBar() {
 		return hScroll;
@@ -459,6 +483,11 @@ public class Composite extends Scrollable {
 		return false;
 	}
 
+	@Override
+	public Menu getMenu() {
+		return menu;
+	}
+	
 	@Override
 	Region getNativeControl() {
 		return controlContainer;
@@ -890,6 +919,16 @@ public class Composite extends Scrollable {
 		// TODO
 	}
 
+	@Override
+	public void setMenu(Menu menu) {
+		if( controlContainer != null ) {
+			controlContainer.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, getContextMenuHandler());
+			this.menu = menu;
+		} else {
+			super.setMenu(menu);	
+		}
+	}
+	
 	/**
 	 * Sets the tabbing order for the specified controls to match the order that
 	 * they occur in the argument list.

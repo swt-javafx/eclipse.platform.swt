@@ -474,6 +474,16 @@ public class Menu extends Widget {
 		return items.toArray(new MenuItem[items.size()]);
 	}
 
+	Object getNativeObject() {
+		if (bar != null) {
+			return bar;
+		} else if (menu != null) {
+			return menu;
+		} else {
+			return contextMenu;
+		}
+	}
+	
 	/**
 	 * Returns the orientation of the receiver, which will be one of the
 	 * constants <code>SWT.LEFT_TO_RIGHT</code> or

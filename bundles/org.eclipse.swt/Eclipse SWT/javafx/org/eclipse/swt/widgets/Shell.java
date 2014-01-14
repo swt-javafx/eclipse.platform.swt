@@ -455,6 +455,14 @@ public class Shell extends Decorations {
 	}
 	
 	@Override
+	void deregister() {
+		super.deregister();
+		
+		if ((style & SWT.APPLICATION_MODAL) != 0 && display.modalStage == stage)
+			display.modalStage = null;
+	}
+	
+	@Override
 	public void dispose() {
 		super.dispose();
 		stage = null;
@@ -650,7 +658,9 @@ public class Shell extends Decorations {
 	 * @see Shell#forceActive
 	 */
 	public void open() {
-		stage.show();
+		// If model, display will open it up on the sleep
+		if ((style & SWT.APPLICATION_MODAL) == 0)
+			stage.show();
 	}
 
 	/**
@@ -686,6 +696,9 @@ public class Shell extends Decorations {
 		if (parent != null) {
 			((Shell)parent).addShell(this);
 		}
+		
+		if ((style & SWT.APPLICATION_MODAL) != 0)
+			display.modalStage = stage;
 	}
 	
 	/**
