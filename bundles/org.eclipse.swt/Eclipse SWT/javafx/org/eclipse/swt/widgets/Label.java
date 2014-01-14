@@ -248,7 +248,7 @@ public class Label extends Control {
 	public void setImage(Image image) {
 		checkWidget();
 		if ((style & SWT.SEPARATOR) != 0) return;
-		label.setGraphic(image == null ? null : new ImageView(image.getNativeImage()));
+		label.setGraphic(image == null ? null : new ImageView(image.getNativeObject()));
 	}
 
 	/**

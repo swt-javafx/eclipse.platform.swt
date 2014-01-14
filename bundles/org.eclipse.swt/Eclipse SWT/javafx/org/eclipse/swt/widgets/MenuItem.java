@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.RadioMenuItem;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ArmListener;
@@ -41,6 +44,10 @@ import org.eclipse.swt.graphics.Image;
  */
 public class MenuItem extends Item {
 
+	javafx.scene.control.MenuItem menuItem;
+
+	Menu parent;
+	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
 	 * <code>Menu</code>) and a style value describing its behavior and
@@ -83,6 +90,9 @@ public class MenuItem extends Item {
 	 */
 	public MenuItem(Menu parent, int style) {
 		super(parent, style);
+		this.parent = parent;
+		createWidget();
+		parent.addItem(this);
 	}
 
 	/**
@@ -130,6 +140,9 @@ public class MenuItem extends Item {
 	 */
 	public MenuItem(Menu parent, int style, int index) {
 		super(parent, style);
+		this.parent = parent;
+		createWidget();
+		parent.addItem(this); // TODO index
 	}
 
 	/**
@@ -183,7 +196,10 @@ public class MenuItem extends Item {
 	 * @see #removeHelpListener
 	 */
 	public void addHelpListener(HelpListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Help, typedListener);
 	}
 
 	/**
@@ -224,9 +240,29 @@ public class MenuItem extends Item {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Hide,typedListener);
+		addListener (SWT.Show,typedListener);
 	}
 
+	@Override
+	void createNativeObject() {
+		if ((style & SWT.PUSH) != 0) {
+			menuItem = new javafx.scene.control.MenuItem();
+		} else if ((style & SWT.CHECK) != 0) {
+			menuItem = new CheckMenuItem();
+		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
+			menuItem = new RadioMenuItem("");
+		}
+	}
+	
+	@Override
+	void deregister() {
+		parent.removeItem(this);
+	}
+	
 	/**
 	 * Returns the widget accelerator. An accelerator is the bit-wise OR of zero
 	 * or more modifier masks and a key. Examples:
@@ -312,6 +348,10 @@ public class MenuItem extends Item {
 	public Menu getMenu() {
 		// TODO
 		return null;
+	}
+
+	javafx.scene.control.MenuItem getNativeObject() {
+		return menuItem;
 	}
 
 	/**
@@ -644,7 +684,11 @@ public class MenuItem extends Item {
 	 */
 	@Override
 	public void setText(String string) {
-		// TODO
+		super.setText(string);
+		if (menuItem != null) {
+			menuItem.setText(string);
+					// TODO Util.fixAccelerator(Util.fixMnemonic(string)));	
+		}
 	}
 
 }

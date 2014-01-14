@@ -10,6 +10,22 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Node;
+import javafx.scene.control.ButtonBase;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
@@ -42,7 +58,17 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class ToolItem extends Item {
 
+	private Region item;
 	private ToolBar parent;
+	private Control control;
+	private Image disabledImage;
+	private Image hotImage;
+	private Tooltip tooltip;
+	private String tooltipText;
+	private int width;
+	private boolean hover;
+	private InvalidationListener disabledListener;
+	private EventHandler<MouseEvent> mouseHandler;
 	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -87,6 +113,8 @@ public class ToolItem extends Item {
 	public ToolItem(ToolBar parent, int style) {
 		super(parent, style);
 		this.parent = parent;
+		createWidget();
+		parent.addItem(this);
 	}
 
 	/**
@@ -136,8 +164,8 @@ public class ToolItem extends Item {
 	public ToolItem(ToolBar parent, int style, int index) {
 		super(parent, style);
 		this.parent = parent;
-		// TODO deal with index
-		parent.addItem(this);
+		createWidget();
+		parent.addItem(this, index);
 	}
 
 	/**
@@ -180,13 +208,53 @@ public class ToolItem extends Item {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener(listener);
+		addListener(SWT.Selection,typedListener);
+		addListener(SWT.DefaultSelection,typedListener);
 	}
 
 	@Override
+	void createNativeObject() {
+		if ((style & SWT.CHECK) == SWT.CHECK) {
+			item = new CheckBox();
+		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
+			item = new RadioButton();
+		} else if( (style & SWT.SEPARATOR) == SWT.SEPARATOR ) {
+			item = new StackPane(new Separator()); 
+		} else if( (style & SWT.DROP_DOWN) == SWT.DROP_DOWN ) {
+			MenuButton m = new MenuButton();
+			m.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+				@Override
+				public void handle(MouseEvent event) {
+					Node n = (Node) event.getTarget();
+					Event evt = new Event();
+					if( n.getStyleClass().contains("arrow") ) {
+						evt.detail = SWT.ARROW;
+					}
+					sendEvent(SWT.Selection, evt, true);
+				}
+			});
+			item = m;
+		} else {
+			item = new javafx.scene.control.Button();
+			item.addEventHandler(ActionEvent.ACTION, new EventHandler<ActionEvent>() {
+				@Override
+				public void handle(ActionEvent event) {
+					Event evt = new Event();
+					sendEvent(SWT.Selection, evt, true);
+				}
+			});
+//			nativeControl.setMouseTransparent(true);
+		}
+	}
+	
+	@Override
 	void deregister() {
 		super.deregister();
-		parent.removeItem(this);
+		if (!parent.isDisposed())
+			parent.removeItem(this);
 	}
 	
 	/**
@@ -204,8 +272,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
-		// TODO
-		return null;
+		return new Rectangle((int)item.getLayoutX(), (int)item.getLayoutY(), (int)item.getWidth(), (int)item.getHeight());
 	}
 
 	/**
@@ -223,8 +290,8 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public Control getControl() {
-		// TODO
-		return null;
+		checkWidget();
+		return control;
 	}
 
 	/**
@@ -245,10 +312,21 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public Image getDisabledImage() {
-		// TODO
-		return null;
+		return disabledImage;
 	}
 
+	private InvalidationListener getDisabledListener() {
+		if( disabledListener == null ) {
+			disabledListener = new InvalidationListener() {
+				@Override
+				public void invalidated(Observable observable) {
+					updateStateImage();
+				}
+			}; 
+		}
+		return disabledListener;
+	}
+	
 	/**
 	 * Returns <code>true</code> if the receiver is enabled, and
 	 * <code>false</code> otherwise. A disabled control is typically not
@@ -268,8 +346,7 @@ public class ToolItem extends Item {
 	 * @see #isEnabled
 	 */
 	public boolean getEnabled() {
-		// TODO
-		return false;
+		return !item.isDisabled();
 	}
 
 	/**
@@ -289,8 +366,24 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public Image getHotImage() {
-		// TODO
-		return null;
+		return hotImage;
+	}
+
+	private EventHandler<MouseEvent> getMouseHandler() {
+		if (mouseHandler == null) {
+			mouseHandler = new EventHandler<MouseEvent>() {
+				@Override
+				public void handle(MouseEvent event) {
+					hover = event.getEventType() == MouseEvent.MOUSE_ENTERED;
+					updateStateImage();
+				}
+			};
+		}
+		return mouseHandler;
+	}
+	
+	Region getNativeObject() {
+		return item;
 	}
 
 	/**
@@ -330,7 +423,11 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getSelection() {
-		// TODO
+		if (item instanceof CheckBox) {
+			return ((CheckBox)item).isSelected();
+		} else if (item instanceof RadioButton) {
+			return ((RadioButton)item).isSelected();
+		}
 		return false;
 	}
 
@@ -348,8 +445,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public String getToolTipText() {
-		// TODO
-		return null;
+		return tooltipText;
 	}
 
 	/**
@@ -366,8 +462,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public int getWidth() {
-		// TODO
-		return 0;
+		return width;
 	}
 
 	/**
@@ -389,16 +484,9 @@ public class ToolItem extends Item {
 	 * @see #getEnabled
 	 */
 	public boolean isEnabled() {
-		// TODO
-		return false;
+		return getEnabled() && parent.getEnabled();
 	}
 
-	@Override
-	void register() {
-		super.register();
-		parent.addItem(this);
-	}
-	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.
@@ -422,7 +510,11 @@ public class ToolItem extends Item {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook(SWT.Selection, listener);
+		eventTable.unhook(SWT.DefaultSelection,listener);	
 	}
 
 	/**
@@ -448,7 +540,14 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setControl(Control control) {
-		// TODO
+		this.control = control;
+		if ((style & SWT.SEPARATOR) != 0) {
+			if (control == null) {
+				((StackPane)item).getChildren().setAll(new Separator());
+			} else {
+				((StackPane)item).getChildren().setAll(control.getNativeObject());	
+			}
+		}
 	}
 
 	/**
@@ -475,7 +574,17 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setDisabledImage(Image image) {
-		// TODO
+		this.disabledImage = image;
+		if (image != null) {
+			if (disabledListener == null) {
+				item.disabledProperty().addListener(getDisabledListener());
+			}			
+		} else {
+			if (disabledListener != null) {
+				item.disabledProperty().removeListener(getDisabledListener());
+				disabledListener = null;
+			}
+		}
 	}
 
 	/**
@@ -498,7 +607,7 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setEnabled(boolean enabled) {
-		// TODO
+		item.setDisable(!enabled);
 	}
 
 	/**
@@ -525,7 +634,20 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setHotImage(Image image) {
-		// TODO
+		this.hotImage = image;
+		if (image != null) {
+			if (mouseHandler == null) {
+				item.addEventHandler(MouseEvent.MOUSE_ENTERED, getMouseHandler());	
+				item.addEventHandler(MouseEvent.MOUSE_EXITED, getMouseHandler());	
+			}
+		} else {
+			if (mouseHandler != null) {
+				item.removeEventHandler(MouseEvent.MOUSE_ENTERED, getMouseHandler());	
+				item.removeEventHandler(MouseEvent.MOUSE_EXITED, getMouseHandler());	
+				hover = false;
+				mouseHandler = null;
+			}
+		}
 	}
 
 	/**
@@ -548,7 +670,11 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setSelection(boolean selected) {
-		// TODO
+		if (item instanceof CheckBox) {
+			((CheckBox)item).setSelected(selected);
+		} else if (item instanceof RadioButton) {
+			((RadioButton)item).setSelected(selected);
+		}
 	}
 
 	/**
@@ -575,7 +701,19 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setToolTipText(String string) {
-		// TODO
+		this.tooltipText = string;
+		if (item instanceof javafx.scene.control.Control) {
+			javafx.scene.control.Control control = (javafx.scene.control.Control)item;
+			if (string == null) {
+				tooltip = null;
+			} else {
+				if (tooltip == null) {
+					tooltip = new Tooltip();
+				}
+				tooltip.setText(string);
+			}
+			control.setTooltip(tooltip);
+		}
 	}
 
 	/**
@@ -603,7 +741,29 @@ public class ToolItem extends Item {
 	 *                </ul>
 	 */
 	public void setWidth(int width) {
-		// TODO
+		this.width = width;
+		item.setPrefWidth(width);
+	}
+
+	private void updateStateImage() {
+		//TODO We should probably reuse ImageView
+		if (item instanceof ButtonBase) {
+			if (item.isDisabled()) {
+				if (disabledImage != null) {
+					((ButtonBase)item).setGraphic(new ImageView(disabledImage.getNativeObject()));
+				} else {
+					((ButtonBase)item).setGraphic(getImage() == null ? null : new ImageView(getImage().getNativeObject()));
+				}
+			} else if( hover ) {
+				if( hotImage != null ) {
+					((ButtonBase)item).setGraphic(new ImageView(hotImage.getNativeObject()));
+				} else {
+					((ButtonBase)item).setGraphic(getImage() == null ? null : new ImageView(getImage().getNativeObject()));
+				}
+			} else {
+				((ButtonBase)item).setGraphic(getImage() == null ? null : new ImageView(getImage().getNativeObject()));
+			}
+		} 
 	}
 
 }

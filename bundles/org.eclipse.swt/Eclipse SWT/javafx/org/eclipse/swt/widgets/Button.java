@@ -478,7 +478,7 @@ public class Button extends Control {
 		this.image = image;
 		
 		if (image != null) {
-			button.setGraphic(new ImageView(image.getNativeImage()));
+			button.setGraphic(new ImageView(image.getNativeObject()));
 		} else {
 			button.setGraphic(null);
 		}

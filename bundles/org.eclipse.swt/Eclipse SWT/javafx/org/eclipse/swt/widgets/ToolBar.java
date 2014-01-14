@@ -12,6 +12,8 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Point;
@@ -51,6 +53,7 @@ import org.eclipse.swt.graphics.Point;
  */
 public class ToolBar extends Composite {
 
+	javafx.scene.control.ToolBar toolBar;
 	java.util.List<ToolItem> items = new ArrayList<>();
 
 	/**
@@ -94,17 +97,23 @@ public class ToolBar extends Composite {
 	 */
 	public ToolBar(Composite parent, int style) {
 		super(parent, style);
-		// TODO
+		createWidget();
 	}
 
 	void addItem(ToolItem item) {
+		checkWidget();
 		items.add(item);
+		toolBar.getItems().add(item.getNativeObject());
 	}
 
+	void addItem(ToolItem item, int index) {
+		items.add(index, item);
+		toolBar.getItems().add(index, item.getNativeObject());
+	}
+	
 	@Override
-	public void dispose() {
-		// TODO Auto-generated method stub
-		super.dispose();
+	void createNativeObject() {
+		toolBar = new javafx.scene.control.ToolBar();
 	}
 	
 	/**
@@ -130,6 +139,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem getItem(int index) {
+		checkWidget();
 		return items.get(index);
 	}
 
@@ -154,7 +164,11 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem getItem(Point point) {
-		// TODO
+		for (ToolItem item : items) {
+			if (item.getNativeObject().getBoundsInParent().contains(point.x, point.y)) {
+				return item;
+			}
+		}
 		return null;
 	}
 
@@ -172,6 +186,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public int getItemCount() {
+		checkWidget();
 		return items.size();
 	}
 
@@ -194,9 +209,20 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem[] getItems() {
+		checkWidget();
 		return items.toArray(new ToolItem[items.size()]);
 	}
 
+	@Override
+	Region getNativeObject() {
+		return toolBar;
+	}
+	
+	@Override
+	Region getNativeControl() {
+		return toolBar;
+	}
+	
 	/**
 	 * Returns the number of rows in the receiver. When the receiver has the
 	 * <code>WRAP</code> style, the number of rows can be greater than one.
@@ -214,7 +240,7 @@ public class ToolBar extends Composite {
 	 */
 	public int getRowCount() {
 		// TODO
-		return 0;
+		return 1;
 	}
 
 	/**
@@ -241,12 +267,21 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public int indexOf(ToolItem item) {
-		// TODO
-		return 0;
+		checkWidget();
+		return items.indexOf(item);
 	}
 
+	@Override
+	void releaseChildren(boolean destroy) {
+		items.clear();
+		toolBar.getItems().clear();
+		super.releaseChildren (destroy);
+	}
+	
 	void removeItem(ToolItem item) {
+		checkWidget();
 		items.remove(item);
+		toolBar.getItems().remove(item);
 	}
 
 }

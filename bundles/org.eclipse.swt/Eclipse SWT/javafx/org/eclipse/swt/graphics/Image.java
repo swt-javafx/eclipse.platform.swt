@@ -576,7 +576,7 @@ public final class Image extends Resource implements Drawable {
 				4, new PaletteData(0xff0000, 0xff00, 0xff));
 	}
 
-	public javafx.scene.image.Image getNativeImage() {
+	public javafx.scene.image.Image getNativeObject() {
 		return image;
 	}
 	
