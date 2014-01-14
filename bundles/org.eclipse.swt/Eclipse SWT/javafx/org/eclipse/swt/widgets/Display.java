@@ -1792,6 +1792,8 @@ public class Display extends Device {
 	public boolean sleep() {
 		if (modalStage != null)
 			modalStage.showAndWait();
+		else
+			SWT.error(SWT.ERROR_NOT_IMPLEMENTED);
 		return false;
 	}
 
