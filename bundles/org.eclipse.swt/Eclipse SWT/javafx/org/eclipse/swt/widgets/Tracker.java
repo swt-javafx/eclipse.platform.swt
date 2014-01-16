@@ -128,7 +128,7 @@ public class Tracker extends Widget {
 	 * @see SWT#RESIZE
 	 */
 	public Tracker(Display display, int style) {
-		super(null, style);
+		super((Widget)null, style);
 		// TODO
 	}
 

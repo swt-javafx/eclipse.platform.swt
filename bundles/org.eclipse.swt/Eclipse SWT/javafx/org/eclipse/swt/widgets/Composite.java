@@ -66,7 +66,7 @@ import org.eclipse.swt.graphics.Rectangle;
 public class Composite extends Scrollable {
 
 	private AnchorPane scrollable;
-	private Pane controlContainer;
+	protected Pane controlContainer;
 	private ScrollBar vScroll;
 	private ScrollBar hScroll;
 	private Node corner;
@@ -422,7 +422,7 @@ public class Composite extends Scrollable {
 				@Override
 				public void handle(ContextMenuEvent event) {
 					Node n = (Node) event.getTarget();
-					Control c = Display.getDefault().getControl(n);
+					Control c = Widget.getWidget(n);
 					
 					if (c != null) {
 						ContextMenu ctm = (ContextMenu) c.getMenu().getNativeObject();

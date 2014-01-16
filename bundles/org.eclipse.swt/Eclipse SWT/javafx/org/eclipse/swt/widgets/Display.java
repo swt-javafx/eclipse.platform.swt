@@ -10,16 +10,32 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.LinkedList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.WeakHashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
+import java.util.Vector;
+import java.util.concurrent.CountDownLatch;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.stage.Stage;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.input.KeyCode;
+import javafx.stage.Screen;
+import javafx.util.Duration;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.DeviceData;
@@ -27,6 +43,10 @@ import org.eclipse.swt.graphics.GCData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
+
+import com.sun.glass.ui.Robot;
+import com.sun.javafx.tk.Toolkit;
 
 /**
  * Instances of this class are responsible for managing the connection between
@@ -101,61 +121,48 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Display extends Device {
 
-	// Not API but needs to be set by the JavaFX Application start method.
-	public static Stage primaryStage;
+	static class DisplayTimerTask extends TimerTask {
+		private List<DisplayTimerTask> tasks;
+		private Runnable r;
+
+		public DisplayTimerTask(List<DisplayTimerTask> tasks, Runnable r) {
+			this.tasks = tasks;
+			this.r = r;
+			this.tasks.add(this);
+		}
+		
+		@Override
+		public void run() {
+			this.tasks.remove(this);
+			Platform.runLater(r);
+			this.r = null;
+		}
+	}
+
+	private static Display DEFAULT;
+//	private volatile boolean inSleep;
+//	private Thread wakeThread;
+	private Timer timer;
+	private int state;
+	private List<DisplayTimerTask> currentTasks = new Vector<>();
+	private Color[] widgetColors = new Color[SWT.COLOR_LINK_FOREGROUND + 1];
+	private volatile Vector<String> innerLoops = new Vector<>();
 	
-	Stage modalStage;
+	private static final int WAKEUP_INITED = 1;
+	private static final int KEYED_DATA = 1 << 1;
+	private Control focusControl;
+	private Timeline hoverTimer = new Timeline();
 	
-	public static boolean running = false;
-	
-	private static List<Shell> shells = new LinkedList<>();
-	static Display defaultDisplay;
-	private static Object sleepMutex = new Object();
+	Cursor [] cursors = new Cursor [SWT.CURSOR_HAND + 1];
+	private Control hoverControl;
+	private List<Shell> shells = new ArrayList<>();
+	private List<Runnable> disposeList;
+	private Image[] systemImages = new Image[5];
+	private EventTable filterTable, eventTable;
+	private Thread thread;
+	private Object data;
 	Tray tray;
 	
-	EventTable filterTable;
-	EventTable eventTable;
-
-	WeakHashMap<Object, Control> controlMap = new WeakHashMap<>();
-	
-	static final int GROW_SIZE = 1024;
-
-	/* Skinning support */
-	Widget [] skinList = new Widget [GROW_SIZE];
-	int skinCount;
-	
-	/* Package Name */
-	static final String PACKAGE_PREFIX;
-	// Use the original code since JavaFX isn't supported on CLDC
-	static {
-		String name = Display.class.getName ();
-		int index = name.lastIndexOf ('.');
-		PACKAGE_PREFIX = name.substring (0, index + 1);
-	}
-
-	/*
-	 * TEMPORARY CODE. Install the runnable that gets the current display. This
-	 * code will be removed in the future.
-	 */
-	static {
-		DeviceFinder = new Runnable() {
-			public void run() {
-				Device device = getCurrent();
-				if (device == null) {
-					device = getDefault();
-				}
-				setDevice(device);
-			}
-		};
-	}
-
-	/*
-	 * TEMPORARY CODE.
-	 */
-	static void setDevice(Device device) {
-		CurrentDevice = device;
-	}
-
 	/**
 	 * Constructs a new instance of this class.
 	 * <p>
@@ -178,7 +185,24 @@ public class Display extends Device {
 	 * @see Shell
 	 */
 	public Display() {
-		this(null);
+		DEFAULT = this;
+		this.thread = Thread.currentThread();
+		hoverTimer.getKeyFrames().add(new KeyFrame(Duration.millis(560)));
+		hoverTimer.setOnFinished(new EventHandler<ActionEvent>() {
+			
+			@Override
+			public void handle(ActionEvent event) {
+				System.err.println("ELAPSED: " + hoverControl);
+				if( hoverControl != null ) {
+					Event evt = new Event();
+					Point p = hoverControl.toControl(getCursorLocation());
+					evt.x = p.x;
+					evt.y = p.y;
+					hoverControl.internal_sendEvent(SWT.MouseHover, evt, true);
+				}
+			}
+		});
+		initColors();
 	}
 
 	/**
@@ -188,38 +212,9 @@ public class Display extends Device {
 	 *            the device data
 	 */
 	public Display(DeviceData data) {
-		super(data);
-		if (defaultDisplay != null)
-			throw new SWTException("JavaFX only supports one Display object.");
-		defaultDisplay = this;
+		this();
 	}
 
-	void addControl(Object o, Control control) {
-		controlMap.put(o, control);
-	}
-
-	void addShell(Shell shell) {
-		shells.add(shell);
-	}
-	
-	void addSkinnableWidget (Widget widget) {
-		if (skinCount >= skinList.length) {
-			Widget[] newSkinWidgets = new Widget [skinList.length + GROW_SIZE];
-			System.arraycopy (skinList, 0, newSkinWidgets, 0, skinList.length);
-			skinList = newSkinWidgets;
-		}
-		skinList [skinCount++] = widget;
-	}
-
-	void removeShell(Shell shell) {
-		shells.remove(shell);
-	}
-
-	@Override
-	public void dispose() {
-		super.dispose();
-	}
-	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when an event of the given type occurs anywhere in a widget. The event
@@ -302,6 +297,10 @@ public class Display extends Device {
 		eventTable.hook(eventType, listener);
 	}
 
+	void addShell(Shell shell) {
+		shells.add(shell);
+	}
+	
 	/**
 	 * Causes the <code>run()</code> method of the runnable to be invoked by the
 	 * user-interface thread at the next reasonable opportunity. The caller of
@@ -327,15 +326,7 @@ public class Display extends Device {
 	 * @see #syncExec
 	 */
 	public void asyncExec(final Runnable runnable) {
-		if (!running) {
-			runnable.run();
-			return;
-		}
-		
-		if (runnable != null) {
-			Platform.runLater(runnable);
-		}
-		wake();
+		Platform.runLater(runnable);
 	}
 
 	/**
@@ -351,7 +342,7 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public void beep() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -374,19 +365,32 @@ public class Display extends Device {
 		// TODO
 	}
 
-	/**
-	 * Returns the display which the given thread is the user-interface thread
-	 * for, or null if the given thread is not a user-interface thread for any
-	 * display. Specifying <code>null</code> as the thread will return
-	 * <code>null</code> for the display.
-	 * 
-	 * @param thread
-	 *            the user-interface thread
-	 * @return the display for the given thread
-	 */
-	public static Display findDisplay(Thread thread) {
-		// All threads use the same display object
-		return defaultDisplay;
+	static Monitor createMonitor(Screen screen) {
+		Monitor monitor = new Monitor();
+
+		Rectangle2D bounds = screen.getBounds();
+		monitor.x = (int)bounds.getMinX();
+		monitor.y = (int)bounds.getMinY();
+		monitor.width = (int)bounds.getWidth();
+		monitor.height = (int)bounds.getHeight();
+		
+		Rectangle2D vbounds = screen.getVisualBounds();
+		monitor.clientX = (int)vbounds.getMinX();
+		monitor.clientY = (int)vbounds.getMinY();
+		monitor.clientWidth = (int)vbounds.getWidth();
+		monitor.clientHeight = (int)vbounds.getHeight();
+		
+		return monitor;
+	}
+	
+	@Override
+	public void dispose() {
+		if( disposeList != null ) {
+			for( Runnable r : disposeList ) {
+				r.run();
+			}
+		}
+		super.dispose();
 	}
 
 	/**
@@ -406,9 +410,56 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public void disposeExec(Runnable runnable) {
-		// TODO
+		if( disposeList == null ) {
+			disposeList = new ArrayList<>();
+		}
+		disposeList.add(runnable);
 	}
 
+	boolean filterEvent (Event event) {
+		if (filterTable != null) filterTable.sendEvent (event);
+		return false;
+	}
+
+	boolean filters (int eventType) {
+		if (filterTable == null) return false;
+		return filterTable.hooks (eventType);
+	}
+
+	/**
+	 * Returns the display which the given thread is the user-interface thread
+	 * for, or null if the given thread is not a user-interface thread for any
+	 * display. Specifying <code>null</code> as the thread will return
+	 * <code>null</code> for the display.
+	 * 
+	 * @param thread
+	 *            the user-interface thread
+	 * @return the display for the given thread
+	 */
+	public static Display findDisplay(Thread thread) {
+		if( DEFAULT == null ) {
+			return null;
+		}
+		
+		if( DEFAULT.thread == thread ) {
+			return DEFAULT;
+		}
+		return null;
+	}
+
+	private Control findControl(Composite parent, int x, int y) {
+		for( Control c : parent.getChildren() ) {
+			if( c.getBounds().contains(c.toControl(x, y)) ) {
+				Control rv = findControl(parent, x, y);
+				if( rv != null ) {
+					return rv;
+				}
+				return c;
+			}
+		}
+		return null;
+	}
+	
 	/**
 	 * Given the operating system handle for a widget, returns the instance of
 	 * the <code>Widget</code> subclass which represents it in the currently
@@ -501,14 +552,43 @@ public class Display extends Device {
 		return null;
 	}
 
-	boolean filterEvent (Event event) {
-		if (filterTable != null) filterTable.sendEvent (event);
-		return false;
-	}
-
-	boolean filters (int eventType) {
-		if (filterTable == null) return false;
-		return filterTable.hooks (eventType);
+	private static KeyCode fromSWT(Event evt) {
+		if( evt.character != 0 ) {
+			KeyCode keyCode = KeyCode.getKeyCode(Character.toUpperCase(evt.character)+"");
+			if( keyCode == null ) {
+				switch (evt.character) {
+				case ' ':
+					keyCode = KeyCode.SPACE;
+					break;
+				case '.':
+					keyCode = KeyCode.PERIOD;
+					break;
+				default:
+					break;
+				}
+			}
+			
+			if( keyCode == null ) {
+				System.err.println("Unable to convert: " + evt.character);
+			}
+			
+			return keyCode == null ? KeyCode.UNDEFINED : keyCode;
+		} else if( evt.keyCode != 0 ) {
+			switch (evt.keyCode) {
+			case SWT.SHIFT:
+				return KeyCode.SHIFT;
+			case SWT.CTRL:
+				return KeyCode.CONTROL;
+			case SWT.COMMAND:
+				return KeyCode.COMMAND;
+			case SWT.ALT:
+				return KeyCode.ALT;
+			default:
+				break;
+			}
+		}
+		
+		return KeyCode.UNDEFINED;
 	}
 
 	/**
@@ -526,10 +606,70 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Shell getActiveShell() {
+		for( Shell s : shells ) {
+			if( s.internal_getWindow().isFocused() ) {
+				return s;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the application name.
+	 * 
+	 * @return the application name
+	 * 
+	 * @see #setAppName(String)
+	 * 
+	 * @since 3.6
+	 */
+	public static String getAppName() {
 		// TODO
 		return null;
 	}
 
+	/**
+	 * Returns the application version.
+	 * 
+	 * @return the application version
+	 * 
+	 * @see #setAppVersion(String)
+	 * 
+	 * @since 3.6
+	 */
+	public static String getAppVersion() {
+		// TODO
+		return null;
+	}
+
+	public Rectangle getBounds () {
+		double minX = 0;
+		double minY = 0;
+		double width = 0;
+		double height = 0;
+		for( Screen s : Screen.getScreens() ) {
+			minX = Math.min(s.getBounds().getMinX(), minX);
+			minY = Math.min(s.getBounds().getMinY(), minY);
+			width += s.getBounds().getWidth();
+			height += s.getBounds().getHeight();
+		}
+		return new Rectangle((int)minX, (int)minY, (int)width, (int)height);
+	}
+	
+	public Rectangle getClientArea() {
+		double minX = 0;
+		double minY = 0;
+		double width = 0;
+		double height = 0;
+		for( Screen s : Screen.getScreens() ) {
+			minX = Math.min(s.getVisualBounds().getMinX(), minX);
+			minY = Math.min(s.getVisualBounds().getMinY(), minY);
+			width += s.getVisualBounds().getWidth();
+			height += s.getVisualBounds().getHeight();
+		}
+		return new Rectangle((int)minX, (int)minY, (int)width, (int)height);
+	}
+	
 	/**
 	 * Returns the display which the currently running thread is the
 	 * user-interface thread for, or null if the currently running thread is not
@@ -538,7 +678,7 @@ public class Display extends Device {
 	 * @return the current display
 	 */
 	public static Display getCurrent() {
-		return getDefault();
+		return Platform.isFxApplicationThread() ? getDefault() : null;
 	}
 
 	/**
@@ -557,7 +697,18 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Control getCursorControl() {
-		// TODO
+		for( Widget w : Widget.NATIVE_WIDGET_MAP.values() ) {
+			if( w instanceof Shell ) {
+				Shell s = (Shell) w;
+				if( s.internal_getWindow().isFocused() ) {
+					Point p = getCursorLocation();
+					if( s.getBounds().contains(p.x, p.y) ) {
+						return findControl(s, p.x, p.y);
+					}
+					return null;
+				}
+			}
+		}
 		return null;
 	}
 
@@ -576,8 +727,15 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Point getCursorLocation() {
-		// TODO
-		return new Point(0, 0);
+		Robot r = null;
+		try {
+			r = com.sun.glass.ui.Application.GetApplication().createRobot();
+			return new Point(r.getMouseX(), r.getMouseY());
+		} finally {
+			if( r != null) {
+				r.destroy();
+			}
+		}
 	}
 
 	/**
@@ -600,8 +758,33 @@ public class Display extends Device {
 		return null;
 	}
 
-	Control getControl(Object o) {
-		return controlMap.get(o);
+	/**
+	 * Returns the application defined, display specific data associated with
+	 * the receiver, or null if it has not been set. The
+	 * <em>display specific data</em> is a single, unnamed field that is stored
+	 * with every display.
+	 * <p>
+	 * Applications may put arbitrary objects in this field. If the object
+	 * stored in the display specific data needs to be notified when the display
+	 * is disposed of, it is the application's responsibility to provide a
+	 * <code>disposeExec()</code> handler which does so.
+	 * </p>
+	 * 
+	 * @return the display specific data
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                </ul>
+	 * 
+	 * @see #setData(Object)
+	 * @see #disposeExec(Runnable)
+	 */
+	public Object getData() {
+		return (state & KEYED_DATA) != 0 ? ((Object []) data) [0] : data;
 	}
 
 	/**
@@ -634,37 +817,13 @@ public class Display extends Device {
 	 * @see #disposeExec(Runnable)
 	 */
 	public Object getData(String key) {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Returns the application defined, display specific data associated with
-	 * the receiver, or null if it has not been set. The
-	 * <em>display specific data</em> is a single, unnamed field that is stored
-	 * with every display.
-	 * <p>
-	 * Applications may put arbitrary objects in this field. If the object
-	 * stored in the display specific data needs to be notified when the display
-	 * is disposed of, it is the application's responsibility to provide a
-	 * <code>disposeExec()</code> handler which does so.
-	 * </p>
-	 * 
-	 * @return the display specific data
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                </ul>
-	 * 
-	 * @see #setData(Object)
-	 * @see #disposeExec(Runnable)
-	 */
-	public Object getData() {
-		// TODO
+		if (key == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+		if ((state & KEYED_DATA) != 0) {
+			Object [] table = (Object []) data;
+			for (int i=1; i<table.length; i+=2) {
+				if (key.equals (table [i])) return table [i+1];
+			}
+		}
 		return null;
 	}
 
@@ -676,34 +835,18 @@ public class Display extends Device {
 	 * @return the default display
 	 */
 	public static Display getDefault() {
-		return defaultDisplay;
+		if( DEFAULT == null ) {
+			DEFAULT = new Display();
+		}
+		return DEFAULT;
 	}
 
-	static <T> boolean isValidClass(Class<T> clazz) {
-		String name = clazz.getName ();
-		int index = name.lastIndexOf ('.');
-		return name.substring (0, index + 1).equals (PACKAGE_PREFIX);
+	@Override
+	public int getDepth() {
+		Util.logNotImplemented();
+		return 32;
 	}
-
-	/**
-	 * Returns the single instance of the application menu bar, or
-	 * <code>null</code> if there is no application menu bar for the platform.
-	 * 
-	 * @return the application menu bar, or <code>null</code>
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                </ul>
-	 * 
-	 * @since 3.7
-	 */
-	public Menu getMenuBar() {
-		// TODO
-		return null;
-	}
-
+	
 	/**
 	 * Returns the button dismissal alignment, one of <code>LEFT</code> or
 	 * <code>RIGHT</code>. The button dismissal alignment is the ordering that
@@ -726,8 +869,7 @@ public class Display extends Device {
 	 * @since 2.1
 	 */
 	public int getDismissalAlignment() {
-		// TODO
-		return 0;
+		return SWT.LEFT; //TODO Should we check of OS-X and return RIGHT??
 	}
 
 	/**
@@ -746,10 +888,14 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public int getDoubleClickTime() {
-		// TODO
-		return 0;
+		return 500; //TODO Can we read this from the OS???
 	}
 
+	@Override
+	public Point getDPI() {
+		return new Point((int)Screen.getPrimary().getDpi(),(int)Screen.getPrimary().getDpi());
+	}
+	
 	/**
 	 * Returns the control which currently has keyboard focus, or null if
 	 * keyboard events are not currently going to any of the controls built by
@@ -766,8 +912,7 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Control getFocusControl() {
-		// TODO
-		return null;
+		return focusControl;
 	}
 
 	/**
@@ -791,7 +936,7 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public boolean getHighContrast() {
-		// TODO
+		Util.logNotImplemented();
 		return false;
 	}
 
@@ -839,6 +984,30 @@ public class Display extends Device {
 		return null;
 	}
 
+	public int getLastEventTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	/**
+	 * Returns the single instance of the application menu bar, or
+	 * <code>null</code> if there is no application menu bar for the platform.
+	 * 
+	 * @return the application menu bar, or <code>null</code>
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                </ul>
+	 * 
+	 * @since 3.7
+	 */
+	public Menu getMenuBar() {
+		// TODO
+		return null;
+	}
+
 	/**
 	 * Returns an array of monitors attached to the device.
 	 * 
@@ -847,8 +1016,12 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public Monitor[] getMonitors() {
-		// TODO
-		return new Monitor[] { new Monitor() };
+		ObservableList<Screen> screens = Screen.getScreens();
+		Monitor[] rv = new Monitor[screens.size()];
+		for( int i = 0; i < rv.length; i++ ) {
+			rv[i] = createMonitor(screens.get(i));
+		}
+		return rv;
 	}
 
 	/**
@@ -859,8 +1032,7 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public Monitor getPrimaryMonitor() {
-		// TODO
-		return new Monitor();
+		return createMonitor(Screen.getPrimary());
 	}
 
 	/**
@@ -922,6 +1094,15 @@ public class Display extends Device {
 		return null;
 	}
 
+	@Override
+	public Color getSystemColor(int id) {
+		Color color = getWidgetColor (id);
+		if (color != null) {
+			return color;
+		}
+		return super.getSystemColor(id);
+	}
+	
 	/**
 	 * Returns the matching standard platform cursor for the given constant,
 	 * which should be one of the cursor constants specified in class
@@ -968,7 +1149,12 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public Cursor getSystemCursor(int id) {
-		// TODO
+		if( id < cursors.length ) {
+			if( cursors[id] == null ) {
+				cursors[id] = new Cursor(this, id);
+			}
+			return cursors[id];
+		}
 		return null;
 	}
 
@@ -1001,8 +1187,56 @@ public class Display extends Device {
 	 * 
 	 * @since 3.0
 	 */
-	public Image getSystemImage(int id) {
-		// TODO
+	public Image getSystemImage (int id) {
+		switch (id) {
+		case SWT.ICON_ERROR:
+			if( systemImages[0] == null ) {
+				try(InputStream in = getClass().getResourceAsStream("dialog-error.png")) {
+					systemImages[0] = new Image(this, in);	
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return systemImages[0];
+		case SWT.ICON_INFORMATION:
+			if( systemImages[1] == null ) {
+				try(InputStream in = getClass().getResourceAsStream("dialog-information.png")) {
+					systemImages[1] = new Image(this, in);	
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return systemImages[1];
+		case SWT.ICON_QUESTION:
+			if( systemImages[2] == null ) {
+				try(InputStream in = getClass().getResourceAsStream("help-contents.png")) {
+					systemImages[2] = new Image(this, in);	
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return systemImages[2];
+		case SWT.ICON_WORKING:
+			if( systemImages[3] == null ) {
+				try(InputStream in = getClass().getResourceAsStream("user-away-extended.png")) {
+					systemImages[3] = new Image(this, in);	
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return systemImages[3];
+		case SWT.ICON_WARNING:
+			if( systemImages[4] == null ) {
+				try(InputStream in = getClass().getResourceAsStream("dialog-warning.png")) {
+					systemImages[4] = new Image(this, in);	
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return systemImages[4];
+		default:
+			break;
+		}
 		return null;
 	}
 
@@ -1062,7 +1296,7 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public Tray getSystemTray() {
-		// TODO
+		Util.logNotImplemented();
 		return null;
 	}
 
@@ -1078,8 +1312,7 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Thread getThread() {
-		// TODO
-		return null;
+		return thread;
 	}
 
 	/**
@@ -1104,6 +1337,58 @@ public class Display extends Device {
 		return false;
 	}
 
+	Color getWidgetColor (int id) {
+		if (0 <= id && id < widgetColors.length && widgetColors [id] != null) {
+			return widgetColors[id];
+		}
+		return null;
+	}
+	
+	private void initColors() {
+		widgetColors[SWT.COLOR_INFO_FOREGROUND] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_INFO_BACKGROUND] = new Color(this, 250, 251, 197);
+		widgetColors[SWT.COLOR_TITLE_FOREGROUND] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_TITLE_BACKGROUND] = new Color(this, 56, 117, 215);
+		widgetColors[SWT.COLOR_TITLE_BACKGROUND_GRADIENT] = new Color(this, 180, 213, 255);
+		widgetColors[SWT.COLOR_TITLE_INACTIVE_FOREGROUND] = new Color(this, 127, 127, 127);
+		widgetColors[SWT.COLOR_TITLE_INACTIVE_BACKGROUND] = new Color(this, 212, 212, 212);
+		widgetColors[SWT.COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT] = new Color(this, 212, 212, 212);
+		widgetColors[SWT.COLOR_WIDGET_DARK_SHADOW] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_WIDGET_NORMAL_SHADOW] = new Color(this, 159, 159, 159);
+		widgetColors[SWT.COLOR_WIDGET_LIGHT_SHADOW] = new Color(this, 232, 232, 232);
+		widgetColors[SWT.COLOR_WIDGET_HIGHLIGHT_SHADOW] = new Color(this, 254, 255, 254);
+		widgetColors[SWT.COLOR_WIDGET_BACKGROUND] = new Color(this, 232, 232, 232);
+		widgetColors[SWT.COLOR_WIDGET_FOREGROUND] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_WIDGET_BORDER] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_LIST_FOREGROUND] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_LIST_BACKGROUND] = new Color(this, 255, 255, 255);
+		widgetColors[SWT.COLOR_LIST_SELECTION_TEXT] = new Color(this, 0, 0, 0);
+		widgetColors[SWT.COLOR_LIST_SELECTION] = new Color(this, 180, 213, 255);
+		widgetColors[SWT.COLOR_LINK_FOREGROUND] = new Color(this, 0, 0, 255);
+	}
+
+	private void initWakeupTask() {
+		TimerTask task = new TimerTask() {
+
+			@Override
+			public void run() {
+				if( ! innerLoops.isEmpty() & ! isDisposed() ) {
+					Platform.runLater(new Runnable() {
+						
+						@Override
+						public void run() {
+							if( ! innerLoops.isEmpty() ) {
+								Toolkit.getToolkit().exitNestedEventLoop(innerLoops.remove(0), null);	
+							}
+						}
+					});
+				}
+			}
+			
+		};
+		timer().scheduleAtFixedRate(task, 200, 200);
+	}
+	
 	/**
 	 * Invokes platform specific functionality to dispose a GC handle.
 	 * <p>
@@ -1157,6 +1442,10 @@ public class Display extends Device {
 		return 0;
 	}
 
+	static <T> boolean isValidClass(Class<T> cls) {
+		return true;
+	}
+	
 	boolean isValidThread() {
 		return Platform.isFxApplicationThread();
 	}
@@ -1202,8 +1491,7 @@ public class Display extends Device {
 	 * @since 2.1.2
 	 */
 	public Point map(Control from, Control to, Point point) {
-		// TODO
-		return null;
+		return map(from, to, point.x, point.y);
 	}
 
 	/**
@@ -1248,8 +1536,22 @@ public class Display extends Device {
 	 * @since 2.1.2
 	 */
 	public Point map(Control from, Control to, int x, int y) {
-		// TODO
-		return null;
+		if( from == to ) {
+			return new Point(x, y);
+		}
+		
+		if( from == null ) {
+			Point2D localToScreen = to.internal_getNativeObject().screenToLocal(x, y);
+			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
+		}
+		
+		Point2D localToScreen = from.internal_getNativeObject().localToScreen(x, y);
+		if( to == null ) {
+			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
+		} else {
+			Point2D sceneToLocal = to.internal_getNativeObject().screenToLocal(localToScreen);
+			return new Point((int)sceneToLocal.getX(), (int)sceneToLocal.getY());
+		}
 	}
 
 	/**
@@ -1293,8 +1595,7 @@ public class Display extends Device {
 	 * @since 2.1.2
 	 */
 	public Rectangle map(Control from, Control to, Rectangle rectangle) {
-		// TODO
-		return null;
+		return map(from, to, rectangle.x, rectangle.y, rectangle.width, rectangle.height); 
 	}
 
 	/**
@@ -1344,8 +1645,8 @@ public class Display extends Device {
 	 */
 	public Rectangle map(Control from, Control to, int x, int y, int width,
 			int height) {
-		// TODO
-		return null;
+		Point p = map(from, to, x, y);
+		return new Rectangle(p.x, p.y, width, height);
 	}
 
 	/**
@@ -1427,7 +1728,29 @@ public class Display extends Device {
 	 * 
 	 */
 	public boolean post(Event event) {
-		// TODO
+		Robot robot = com.sun.glass.ui.Application.GetApplication().createRobot();
+		switch (event.type) {
+		case SWT.MouseMove:
+			robot.mouseMove(event.x, event.y);
+			break;
+		case SWT.MouseDown:
+			robot.mousePress(event.button); 
+			break;
+		case SWT.MouseUp:
+			robot.mouseRelease(event.button);
+			break;
+		case SWT.KeyDown:
+			robot.keyPress(fromSWT(event).impl_getCode());
+			break;
+		case SWT.KeyUp:
+			robot.keyRelease(fromSWT(event).impl_getCode());
+			break;
+		default:
+			break;
+		}
+		
+		robot.destroy();
+
 		return false;
 	}
 
@@ -1467,6 +1790,10 @@ public class Display extends Device {
 		return false;
 	}
 
+	void registerShell(Shell shell) {
+		shells.add(shell);
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when an event of the given type occurs anywhere in a widget. The
@@ -1497,7 +1824,8 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public void removeFilter(int eventType, Listener listener) {
-		// TODO
+		if (filterTable != null) 
+			filterTable.unhook(eventType, listener);
 	}
 
 	/**
@@ -1529,37 +1857,17 @@ public class Display extends Device {
 	 * @since 2.0
 	 */
 	public void removeListener(int eventType, Listener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
-	/**
-	 * Returns the application name.
-	 * 
-	 * @return the application name
-	 * 
-	 * @see #setAppName(String)
-	 * 
-	 * @since 3.6
-	 */
-	public static String getAppName() {
-		// TODO
-		return null;
+	void removeShell(Shell shell) {
+		shells.remove(shell);
 	}
 
-	/**
-	 * Returns the application version.
-	 * 
-	 * @return the application version
-	 * 
-	 * @see #setAppVersion(String)
-	 * 
-	 * @since 3.6
-	 */
-	public static String getAppVersion() {
-		// TODO
-		return null;
+	void runSkin() {
+		// TODO Auto-generated method stub
 	}
-
+	
 	/*
 	 * Not SWT API, needed to inject events from the workbench
 	 */
@@ -1617,7 +1925,7 @@ public class Display extends Device {
 	 *            the new app name or <code>null</code>
 	 */
 	public static void setAppName(String name) {
-		// TODO
+		com.sun.glass.ui.Application.GetApplication().setName(name);
 	}
 
 	/**
@@ -1653,7 +1961,15 @@ public class Display extends Device {
 	 * @since 2.1
 	 */
 	public void setCursorLocation(int x, int y) {
-		// TODO
+		Robot r = null;
+		try {
+			r = com.sun.glass.ui.Application.GetApplication().createRobot();
+			r.mouseMove(x, y);
+		} finally {
+			if( r != null) {
+				r.destroy();
+			}
+		}
 	}
 
 	/**
@@ -1676,7 +1992,39 @@ public class Display extends Device {
 	 * @since 2.0
 	 */
 	public void setCursorLocation(Point point) {
-		// TODO
+	}
+
+	/**
+	 * Sets the application defined, display specific data associated with the
+	 * receiver, to the argument. The <em>display specific data</em> is a
+	 * single, unnamed field that is stored with every display.
+	 * <p>
+	 * Applications may put arbitrary objects in this field. If the object
+	 * stored in the display specific data needs to be notified when the display
+	 * is disposed of, it is the application's responsibility provide a
+	 * <code>disposeExec()</code> handler which does so.
+	 * </p>
+	 * 
+	 * @param data
+	 *            the new display specific data
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                </ul>
+	 * 
+	 * @see #getData()
+	 * @see #disposeExec(Runnable)
+	 */
+	public void setData(Object data) {
+		if ((state & KEYED_DATA) != 0) {
+			((Object []) this.data) [0] = data;
+		} else {
+			this.data = data;
+		}
 	}
 
 	/**
@@ -1710,40 +2058,67 @@ public class Display extends Device {
 	 * @see #disposeExec(Runnable)
 	 */
 	public void setData(String key, Object value) {
-		// TODO
+		if (key == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+		int index = 1;
+		Object [] table = null;
+		if ((state & KEYED_DATA) != 0) {
+			table = (Object []) data;
+			while (index < table.length) {
+				if (key.equals (table [index])) break;
+				index += 2;
+			}
+		}
+		if (value != null) {
+			if ((state & KEYED_DATA) != 0) {
+				if (index == table.length) {
+					Object [] newTable = new Object [table.length + 2];
+					System.arraycopy (table, 0, newTable, 0, table.length);
+					data = table = newTable;
+				}
+			} else {
+				table = new Object [3];
+				table [0] = data;
+				data = table;
+				state |= KEYED_DATA;
+			}
+			table [index] = key;
+			table [index + 1] = value;
+		} else {
+			if ((state & KEYED_DATA) != 0) {
+				if (index != table.length) {
+					int length = table.length - 2;
+					if (length == 1) {
+						data = table [0];
+						state &= ~KEYED_DATA;
+					} else {
+						Object [] newTable = new Object [length];
+						System.arraycopy (table, 0, newTable, 0, index);
+						System.arraycopy (table, index + 2, newTable, index, length - index);
+						data = newTable;
+					}
+				}
+			}
+		}
 	}
 
-	/**
-	 * Sets the application defined, display specific data associated with the
-	 * receiver, to the argument. The <em>display specific data</em> is a
-	 * single, unnamed field that is stored with every display.
-	 * <p>
-	 * Applications may put arbitrary objects in this field. If the object
-	 * stored in the display specific data needs to be notified when the display
-	 * is disposed of, it is the application's responsibility provide a
-	 * <code>disposeExec()</code> handler which does so.
-	 * </p>
-	 * 
-	 * @param data
-	 *            the new display specific data
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                </ul>
-	 * 
-	 * @see #getData()
-	 * @see #disposeExec(Runnable)
-	 */
-	public void setData(Object data) {
-		// TODO
+	void setFocusControl(Control focusControl) {
+		if( this.focusControl != focusControl ) {
+			Control oldFocusControl = this.focusControl;
+			this.focusControl = focusControl;
+			
+			if( oldFocusControl != null ) {
+				oldFocusControl.internal_sendEvent(SWT.FocusOut, new Event(), true);
+			}
+			if( this.focusControl != null ) {
+				this.focusControl.internal_sendEvent(SWT.FocusIn, new Event(), true);
+			}
+		}
 	}
-
+	
 	void setHoverControl(Control hoverControl) {
-		// TODO
+		this.hoverControl = hoverControl;
+		hoverTimer.stop();
+		hoverTimer.playFromStart();
 	}
 
 	/**
@@ -1768,7 +2143,11 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public void setSynchronizer(Synchronizer synchronizer) {
-		// TODO
+		Util.logNotImplemented();
+	}
+
+	public void setWarnings(boolean b) {
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -1790,11 +2169,72 @@ public class Display extends Device {
 	 * @see #wake
 	 */
 	public boolean sleep() {
-		if (modalStage != null)
-			modalStage.showAndWait();
-		else
-			SWT.error(SWT.ERROR_NOT_IMPLEMENTED);
-		return false;
+		innerLoops.add(UUID.randomUUID().toString());
+		if( (state & WAKEUP_INITED) == 0 ) {
+			state |= WAKEUP_INITED;
+			System.err.println("WARNING: Custom even loopspinning in JavaFX is not good. Use SWTUtil to e.g. open a blocking dialog");
+			initWakeupTask();
+		}
+//		System.err.println("Entering: " + innerLoops.get(innerLoops.size()-1));
+		Toolkit.getToolkit().enterNestedEventLoop(innerLoops.get(innerLoops.size()-1));
+		return true;
+	}
+
+	/**
+	 * Causes the <code>run()</code> method of the runnable to be invoked by the
+	 * user-interface thread at the next reasonable opportunity. The thread
+	 * which calls this method is suspended until the runnable completes.
+	 * Specifying <code>null</code> as the runnable simply wakes the
+	 * user-interface thread.
+	 * <p>
+	 * Note that at the time the runnable is invoked, widgets that have the
+	 * receiver as their display may have been disposed. Therefore, it is
+	 * necessary to check for this case inside the runnable before accessing the
+	 * widget.
+	 * </p>
+	 * 
+	 * @param runnable
+	 *            code to run on the user-interface thread or <code>null</code>
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_FAILED_EXEC - if an exception occurred when
+	 *                executing the runnable</li>
+	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                </ul>
+	 * 
+	 * @see #asyncExec
+	 */
+	public void syncExec(final Runnable runnable) {
+		if( isValidThread() ) {
+			runnable.run();
+		} else {
+			final CountDownLatch c = new CountDownLatch(1);
+			Platform.runLater(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						runnable.run();	
+					} finally {
+						c.countDown();	
+					}
+				}
+			});
+			try {
+				c.await();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private Timer timer() {
+		if( timer == null ) {
+			timer = new Timer(true);
+		}
+		return timer;
 	}
 
 	/**
@@ -1828,67 +2268,17 @@ public class Display extends Device {
 	 * @see #asyncExec
 	 */
 	public void timerExec(int milliseconds, Runnable runnable) {
-		// TODO
-	}
-
-	/**
-	 * Causes the <code>run()</code> method of the runnable to be invoked by the
-	 * user-interface thread at the next reasonable opportunity. The thread
-	 * which calls this method is suspended until the runnable completes.
-	 * Specifying <code>null</code> as the runnable simply wakes the
-	 * user-interface thread.
-	 * <p>
-	 * Note that at the time the runnable is invoked, widgets that have the
-	 * receiver as their display may have been disposed. Therefore, it is
-	 * necessary to check for this case inside the runnable before accessing the
-	 * widget.
-	 * </p>
-	 * 
-	 * @param runnable
-	 *            code to run on the user-interface thread or <code>null</code>
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_FAILED_EXEC - if an exception occurred when
-	 *                executing the runnable</li>
-	 *                <li>ERROR_DEVICE_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                </ul>
-	 * 
-	 * @see #asyncExec
-	 */
-	public void syncExec(final Runnable runnable) {
-		if (isDisposed())
-			throw new SWTException(SWT.ERROR_DEVICE_DISPOSED);
-		
-		if (Platform.isFxApplicationThread() || !running) {
-			runnable.run();
-			return;
-		}
-		
-		final Object mutex = new Object();
-		final Boolean[] ready = new Boolean[] { Boolean.FALSE };
-		synchronized (mutex) {
-			Platform.runLater(new Runnable() {
-				@Override
-				public void run() {
-					runnable.run();
-					synchronized (mutex) {
-						ready[0] = Boolean.TRUE;
-						mutex.notifyAll();
-					}
+		if( milliseconds < 0 ) {
+			DisplayTimerTask[] tasks = currentTasks.toArray(new DisplayTimerTask[0]);
+			for( DisplayTimerTask t : tasks ) {
+				if( t.r == runnable ) {
+					t.cancel();
+					currentTasks.remove(t);
 				}
-			});
-			try {
-				while (!ready[0])
-					mutex.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
+		} else {
+			timer().schedule(new DisplayTimerTask(currentTasks,runnable), milliseconds);	
 		}
-		
-		wake();
 	}
 
 	/**
@@ -1906,9 +2296,13 @@ public class Display extends Device {
 	 * @see Control#update()
 	 */
 	public void update() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
+	void unregisterShell(Shell shell) {
+		shells.remove(shell);
+	}
+	
 	/**
 	 * If the receiver's user-interface thread was <code>sleep</code>ing, causes
 	 * it to be awakened and start running again. Note that this method may be
@@ -1923,13 +2317,11 @@ public class Display extends Device {
 	 * @see #sleep
 	 */
 	public void wake() {
-		synchronized (sleepMutex) {
-			sleepMutex.notifyAll();
-		}
+		Util.logNotImplemented();
 	}
 
 	void wakeThread() {
-		wake();
+		Util.logNotImplemented();
 	}
 
 }

@@ -143,7 +143,6 @@ public class ScrollBar extends Widget {
 		addListener(SWT.DefaultSelection,typedListener);
 	}
 
-	@Override
 	void createNativeObject() {
 		scrollBar = new javafx.scene.control.ScrollBar();
 		Orientation o;

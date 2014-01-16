@@ -20,7 +20,6 @@ public class JavaFXControlExample extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		Display.primaryStage = primaryStage;
 		display = new Display();
 		Shell shell = new Shell(display, SWT.SHELL_TRIM);
 		shell.setLayout(new FillLayout());

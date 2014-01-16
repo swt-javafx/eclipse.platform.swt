@@ -247,7 +247,6 @@ public class MenuItem extends Item {
 		addListener (SWT.Show,typedListener);
 	}
 
-	@Override
 	void createNativeObject() {
 		if ((style & SWT.PUSH) != 0) {
 			menuItem = new javafx.scene.control.MenuItem();

@@ -215,7 +215,6 @@ public class ToolItem extends Item {
 		addListener(SWT.DefaultSelection,typedListener);
 	}
 
-	@Override
 	void createNativeObject() {
 		if ((style & SWT.CHECK) == SWT.CHECK) {
 			item = new CheckBox();

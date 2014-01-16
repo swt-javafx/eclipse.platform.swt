@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.WeakHashMap;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.DisposeListener;
@@ -43,31 +45,30 @@ import org.eclipse.swt.internal.SWTEventListener;
  *      information</a>
  */
 public abstract class Widget {
-
+	
 	/* Using the same numbers as the win32 port for now */
 	/* Global state flags */
 	static final int DISPOSED		= 1<<0;
-	static final int CANVAS			= 1<<1;
 	static final int KEYED_DATA		= 1<<2;
-	static final int DISABLED		= 1<<3;
-	static final int HIDDEN			= 1<<4;
+	static final int DISABLED       = 1 << 3;
 	
 	/* A layout was requested on this widget */
-	static final int LAYOUT_NEEDED	= 1<<5;
+	static final int LAYOUT_NEEDED	= 1<<12;
+	
 	
 	/* The preferred size of a child has changed */
-	static final int LAYOUT_CHANGED = 1<<6;
+	static final int LAYOUT_CHANGED = 1<<13;
 	
 	/* A layout was requested in this widget hierarchy */
-	static final int LAYOUT_CHILD = 1<<7;
+	static final int LAYOUT_CHILD = 1<<14;
 	
 	/* Background flags */
 	static final int THEME_BACKGROUND = 1<<8;
 	static final int DRAW_BACKGROUND = 1<<9;
 	static final int PARENT_BACKGROUND = 1<<10;
 
-	static final int RELEASED = 1<<11;
-	static final int DISPOSE_SENT = 1<<12;
+	static final int DISPOSE_SENT = 1<<16;
+	static final int RELEASED = 1<<15;
 	
 	static final int DRAG_DETECT	= 1<<15;
 	
@@ -75,23 +76,49 @@ public abstract class Widget {
 	static final int SKIN_NEEDED = 1<<21;
 	
 	/* Tom's flags */
-	static final int RESIZE_ATTACHED = 1<<26;
-	static final int DATA_SET = 1<<27;
+	static final int DATA_SET = 1 << 27;
 	static final int MOUSE_EXIT = 1<<28;
 	static final int MOUSE_ENTER = 1<<29;
 	static final int CSS_PROCESSED  = 1<<30;
+	static final int NO_EVENT = 1 << 31;
+	
+	static final int RESIZE_ATTACHED = 1 << 29;
 
 	static final int DEFAULT_WIDTH	= 64;
 	static final int DEFAULT_HEIGHT	= 64;
 	
+	private boolean noEvent;
 	EventTable eventTable;
 	Display display;
 	int style;
 	long state;
 	private Object data;
 	
+	static final WeakHashMap<Object, Widget> NATIVE_WIDGET_MAP = new WeakHashMap<Object, Widget>();
+	protected Object nativeObject;
+
 	Widget() {
 		display = getDisplay();
+	}
+	
+	// Not API
+	public Widget(Display display, int style) {
+		this.display = display;
+		this.style = style;
+		this.state |= MOUSE_EXIT;
+		nativeObject = createWidget();
+		initListeners();
+		registerConnection(internal_getNativeObject()); 
+	}
+
+	// Not API
+	public Widget(Display display, Object nativeObject, int style) {
+		this.display = display;
+		this.style = style;
+		this.state |= MOUSE_EXIT;
+		this.nativeObject = nativeObject;
+		initListeners();
+		registerConnection(internal_getNativeObject()); 
 	}
 	
 	/**
@@ -130,11 +157,7 @@ public abstract class Widget {
 	 * @see #getStyle
 	 */
 	public Widget(Widget parent, int style) {
-		checkSubclass();
-		checkParent(parent);
-		this.style = style;
-		display = parent.display;
-		reskinWidget();
+		this(parent.display,style);
 	}
 
 	void _addListener (int eventType, Listener listener) {
@@ -323,13 +346,8 @@ public abstract class Widget {
 		// Not throwing ERROR_THREAD_INVALID_ACCESS since JavaFX will do it for us
 	}
 
-	void createNativeObject() {
-	}
-	
-	void createWidget () {
-		createNativeObject ();
-		setOrientation();
-		register ();
+	protected Object createWidget() {
+		return null;
 	}
 
 	void deregister() {
@@ -461,7 +479,7 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	public Display getDisplay() {
-		return Display.getDefault();
+		return display;
 	}
 
 	/**
@@ -495,6 +513,13 @@ public abstract class Widget {
 		return eventTable.getListeners(eventType);
 	}
 
+	protected String getName () {
+		String string = getClass ().getName ();
+		int index = string.lastIndexOf ('.');
+		if (index == -1) return string;
+		return string.substring (index + 1, string.length ());
+	}
+	
 	/*
 	 * Returns a short printable representation for the contents
 	 * of a widget. For example, a button may answer the label
@@ -533,9 +558,15 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	public int getStyle() {
+		checkWidget();
 		return style;
 	}
 
+	@SuppressWarnings("unchecked")
+	static <W extends Widget> W getWidget(Object o) {
+		return (W) NATIVE_WIDGET_MAP.get(o);
+	}
+	
 	/*
 	 * Returns <code>true</code> if the specified eventType is
 	 * hooked, and <code>false</code> otherwise. Implementations
@@ -554,6 +585,44 @@ public abstract class Widget {
 		return eventTable.hooks (eventType);
 	}
 
+	protected void initListeners() {
+	}
+	
+	public Object internal_getNativeObject() {
+		return null;
+	}
+
+	protected void internal_runNoEvent(Runnable runnable) {
+		try {
+			noEvent = true;
+			runnable.run();
+		} finally {
+			noEvent = false;
+		}
+	}
+	
+	protected void internal_sendEvent (int eventType, Event event, boolean send) {
+		if( noEvent ) {
+			return;
+		}
+		
+		if (eventTable == null && !display.filters (eventType)) {
+			return;
+		}
+		if (event == null) event = new Event ();
+		event.type = eventType;
+		event.display = display;
+		event.widget = this;
+		if (event.time == 0) {
+			event.time = display.getLastEventTime ();
+		}
+		if (send) {
+			sendEvent (event);
+		} else {
+			display.postEvent (event);
+		}
+	}
+	
 	/**
 	 * Returns <code>true</code> if the widget has been disposed, and
 	 * <code>false</code> otherwise.
@@ -637,9 +706,13 @@ public abstract class Widget {
 	public void notifyListeners(int eventType, Event event) {
 		checkWidget();
 		if (event == null) event = new Event ();
-		sendEvent (eventType, event);
+		internal_sendEvent (eventType, event, true);
 	}
 
+	protected static String notNullString(String s) {
+		return s == null ? "" : s;
+	}
+	
 	void postEvent (int eventType) {
 		sendEvent (eventType, null, false);
 	}
@@ -651,6 +724,16 @@ public abstract class Widget {
 	void register() {
 	}
 
+	protected void registerConnection(Object o) {
+		NATIVE_WIDGET_MAP.put(o, this);
+	}
+	
+	protected void registerListener(int eventType, Listener listener) {
+		if (eventTable == null)
+			eventTable = new EventTable();
+		eventTable.hook(eventType, listener);
+	}
+	
 	/*
 	 * Releases the widget hierarchy and optionally destroys
 	 * the receiver.
@@ -671,27 +754,28 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 * @see #releaseWidget
 	*/
-	void release (boolean destroy) {
+	void release(boolean destroy) {
 		if ((state & DISPOSE_SENT) == 0) {
 			state |= DISPOSE_SENT;
-			sendEvent (SWT.Dispose);
+			internal_sendEvent (SWT.Dispose, new Event(), true);
 		}
-		if ((state & DISPOSED) == 0) {
-			releaseChildren (destroy);
-		}
-		if ((state & RELEASED) == 0) {
-			state |= RELEASED;
-			if (destroy) {
-				releaseParent ();
-				releaseWidget ();
-				destroyWidget ();
-			} else {
-				releaseWidget ();
-				releaseNativeObject ();
-			}
-		}
+		
+//		if ((state & DISPOSED) == 0) {
+//			releaseChildren (destroy);
+//		}
+//		if ((state & RELEASED) == 0) {
+//			state |= RELEASED;
+//			if (destroy) {
+//				releaseParent ();
+//				releaseWidget ();
+//				destroyWidget ();
+//			} else {
+//				releaseWidget ();
+//				releaseHandle ();
+//			}
+//		}
 	}
-
+	
 	void releaseChildren (boolean destroy) {
 	}
 
@@ -911,16 +995,16 @@ public abstract class Widget {
 	}
 
 	void reskinWidget() {
-		if ((state & SKIN_NEEDED) == 0) {
-			state |= SKIN_NEEDED;
-			display.addSkinnableWidget(this);
-		}
+//		if ((state & SKIN_NEEDED) == 0) {
+//			state |= SKIN_NEEDED;
+//			display.addSkinnableWidget(this);
+//		}
 	}
 
 	void sendEvent (Event event) {
 		Display display = event.display;
 		if (!display.filterEvent (event)) {
-			if (eventTable != null) display.sendEvent(eventTable, event);
+			if (eventTable != null) eventTable.sendEvent(event);
 		}
 	}
 
@@ -1080,4 +1164,25 @@ public abstract class Widget {
 	void setOrientation () {
 	}
 
+	public String toString () {
+		String string = "*Disposed*"; //$NON-NLS-1$
+		if (!isDisposed ()) {
+			string = "*Wrong Thread*"; //$NON-NLS-1$
+			if (isValidThread ()) string = getNameText ();
+		}
+		return getName () + " {" + string + "}"; //$NON-NLS-1$ //$NON-NLS-2$
+	}
+	
+	protected void uninitListeners() {
+	}
+	
+	protected void unregisterConnection(Object o) {
+		NATIVE_WIDGET_MAP.remove(o);
+	}
+	
+	void unregisterListener(int eventType, SWTEventListener listener) {
+		if (eventTable == null) return;
+		eventTable.unhook (eventType, listener);
+	}
+	
 }

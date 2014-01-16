@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.GC;
@@ -39,6 +41,8 @@ import org.eclipse.swt.graphics.GC;
  */
 public class Canvas extends Composite {
 
+	javafx.scene.canvas.Canvas canvas;
+	
 	Canvas() {
 	}
 
@@ -75,6 +79,19 @@ public class Canvas extends Composite {
 	 */
 	public Canvas(Composite parent, int style) {
 		super(parent, style);
+	}
+
+	@Override
+	void createNativeObject() {
+		super.createNativeObject();
+		
+		canvas = new javafx.scene.canvas.Canvas();
+	}
+	
+	@Override
+	protected Region createWidget() {
+		// TODO
+		return null;
 	}
 
 	/**
@@ -156,6 +173,13 @@ public class Canvas extends Composite {
 		return null;
 	}
 
+	@Override
+	void register() {
+		super.register();
+		
+		controlContainer.getChildren().setAll(canvas);
+	}
+	
 	/**
 	 * Scrolls a rectangular area of the receiver by first copying the source
 	 * area to the destination and then causing the area of the source which is

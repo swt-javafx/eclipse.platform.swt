@@ -10,19 +10,32 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.ArrayList;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ShellListener;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.graphics.Region;
+import org.eclipse.swt.internal.Util;
+
+import com.sun.javafx.geom.PathIterator;
 
 /**
  * Instances of this class represent the "windows" which the desktop or
@@ -114,8 +127,12 @@ import org.eclipse.swt.graphics.Region;
  */
 public class Shell extends Decorations {
 
-	Stage stage;
-	private List<Shell> shells = new LinkedList<Shell>();
+	private Stage stage;
+	private static final double MIN_WIDTH = 500;
+	private static final double MIN_HEIGHT = 200;
+	private BorderPane nativeObject;
+	private Shell parentShell;
+	private org.eclipse.swt.graphics.Region region;
 	
 	/**
 	 * Constructs a new instance of this class. This is equivalent to calling
@@ -130,7 +147,7 @@ public class Shell extends Decorations {
 	 *                </ul>
 	 */
 	public Shell() {
-		this((Display) null);
+		this((Display) null, SWT.DIALOG_TRIM);
 	}
 
 	/**
@@ -303,7 +320,7 @@ public class Shell extends Decorations {
 	 *                </ul>
 	 */
 	public Shell(Shell parent) {
-		this(parent, SWT.DIALOG_TRIM);
+		this(parent, SWT.SHELL_TRIM);
 	}
 
 	/**
@@ -361,25 +378,15 @@ public class Shell extends Decorations {
 	 */
 	public Shell(Shell parent, int style) {
 		this(parent != null ? parent.getDisplay() : Display.getDefault(), style);
+		stage.initOwner(parent.stage);
+		this.parentShell = parent;
 	}
 
-	/**
-	 * Not part of official SWT API, but part of bridge API
-	 * 
-	 * @return JavaFX Stage object this Shell represents
-	 */
-	public Stage getStage() {
-		return stage;
+	public Shell(Stage stage) {
+		this(Display.getCurrent(), SWT.NONE);
+		this.stage = stage;
 	}
 	
-	void addShell(Shell childShell) {
-		shells.add(childShell);
-	}
-	
-	void removeShell(Shell childShell) {
-		shells.remove(childShell);
-	}
-
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when operations are performed on the receiver, by sending the listener
@@ -404,7 +411,7 @@ public class Shell extends Decorations {
 	 * @see #removeShellListener
 	 */
 	public void addShellListener(ShellListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -425,71 +432,121 @@ public class Shell extends Decorations {
 	 * @see #dispose
 	 */
 	public void close() {
-		// TODO
+		stage.close();
 	}
 
 	@Override
-	void createNativeObject() {
-		super.createNativeObject();
-		if (Display.primaryStage != null) {
-			// First shell, use the primary stage
-			stage = Display.primaryStage;
-			Display.primaryStage = null;
-		} else {
-			stage = new Stage();
+	protected javafx.scene.layout.Region createWidget() {
+		if( stage != null ) {
+			return nativeObject = new BorderPane();
 		}
 		
-		// TODO StageStyle
-		display.addShell(this);
+		javafx.scene.layout.Region r = super.createWidget();
+		nativeObject = new BorderPane();
+		nativeObject.setCenter(r);
 		
-		stage.addEventHandler(WindowEvent.ANY, new EventHandler<WindowEvent>() {
+		stage = new Stage();
+		final Scene s = new Scene(internal_getNativeObject());
+		s.getStylesheets().add(getClass().getClassLoader().getResource("org/eclipse/swt/internal/swt.css").toExternalForm());
+		stage.setScene(s);
+		if( (getStyle() & SWT.TOOL) == SWT.TOOL ) {
+			stage.initStyle(StageStyle.UNDECORATED);
+		}
+		
+		if( (getStyle() & SWT.NO_FOCUS) == SWT.NO_FOCUS ) {
+			System.err.println("NO FOCUS NOT IMPLEMENTED");
+		}
+		stage.setOnShowing(new EventHandler<WindowEvent>() {
+			
 			@Override
 			public void handle(WindowEvent event) {
-				if (event.getEventType().equals(WindowEvent.WINDOW_SHOWING)) {
-					sendEvent(SWT.Activate);
+				if( stage.widthProperty().getValue().equals(Double.NaN) && stage.heightProperty().getValue().equals(Double.NaN) ) {
+					stage.setWidth(MIN_WIDTH);
+					stage.setHeight(MIN_HEIGHT);
 				}
 			}
 		});
+		stage.addEventHandler(WindowEvent.WINDOW_CLOSE_REQUEST, new EventHandler<WindowEvent>() {
 
-		stage.setScene(new Scene(getNativeObject(), 1024, 768));
-	}
-	
-	@Override
-	void deregister() {
-		super.deregister();
+			@Override
+			public void handle(WindowEvent event) {
+				if( isListening(SWT.Close) ) {
+					Event evt = new Event();
+					internal_sendEvent(SWT.Close, evt, true);
+					if( ! evt.doit ) {
+						event.consume();
+					}
+				}
+			}
+		});
+		stage.focusedProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				if( s.getFocusOwner() != null ) {
+					Object o = Widget.getWidget(s.getFocusOwner());
+					if( o instanceof Control ) {
+						getDisplay().setFocusControl((Control) o);	
+					}
+				} else {
+					getDisplay().setFocusControl(null);
+				}
+			}
+		});
+		s.focusOwnerProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				if( stage.isFocused() ) {
+					if( s.getFocusOwner() != null ) {
+						Object o = Widget.getWidget(s.getFocusOwner());
+						if( o instanceof Control ) {
+							getDisplay().setFocusControl((Control) o);	
+						}
+					} else {
+						getDisplay().setFocusControl(null);
+					}
+				}
+			}
+		});
 		
-		if ((style & SWT.APPLICATION_MODAL) != 0 && display.modalStage == stage)
-			display.modalStage = null;
+		getDisplay().registerShell(this);
+		
+		return nativeObject;
 	}
 	
 	@Override
 	public void dispose() {
+		getDisplay().unregisterShell(this);
 		super.dispose();
-		stage = null;
+		stage.close();
 	}
-	
+
 	/**
-	 * Returns a ToolBar object representing the tool bar that can be shown in
-	 * the receiver's trim. This will return <code>null</code> if the platform
-	 * does not support tool bars that are not part of the content area of the
-	 * shell, or if the Shell's style does not support having a tool bar.
-	 * <p>
-	 * 
-	 * @return a ToolBar object representing the Shell's tool bar, or
-	 *         <ocde>null</code>.
+	 * If the receiver is visible, moves it to the top of the drawing order for
+	 * the display on which it was created (so that all other shells on that
+	 * display, which are not the receiver's children will be drawn behind it)
+	 * and forces the window manager to make the shell active.
 	 * 
 	 * @exception SWTException
 	 *                <ul>
 	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
-	 *                called from the thread that created the receiver</li>
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
 	 *                </ul>
 	 * 
-	 * @since 3.7
+	 * @since 2.0
+	 * @see Control#moveAbove
+	 * @see Control#setFocus
+	 * @see Control#setVisible
+	 * @see Display#getActiveShell
+	 * @see Decorations#setDefaultButton(Button)
+	 * @see Shell#open
+	 * @see Shell#setActive
 	 */
-	public ToolBar getToolBar() {
-		// TODO
-		return null;
+	public void forceActive() {
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -509,8 +566,12 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public int getAlpha() {
-		// TODO
-		return 0;
+		return 255 - (int)(stage.getOpacity() * 255);
+	}
+
+	@Override
+	public Rectangle getBounds() {
+		return new Rectangle((int)stage.getX(), (int)stage.getY(), (int)stage.getWidth(), (int)stage.getHeight());
 	}
 
 	/**
@@ -530,49 +591,6 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public boolean getFullScreen() {
-		// TODO
-		return false;
-	}
-
-	/**
-	 * Returns a point describing the minimum receiver's size. The x coordinate
-	 * of the result is the minimum width of the receiver. The y coordinate of
-	 * the result is the minimum height of the receiver.
-	 * 
-	 * @return the receiver's size
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.1
-	 */
-	public Point getMinimumSize() {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Gets the receiver's modified state.
-	 * 
-	 * @return <code>true</code> if the receiver is marked as modified, or
-	 *         <code>false</code> otherwise
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.5
-	 */
-	public boolean getModified() {
 		// TODO
 		return false;
 	}
@@ -602,6 +620,104 @@ public class Shell extends Decorations {
 	}
 
 	@Override
+	public Point getLocation() {
+		return new Point((int)stage.getX(), (int)stage.getY());
+	}
+	
+	public boolean getMaximized () {
+		return stage.isMaximized();
+	}
+	
+	public boolean getMinimized () {
+		return stage.isIconified();
+	}
+	
+	/**
+	 * Returns a point describing the minimum receiver's size. The x coordinate
+	 * of the result is the minimum width of the receiver. The y coordinate of
+	 * the result is the minimum height of the receiver.
+	 * 
+	 * @return the receiver's size
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.1
+	 */
+	public Point getMinimumSize() {
+		return new Point((int)stage.getMinWidth(), (int)stage.getMinHeight());
+	}
+
+	/**
+	 * Gets the receiver's modified state.
+	 * 
+	 * @return <code>true</code> if the receiver is marked as modified, or
+	 *         <code>false</code> otherwise
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.5
+	 */
+	public boolean getModified() {
+		// TODO
+		return false;
+	}
+
+	@Override
+	public Region getRegion () {
+		return region;
+	}
+	
+	@Override
+	public Point getSize() {
+		return new Point((int)stage.getWidth(), (int)stage.getHeight());
+	}
+	
+	/**
+	 * Not part of official SWT API, but part of bridge API
+	 * 
+	 * @return JavaFX Stage object this Shell represents
+	 */
+	public Stage getStage() {
+		return stage;
+	}
+	
+	/**
+	 * Returns a ToolBar object representing the tool bar that can be shown in
+	 * the receiver's trim. This will return <code>null</code> if the platform
+	 * does not support tool bars that are not part of the content area of the
+	 * shell, or if the Shell's style does not support having a tool bar.
+	 * <p>
+	 * 
+	 * @return a ToolBar object representing the Shell's tool bar, or
+	 *         <ocde>null</code>.
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li> <li>ERROR_THREAD_INVALID_ACCESS - if not
+	 *                called from the thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.7
+	 */
+	public ToolBar getToolBar() {
+		// TODO
+		return null;
+	}
+
+	@Override
 	public Shell getShell() {
 		return this;
 	}
@@ -621,8 +737,13 @@ public class Shell extends Decorations {
 	 *                </ul>
 	 */
 	public Shell[] getShells() {
-		// TODO
-		return new Shell[0];
+		java.util.List<Shell> shells = new ArrayList<>();
+		for( Shell s : getDisplay().getShells() ) {
+			if( s.parentShell == this ) {
+				shells.add(s);
+			}
+		}
+		return shells.toArray(new Shell[shells.size()]);
 	}
 
 	@Override
@@ -631,8 +752,47 @@ public class Shell extends Decorations {
 	}
 	
 	@Override
+	protected void initListeners() {
+		super.initListeners();
+		stage.setOnHidden(new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				dispose();
+			}
+		});
+	}
+
+	@Override
+	protected double internal_getHeight() {
+		return stage.getHeight();
+	}
+	
+	@Override
+	public javafx.scene.layout.Region internal_getNativeObject() {
+		return nativeObject;
+	}
+	
+	@Override
+	protected double internal_getWidth() {
+		return stage.getWidth();
+	}
+	
+	public Window internal_getWindow() {
+		return stage;
+	}
+	
+	@Override
 	public boolean isDisposed() {
 		return stage == null;
+	}
+	
+	@Override
+	public boolean isEnabled() {
+		return getEnabled();
+	}
+	
+	public boolean isVisible () {
+		return getVisible();
 	}
 	
 	/**
@@ -658,11 +818,14 @@ public class Shell extends Decorations {
 	 * @see Shell#forceActive
 	 */
 	public void open() {
-		// If model, display will open it up on the sleep
-		if ((style & SWT.APPLICATION_MODAL) == 0)
-			stage.show();
+		stage.show();
 	}
 
+	@Override
+	public void pack() {
+		stage.sizeToScene();
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when operations are performed on the receiver.
@@ -686,21 +849,9 @@ public class Shell extends Decorations {
 	 * @see #addShellListener
 	 */
 	public void removeShellListener(ShellListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
-	@Override
-	void register() {
-		super.register();
-		
-		if (parent != null) {
-			((Shell)parent).addShell(this);
-		}
-		
-		if ((style & SWT.APPLICATION_MODAL) != 0)
-			display.modalStage = stage;
-	}
-	
 	/**
 	 * If the receiver is visible, moves it to the top of the drawing order for
 	 * the display on which it was created (so that all other shells on that
@@ -725,7 +876,8 @@ public class Shell extends Decorations {
 	 * @see Shell#setActive
 	 */
 	public void setActive() {
-		// TODO
+		stage.toFront();
+		stage.setFocused(true);
 	}
 
 	/**
@@ -750,9 +902,32 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public void setAlpha(int alpha) {
-		// TODO
+		stage.setOpacity(alpha/255.0);
 	}
 
+	@Override
+	public void setBounds(int x, int y, int width, int height) {
+		setFullScreen(false);
+		stage.setX(x);
+		stage.setY(y);
+		stage.setWidth(width);
+		stage.setHeight(height);
+	}
+
+	@Override
+	public void setDefaultButton(Button defaultButton) {
+		Button b = getDefaultButton();
+		if( b != null ) {
+			b.internal_setDefault(false);
+		}
+		
+		super.setDefaultButton(defaultButton);
+		
+		if( defaultButton != null ) {
+			defaultButton.internal_setDefault(true);
+		}
+	}
+	
 	/**
 	 * Sets the full screen state of the receiver. If the argument is
 	 * <code>true</code> causes the receiver to switch to the full screen state,
@@ -779,7 +954,33 @@ public class Shell extends Decorations {
 	 * @since 3.4
 	 */
 	public void setFullScreen(boolean fullScreen) {
-		// TODO
+		stage.setFullScreen(fullScreen);
+	}
+
+	@Override
+	public void setImage(Image image) {
+		Image oldImage = getImage();
+		super.setImage(image);
+		
+		if( oldImage != null ) {
+			stage.getIcons().remove(oldImage.internal_getImage());
+		}
+		
+		if( image != null ) {
+			stage.getIcons().add(image.internal_getImage());
+		}
+	}
+	
+	@Override
+	public void setImages(Image[] images) {
+		super.setImages(images);
+		javafx.scene.image.Image[] imgs = new javafx.scene.image.Image[images.length];
+		
+		for(int i = 0; i < imgs.length; i++) {
+			imgs[i] = images[i].internal_getImage();
+		}
+		
+		stage.getIcons().setAll(imgs);
 	}
 
 	/**
@@ -806,6 +1007,29 @@ public class Shell extends Decorations {
 		// TODO
 	}
 
+	public void setMenuBar (Menu menu) {
+		if( (menu.style & SWT.BAR) == SWT.BAR ) {
+			nativeObject.setTop((Node)menu.internal_getNativeObject());
+		}
+		super.setMenuBar(menu);
+	}
+
+	@Override
+	public void setLocation(int x, int y) {
+		stage.setX(x);
+		stage.setY(y);
+	}
+	
+	public void setMaximized (boolean maximized) {
+		stage.setMaximized(true);
+		super.setMaximized(maximized);
+	}
+	
+	public void setMinimized (boolean minimized) {
+		stage.setIconified(true);
+		super.setMinimized(minimized);
+	}
+	
 	/**
 	 * Sets the receiver's minimum size to the size specified by the arguments.
 	 * If the new minimum size is larger than the current size of the receiver,
@@ -827,7 +1051,8 @@ public class Shell extends Decorations {
 	 * @since 3.1
 	 */
 	public void setMinimumSize(int width, int height) {
-		// TODO
+		stage.setMinWidth(width);
+		stage.setMinHeight(height);
 	}
 
 	/**
@@ -853,7 +1078,7 @@ public class Shell extends Decorations {
 	 * @since 3.1
 	 */
 	public void setMinimumSize(Point size) {
-		// TODO
+		setMinimumSize(size.x, size.y);
 	}
 
 	/**
@@ -874,7 +1099,7 @@ public class Shell extends Decorations {
 	 * @since 3.5
 	 */
 	public void setModified(boolean modified) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -904,39 +1129,60 @@ public class Shell extends Decorations {
 	 */
 	@Override
 	public void setRegion(Region region) {
-		// TODO
+		float coords[] = new float[6];
+		
+		float x = 0;
+		float y = 0;
+		
+		PathIterator pathIterator = region.internal_getNativeObject().getPathIterator(null);
+		
+		Path p = new Path();
+		
+		p.getElements().add(new MoveTo(0, 0));
+		
+		while( ! pathIterator.isDone() ) {
+			switch (pathIterator.currentSegment(coords)) {
+			case PathIterator.SEG_CLOSE:
+				p.getElements().add(new LineTo(x, y));
+				break;
+			case PathIterator.SEG_CUBICTO:
+//				p.getElements().add( new BezierCurveTo(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
+				break;
+			case PathIterator.SEG_LINETO:
+				p.getElements().add(new LineTo(coords[0], coords[1]));
+				break;
+			case PathIterator.SEG_MOVETO:
+				p.getElements().add(new MoveTo(coords[0], coords[1]));
+				x = coords[0];
+				y = coords[1];
+				break;
+			case PathIterator.SEG_QUADTO:
+//				gc.quadraticCurveTo(coords[0], coords[1], coords[2], coords[3]);
+				break;
+			default:
+				break;
+			}
+			pathIterator.next();
+		}
+		
+		stage.getScene().getRoot().setClip(p);
+		this.region = region;
 	}
+	
 
+	@Override
+	public void setSize(int width, int height) {
+		stage.setWidth(width);
+		stage.setHeight(height);
+	}
+	
 	@Override
 	public void setText(String string) {
 		stage.setTitle(string);
 	}
-	
-	/**
-	 * If the receiver is visible, moves it to the top of the drawing order for
-	 * the display on which it was created (so that all other shells on that
-	 * display, which are not the receiver's children will be drawn behind it)
-	 * and forces the window manager to make the shell active.
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 2.0
-	 * @see Control#moveAbove
-	 * @see Control#setFocus
-	 * @see Control#setVisible
-	 * @see Display#getActiveShell
-	 * @see Decorations#setDefaultButton(Button)
-	 * @see Shell#open
-	 * @see Shell#setActive
-	 */
-	public void forceActive() {
-		// TODO
-	}
 
+	public void setVisible (boolean visible) {
+		stage.show();
+	}
+	
 }

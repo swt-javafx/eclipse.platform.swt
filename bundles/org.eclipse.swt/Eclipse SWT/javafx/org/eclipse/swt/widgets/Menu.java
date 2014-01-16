@@ -317,7 +317,6 @@ public class Menu extends Widget {
 		}
 	}
 
-	@Override
 	void createNativeObject() {
 		if( (style & SWT.BAR) == SWT.BAR ) {
 			bar = new MenuBar();
@@ -337,7 +336,7 @@ public class Menu extends Widget {
 			contextMenuShowingHandler = new EventHandler<javafx.event.Event>() {
 				@Override
 				public void handle(javafx.event.Event event) {
-					Control c = Display.getDefault().getControl(event.getSource());
+					Control c = Widget.getWidget(event.getSource());
 					c.sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
 				}
 			};
@@ -350,7 +349,7 @@ public class Menu extends Widget {
 			menuShowingHandler = new EventHandler<javafx.event.Event>() {
 				@Override
 				public void handle(javafx.event.Event event) {
-					Control c = Display.getDefault().getControl(event.getSource());
+					Control c = Widget.getWidget(event.getSource());
 					c.sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
 				}
 			};
@@ -571,11 +570,11 @@ public class Menu extends Widget {
 						Toggle oldValue, Toggle newValue) {
 					if (oldValue != null) {
 						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-						Display.getDefault().getControl(oldValue).sendEvent(SWT.Selection, evt, true);
+						Widget.getWidget(oldValue).sendEvent(SWT.Selection, evt, true);
 					}
 					if (newValue != null) {
 						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-						Display.getDefault().getControl(newValue).sendEvent(SWT.Selection, evt, true);
+						Widget.getWidget(newValue).sendEvent(SWT.Selection, evt, true);
 					}
 				}
 			};
