@@ -12,21 +12,27 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are controls which are capable of containing other
@@ -65,19 +71,31 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Composite extends Scrollable {
 
+	private java.util.List<Control> children = new ArrayList<Control>();
+	
+	private FXLayoutPane controlContainer;
+	
+	private ToggleGroup group;
+	
+	private Layout layout;
+
 	private AnchorPane scrollable;
-	protected Pane controlContainer;
+	
+	private javafx.scene.canvas.Canvas canvas;
+	
+	private static final double SCROLLBAR_WIDTH = 20.0;
+	
 	private ScrollBar vScroll;
 	private ScrollBar hScroll;
 	private Node corner;
-	private ToggleGroup toggleGroup;
-
-	private static final double SCROLLBAR_WIDTH = 20.0;
-	private static EventHandler<ContextMenuEvent> contextMenuHandler;
-
-	Layout layout;
-	java.util.List<Control> children = new ArrayList<>();
-	int backgroundMode, layoutCount;
+	
+	private Menu menu;
+	
+	private String tooltipText;
+	private Tooltip tooltip;
+	
+	private static EventHandler<MouseEvent> FOCUS_HANDLER;
+	private static EventHandler<ContextMenuEvent> CONTEXT_MENU_HANDLER;
 	
 	Composite() {
 	}
@@ -123,26 +141,26 @@ public class Composite extends Scrollable {
 		super(parent, style);
 	}
 
-	void controlMoveAbove(Control control1, Control control2) {
-		// TODO
-	}
-	
-	void controlMoveBelow(Control control1, Control control2) {
-		// TODO
-	}
-	
-	void addControl(Control control) {
-		if (control instanceof Button && (control.getStyle() & SWT.RADIO) != 0
-				&& (getStyle() & SWT.NO_RADIO_GROUP) == 0) {
-			if (toggleGroup == null) {
-				toggleGroup = new ToggleGroup();
-			}
-			toggleGroup.getToggles().add((Toggle)control.getNativeObject());
+	protected void applyBorderStyle() {
+		if( (style & SWT.BORDER) == SWT.BORDER && internal_getNativeObject() != null ) {
+			internal_getNativeObject().setStyle("-fx-boder-style: solid; -fx-border-width: 1px; -fx-border-color: gray;");	
 		}
-		children.add(control);
-		if (control.getNativeObject() != null)
-			// TODO shouldn't need this check
-			controlContainer.getChildren().add(control.getNativeObject());
+	}
+
+	@Override
+	public void addPaintListener(PaintListener listener) {
+		super.addPaintListener(listener);
+		internal_initCanvas();
+	}
+	
+	@Override
+	public void addListener(int eventType, Listener listener) {
+		super.addListener(eventType, listener);
+		if( eventType == SWT.Paint ) {
+			internal_initCanvas();
+		} else if( eventType == SWT.KeyDown || eventType == SWT.KeyUp ) {
+			internal_enableFocusTraversable();
+		}
 	}
 	
 	/**
@@ -175,14 +193,29 @@ public class Composite extends Scrollable {
 		// TODO
 	}
 
-	protected void applyBorderStyle() {
-		if( (style & SWT.BORDER) == SWT.BORDER && getNativeObject() != null ) {
-			getNativeObject().setStyle("-fx-boder-style: solid; -fx-border-width: 1px; -fx-border-color: gray;");	
+	public Point computeSize(int wHint, int hHint, boolean flushCache) {
+		forceSizeProcessing();
+		int width;
+		int height;
+		
+		if( layout != null ) {
+			Point size = layout.computeSize(this, wHint, hHint, flushCache);
+			Rectangle trim = computeTrim (0, 0, size.x, size.y);
+			width = trim.width;
+			height = trim.height;
+		} else {
+			width = (int) Math.ceil(internal_getPrefWidth());
+			height = (int) Math.ceil(internal_getPrefHeight());
 		}
+		
+		if (wHint != SWT.DEFAULT) width = wHint;
+		if (hHint != SWT.DEFAULT) height = hHint;
+				
+		return new Point(width, height);
 	}
 	
 	@Override
-	void createNativeObject() {
+	protected Region createWidget() {
 		scrollable = new AnchorPane() {
 			@Override
 			protected void layoutChildren() {
@@ -193,11 +226,11 @@ public class Composite extends Scrollable {
 				}
 				
 				if( vScroll != null ) {
-					vScroll.getNativeObject().resizeRelocate(getWidth()-SCROLLBAR_WIDTH, 0, SCROLLBAR_WIDTH, getHeight()-endCorrection);	
+					vScroll.internal_getNativeObject().resizeRelocate(getWidth()-SCROLLBAR_WIDTH, 0, SCROLLBAR_WIDTH, getHeight()-endCorrection);	
 				}
 				
 				if( hScroll != null ) {
-					hScroll.getNativeObject().resizeRelocate(0, getHeight()-SCROLLBAR_WIDTH, getWidth()-endCorrection, SCROLLBAR_WIDTH);
+					hScroll.internal_getNativeObject().resizeRelocate(0, getHeight()-SCROLLBAR_WIDTH, getWidth()-endCorrection, SCROLLBAR_WIDTH);
 				}
 				
 				if( corner != null ) {
@@ -213,65 +246,8 @@ public class Composite extends Scrollable {
 		};
 		
 		scrollable.getStyleClass().add(getStyleClassname());
-		controlContainer = new Pane() {
-			@Override 
-			protected double computeMinWidth(double height) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, 0, 0, true).x;
-				}
-				return super.computeMinWidth(height);
-			}
-			
-			@Override
-			protected double computeMinHeight(double width) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, 0, 0, true).y;
-				}
-				return super.computeMinHeight(width);
-			}
-			
-			@Override
-			protected double computeMaxHeight(double width) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, Integer.MAX_VALUE, Integer.MAX_VALUE, true).y;
-				}
-				return super.computeMaxHeight(width);
-			}
-			
-			@Override
-			protected double computeMaxWidth(double height) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, Integer.MAX_VALUE, Integer.MAX_VALUE, true).x;
-				}
-				return super.computeMaxWidth(height);
-			}
-			
-			@Override
-			protected double computePrefHeight(double width) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, SWT.DEFAULT, SWT.DEFAULT, true).y;
-				}
-				return super.computePrefHeight(width);
-			}
-			
-			@Override
-			protected double computePrefWidth(double height) {
-				if (layout != null) {
-					return layout.computeSize(Composite.this, SWT.DEFAULT, SWT.DEFAULT, true).x;
-				}
-				return super.computePrefWidth(height);
-			}
-			
-			@Override
-			protected void layoutChildren() {
-				if (layout != null) {
-					layout.layout(Composite.this, true);
-				} else {
-					//Do not call super else nodes resized absolutely are
-					//are resized to their minimal value			
-				}
-			}			
-		};
+		controlContainer = internal_createLayoutPane();
+		registerConnection(controlContainer);
 		
 		AnchorPane.setLeftAnchor(controlContainer, 0.0);
 		AnchorPane.setTopAnchor(controlContainer, 0.0);
@@ -281,7 +257,7 @@ public class Composite extends Scrollable {
 		if( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) {
 			AnchorPane.setRightAnchor(controlContainer, SCROLLBAR_WIDTH);
 			vScroll = new ScrollBar(this,SWT.VERTICAL);
-			Node n = vScroll.getNativeObject();
+			Node n = vScroll.internal_getNativeObject();
 			n.setManaged(false);
 			scrollable.getChildren().add(n);
 		} else {
@@ -291,7 +267,7 @@ public class Composite extends Scrollable {
 		if( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) {
 			AnchorPane.setBottomAnchor(controlContainer, SCROLLBAR_WIDTH);
 			hScroll = new ScrollBar(this,SWT.HORIZONTAL);
-			Node n = hScroll.getNativeObject();
+			Node n = hScroll.internal_getNativeObject();
 			n.setManaged(false);
 			scrollable.getChildren().add(n);
 		} else {
@@ -305,6 +281,8 @@ public class Composite extends Scrollable {
 		}
 
 		applyBorderStyle();
+		
+		return scrollable;
 	}
 	
 	/**
@@ -349,7 +327,7 @@ public class Composite extends Scrollable {
 	 */
 	public void drawBackground(GC gc, int x, int y, int width, int height,
 			int offsetX, int offsetY) {
-		// TODO
+		Util.logNotImplemented(); 
 	}
 
 	Composite findDeferredControl () {
@@ -378,7 +356,7 @@ public class Composite extends Scrollable {
 	 * @since 3.2
 	 */
 	public int getBackgroundMode() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -413,19 +391,20 @@ public class Composite extends Scrollable {
 	@Override
 	public Rectangle getClientArea() {
 		forceSizeProcessing();
-		return new Rectangle(0, 0, (int)controlContainer.getWidth(), (int)controlContainer.getHeight());
+		return new Rectangle(0, 0, (int)internal_getClientAreaWidth(), (int)internal_getClientAreaHeight());
 	}
 	
 	private static EventHandler<ContextMenuEvent> getContextMenuHandler() {
-		if (contextMenuHandler == null) {
-			contextMenuHandler = new EventHandler<ContextMenuEvent>() {
+		if( CONTEXT_MENU_HANDLER == null ) {
+			CONTEXT_MENU_HANDLER = new EventHandler<ContextMenuEvent>() {
+				
 				@Override
 				public void handle(ContextMenuEvent event) {
 					Node n = (Node) event.getTarget();
-					Control c = Widget.getWidget(n);
+					Control c = (Control) Widget.getWidget(n);
 					
-					if (c != null) {
-						ContextMenu ctm = (ContextMenu) c.getMenu().getNativeObject();
+					if( c != null ) {
+						ContextMenu ctm = (ContextMenu) c.getMenu().internal_getNativeObject();
 						ctm.show(n, event.getScreenX(), event.getScreenY());	
 					}
 					
@@ -433,9 +412,25 @@ public class Composite extends Scrollable {
 				}
 			};
 		}
-		return contextMenuHandler;
+		return CONTEXT_MENU_HANDLER;
 	}
 
+	private static EventHandler<MouseEvent> getFocusHandler() {
+		if( FOCUS_HANDLER == null ) {
+			FOCUS_HANDLER = new EventHandler<MouseEvent>() {
+				
+				@Override
+				public void handle(MouseEvent event) {
+					Control c = Widget.getWidget(event.getSource());
+					if( c != null ) {
+						c.setFocus();	
+					}
+				}
+			};
+		}
+		return FOCUS_HANDLER;
+	}
+	
 	@Override
 	public ScrollBar getHorizontalBar() {
 		return hScroll;
@@ -488,16 +483,6 @@ public class Composite extends Scrollable {
 		return menu;
 	}
 	
-	@Override
-	Region getNativeControl() {
-		return controlContainer;
-	}
-	
-	@Override
-	Region getNativeObject() {
-		return scrollable;
-	}
-	
 	protected String getStyleClassname() {
 		return "swt-composite";
 	}
@@ -518,13 +503,225 @@ public class Composite extends Scrollable {
 	 * @see #setTabList
 	 */
 	public Control[] getTabList() {
-		// TODO
+		Util.logNotImplemented();
 		return getChildren();
 	}
 
 	@Override
+	public String getToolTipText() {
+		if( controlContainer != null ) {
+			return tooltipText;
+		}
+		return super.getToolTipText();
+	}
+	
+	@Override
 	public ScrollBar getVerticalBar() {
 		return vScroll;
+	}
+
+	protected void internal_attachControl(Control c) {
+		controlContainer.getChildren().add(c.internal_getNativeObject());
+	}
+	
+	protected void internal_attachControl(int idx, Control c) {
+		controlContainer.getChildren().add(idx, c.internal_getNativeObject());
+	}
+	
+	protected void internal_detachControl(Control c) {
+		controlContainer.getChildren().remove(c.internal_getNativeObject());
+	}
+	
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		gc.dispose();
+	}
+	
+	protected void internal_doLayout() {
+		controlContainer.layout();
+	}
+	
+	public void internal_controlAdded(Control c) {
+		if( c instanceof Button && (c.getStyle() & SWT.RADIO) == SWT.RADIO && (getStyle() & SWT.NO_RADIO_GROUP) != SWT.NO_RADIO_GROUP ) {
+			if( group == null ) {
+				group = new ToggleGroup();
+			}
+			group.getToggles().add((Toggle) c.internal_getNativeObject());
+		}
+		children.add(c);
+		internal_attachControl(c);
+	}
+
+	public void internal_controlAdded(int index, Control c) {
+		if( c instanceof Button && (c.getStyle() & SWT.RADIO) == SWT.RADIO && (getStyle() & SWT.NO_RADIO_GROUP) != SWT.NO_RADIO_GROUP ) {
+			if( group == null ) {
+				group = new ToggleGroup();
+			}
+			group.getToggles().add(index,(Toggle) c.internal_getNativeObject());
+		}
+		children.add(index, c);
+		internal_attachControl(index,c);
+	}
+
+	public void internal_controlRemoved(Control c) {
+		if( c instanceof Button && (c.getStyle() & SWT.RADIO) == SWT.RADIO && (getStyle() & SWT.NO_RADIO_GROUP) != SWT.NO_RADIO_GROUP ) {
+			if( group != null ) {
+				group.getToggles().remove(c.internal_getNativeObject());
+			}
+		}
+		children.remove(c);
+		internal_detachControl(c);
+	}
+
+	public void internal_controlMoveAbove(Control control, Control reference) {
+		internal_controlRemoved(control);
+		
+		if( reference == null ) {
+			internal_controlAdded(control);
+		} else {
+			for( int i = 0; i < children.size(); i++ ) {
+				if( children.get(i) == reference ) {
+					int idx = i+1;
+					if( idx < children.size() ) {
+						internal_controlAdded(idx, control);
+					} else {
+						internal_controlAdded(control);
+					}
+					return;
+				}
+			}	
+		}
+	}
+	
+	public void internal_controlMoveBelow(Control control, Control reference) {
+		internal_controlRemoved(control);
+		
+		if( reference == null ) {
+			internal_controlAdded(control);
+		} else {
+			for( int i = 0; i < children.size(); i++ ) {
+				if( children.get(i) == reference ) {
+					int idx = i;
+					if( idx < children.size() ) {
+						internal_controlAdded(idx, control);
+					} else {
+						internal_controlAdded(control);
+					}
+					return;
+				}
+			}
+		}
+	}
+	
+	protected FXLayoutPane internal_createLayoutPane() {
+		return new FXLayoutPane(this);
+	}
+	
+	void internal_enableFocusTraversable() {
+		if( scrollable != null && ! scrollable.isFocusTraversable() ) {
+			scrollable.setFocusTraversable(true);
+			scrollable.addEventHandler(MouseEvent.MOUSE_RELEASED, getFocusHandler());
+		}		
+	}
+	
+	protected double internal_getClientAreaWidth() {
+		if( controlContainer != null ) {
+			return controlContainer.getWidth();
+		}
+		return internal_getWidth();
+	}
+
+	protected double internal_getClientAreaHeight() {
+		if( controlContainer != null ) {
+			return controlContainer.getHeight();
+		}
+		return internal_getHeight();
+	}
+
+	@Override
+	public Region internal_getNativeObject() {
+		return scrollable;
+	}
+	
+	@Override
+	public Region internal_getNativeControl() {
+		return controlContainer == null ? super.internal_getNativeControl() : controlContainer;
+	}
+	
+	protected double internal_getPrefWidth() {
+		return ((Region)internal_getNativeObject()).prefWidth(-1);
+	}
+
+	protected double internal_getPrefHeight() {
+		return ((Region)internal_getNativeObject()).prefHeight(-1);
+	}
+
+	protected javafx.scene.canvas.Canvas internal_initCanvas() {
+		if( canvas == null ) {
+			canvas = new javafx.scene.canvas.Canvas(scrollable.getWidth(),scrollable.getHeight()) {
+				@Override
+				public double minWidth(double height) {
+					return 0;
+				}
+				
+				@Override
+				public double minHeight(double width) {
+					return 0;
+				}
+				
+				@Override
+				public double prefHeight(double width) {
+					return 0;
+				}
+				
+				@Override
+				public double prefWidth(double height) {
+					return 0;
+				}
+			
+			};
+			
+			//TODO Do we need to remove the scrollbars????
+			scrollable.getChildren().add(0, canvas);
+			InvalidationListener l = new InvalidationListener() {
+				
+				@Override
+				public void invalidated(Observable observable) {
+					double w = scrollable.getWidth();
+					double h = scrollable.getHeight();
+					
+					if( vScroll != null ) {
+						w -= vScroll.internal_getNativeObject().getWidth();
+					}
+					
+					if( hScroll != null ) {
+						h -= hScroll.internal_getNativeObject().getHeight();
+					}
+					
+					canvas.setWidth(w);
+					canvas.setHeight(h);
+					redraw();
+				}
+			};
+			scrollable.widthProperty().addListener(l);
+			scrollable.heightProperty().addListener(l);
+			redraw();
+		}
+		return canvas;
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		internal_initCanvas();
+		return new CanvasGC(canvas,
+				getFont(),
+				getBackground(),
+				getForeground()
+				);
+	}
+	
+	protected void internal_setLayout(Layout layout) {
+		controlContainer.setLayout(layout);
 	}
 
 	/**
@@ -548,7 +745,7 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public boolean isLayoutDeferred() {
-		// TODO
+		Util.logNotImplemented();
 		return false;
 	}
 
@@ -776,11 +973,11 @@ public class Composite extends Scrollable {
 				if (control == null) error (SWT.ERROR_INVALID_ARGUMENT);
 				if (control.isDisposed ()) error (SWT.ERROR_INVALID_ARGUMENT);
 				boolean ancestor = false;
-				Composite composite = control.parent;
+				Composite composite = control.getParent();
 				while (composite != null) {
 					ancestor = composite == this;
 					if (ancestor) break;
-					composite = composite.parent;
+					composite = composite.getParent();
 				}
 				if (!ancestor) error (SWT.ERROR_INVALID_PARENT);
 			}
@@ -788,7 +985,7 @@ public class Composite extends Scrollable {
 			Composite [] update = new Composite [16];
 			for (int i=0; i<changed.length; i++) {
 				Control child = changed [i];
-				Composite composite = child.parent;
+				Composite composite = child.getParent();
 				while (child != this) {
 					if (composite.layout != null) {
 						composite.state |= LAYOUT_NEEDED;
@@ -802,7 +999,7 @@ public class Composite extends Scrollable {
 						update = newUpdate;
 					}
 					child = update [updateCount++] = composite;
-					composite = child.parent;
+					composite = child.getParent();
 				}
 			}
 			if ((flags & SWT.DEFER) != 0) {
@@ -835,15 +1032,39 @@ public class Composite extends Scrollable {
 		}
 	}
 
-	void removeControl(Control control) {
-		if (control instanceof Button && (control.getStyle() & SWT.RADIO) != 0
-				&& (getStyle() & SWT.NO_RADIO_GROUP) == 0 ) {
-			if (toggleGroup != null) {
-				toggleGroup.getToggles().remove(control.getNativeObject());
+	@Override
+	public void redraw() {
+		redraw(0, 0, internal_getWidth(), internal_getPrefHeight(), true);
+	}
+	
+	@Override
+	public void redraw(int x, int y, int width, int height, boolean all) {
+		redraw(x*1.0, y, width, height, all);
+	}
+	
+	void redraw(double x, double y, double width, double height, boolean all) {
+		if( canvas != null ) {
+			if( all ) {
+				canvas.getGraphicsContext2D().clearRect(0,0,canvas.getWidth(),canvas.getHeight());
+				x = 0;
+				y = 0;
+				width = canvas.getWidth();
+				height = canvas.getHeight();
+			} else {
+				canvas.getGraphicsContext2D().clearRect(x,y,width,height);
 			}
+			
+			Event event = new Event ();
+			GC gc = new GC(this);
+			event.gc = gc;
+			event.x = (int)x;
+			event.y = (int)y;
+			event.width = (int)width;
+			event.height = (int)height;
+			internal_sendEvent (SWT.Paint, event,true);
+			event.gc = null;
+			gc.dispose ();
 		}
-		children.remove(control);
-		controlContainer.getChildren().remove(control.getNativeObject());
 	}
 	
 	/**
@@ -868,7 +1089,7 @@ public class Composite extends Scrollable {
 	 * @since 3.2
 	 */
 	public void setBackgroundMode(int mode) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -888,6 +1109,7 @@ public class Composite extends Scrollable {
 	 */
 	public void setLayout(Layout layout) {
 		this.layout = layout;
+		internal_setLayout(layout);
 	}
 
 	/**
@@ -916,7 +1138,7 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public void setLayoutDeferred(boolean defer) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	@Override
@@ -953,9 +1175,30 @@ public class Composite extends Scrollable {
 	 *                </ul>
 	 */
 	public void setTabList(Control[] tabList) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
+	@Override
+	public void setToolTipText(String string) {
+		if( controlContainer != null ) {
+			if( string == null || string.length() == 0 ) {
+				if( tooltip != null ) {
+					Tooltip.uninstall(controlContainer, tooltip);
+				}
+				tooltip = null;
+			} else {
+				if( tooltip == null ) {
+					tooltip = new Tooltip();
+				}
+				tooltip.setText(string);
+				Tooltip.install(controlContainer, tooltip);
+			}
+		} else {
+			super.setToolTipText(string);	
+		}
+		
+	}
+	
 	void updateLayout (boolean all) {
 		updateLayout (true, all);
 	}
