@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import javafx.scene.image.WritableImage;
@@ -17,6 +19,9 @@ import javafx.scene.image.WritableImage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.internal.CanvasGC;
+import org.eclipse.swt.internal.DrawableGC;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are graphics which have been prepared for display on
@@ -75,7 +80,7 @@ import org.eclipse.swt.SWTException;
 public final class Image extends Resource implements Drawable {
 	
 	private WritableImage image;
-	
+
 	/**
 	 * Constructs an empty instance of this class with the specified width and
 	 * height. The result may be drawn upon by creating a GC and using any of
@@ -115,8 +120,6 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, int width, int height) {
 		super(device);
-		if (width == 0 || height == 0)
-			SWT.error(SWT.ERROR_INVALID_ARGUMENT);
 		image = new WritableImage(width, height);
 	}
 
@@ -159,7 +162,8 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public Image(Device device, Rectangle bounds) {
-		this(device, bounds.width, bounds.height);
+		super(device);
+		image = new WritableImage(bounds.width, bounds.height);
 	}
 
 	/**
@@ -268,9 +272,15 @@ public final class Image extends Resource implements Drawable {
 	 */
 	public Image(Device device, String filename) {
 		super(device);
-		javafx.scene.image.Image image = new javafx.scene.image.Image("file://" + filename);
-		this.image = new WritableImage(image.getPixelReader(),
-				(int) image.getWidth(), (int) image.getHeight());
+		try (InputStream stream = new FileInputStream(filename)) {
+			javafx.scene.image.Image image = new javafx.scene.image.Image(
+					stream);
+			this.image = new WritableImage(image.getPixelReader(),
+					(int) image.getWidth(), (int) image.getHeight());
+			stream.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -406,28 +416,6 @@ public final class Image extends Resource implements Drawable {
 		image = null;
 	}
 	
-	private WritableImage fromData(ImageData data) {
-		WritableImage img = new WritableImage(data.width, data.height);
-		ImageData transparencyMask = data.getTransparencyMask();
-		for (int x = data.width - 1; x >= 0; x--) {
-			for (int y = data.height - 1; y >= 0; y--) {
-				RGB rgb = data.palette.getRGB(data.getPixel(x, y));
-				int pixel = rgb.red << 16 | rgb.green << 8 | rgb.blue;
-				rgb = transparencyMask.palette.getRGB(transparencyMask
-						.getPixel(x, y));
-				int mask = rgb.red << 16 | rgb.green << 8 | rgb.blue;
-				if (mask != 0) {
-					int alpha = data.getAlpha(x, y);
-					if (alpha > 0) {
-						pixel = pixel & 0x00FFFFFF | alpha << 24;
-						img.getPixelWriter().setArgb(x, y, pixel);
-					}
-				}
-			}
-		}
-		return img;
-	}
-
 	private WritableImage fromData(ImageData source, ImageData mask) {
 		ImageData imageData;
 		int blackIndex = 0;
@@ -507,6 +495,28 @@ public final class Image extends Resource implements Drawable {
 		return fromData(imageData);
 	}
 
+	private WritableImage fromData(ImageData data) {
+		WritableImage img = new WritableImage(data.width, data.height);
+		ImageData transparencyMask = data.getTransparencyMask();
+		for (int x = data.width - 1; x >= 0; x--) {
+			for (int y = data.height - 1; y >= 0; y--) {
+				RGB rgb = data.palette.getRGB(data.getPixel(x, y));
+				int pixel = rgb.red << 16 | rgb.green << 8 | rgb.blue;
+				rgb = transparencyMask.palette.getRGB(transparencyMask
+						.getPixel(x, y));
+				int mask = rgb.red << 16 | rgb.green << 8 | rgb.blue;
+				if (mask != 0) {
+					int alpha = data.getAlpha(x, y);
+					if (alpha > 0) {
+						pixel = pixel & 0x00FFFFFF | alpha << 24;
+						img.getPixelWriter().setArgb(x, y, pixel);
+					}
+				}
+			}
+		}
+		return img;
+	}
+
 	/**
 	 * Returns the color to which to map the transparent pixel, or null if the
 	 * receiver has no transparent pixel.
@@ -529,7 +539,7 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public Color getBackground() {
-		// TODO N/A?
+		Util.logNotImplemented();
 		return null;
 	}
 
@@ -569,15 +579,48 @@ public final class Image extends Resource implements Drawable {
 	 * @see ImageData
 	 */
 	public ImageData getImageData() {
-		// TODO
-		return new ImageData(
-				(int)image.getWidth(), 
-				(int)image.getHeight(),
-				4, new PaletteData(0xff0000, 0xff00, 0xff));
+		PaletteData paletteData = new PaletteData(0xFF0000, 0xFF00, 0xFF);
+		int width = (int) image.getWidth();
+		int height = (int) image.getHeight();
+		
+		ImageData imageData = new ImageData(width, height,32, paletteData);
+		byte[] maskData = new byte[(width + 7) / 8 * height];
+		for (int x = width - 1; x >= 0; x--) {
+			for (int y = height - 1; y >= 0; y--) {
+				javafx.scene.paint.Color color = image.getPixelReader().getColor(x, y);
+				int pixel = paletteData.getPixel(new RGB(
+						(int)Math.ceil(color.getRed()*255),
+						(int)Math.ceil(color.getGreen()*255),
+						(int)Math.ceil(color.getBlue()*255)));
+				imageData.setPixel(x, y, pixel);
+				int alpha = Util.opacityToAlpha(color.getOpacity());
+				imageData.setAlpha(x, y, alpha);
+				if (alpha != 0) {
+					int index = x + y * ((width + 7) / 8) * 8;
+					maskData[index / 8] |= (byte) (1 << (7 - (index % 8)));
+				}
+			}
+		}
+		imageData.maskPad = 1;
+		imageData.maskData = maskData;
+
+		return imageData;
 	}
 
 	public javafx.scene.image.Image getNativeObject() {
 		return image;
+	}
+	
+	public javafx.scene.image.Image internal_getImage() {
+		return image;
+	}
+
+	DrawableGC internal_new_GC() {
+		return new CanvasGC(image);
+	}
+	
+	void internal_dispose_GC(DrawableGC gc) {
+		// TODO Auto-generated method stub
 	}
 	
 	/**
@@ -640,7 +683,7 @@ public final class Image extends Resource implements Drawable {
 	 *                </ul>
 	 */
 	public void setBackground(Color color) {
-		// TODO
+		Util.logNotImplemented();
 	}
 	
 	/**	 

@@ -107,11 +107,6 @@ public class TabFolder extends Composite {
 	}
 	
 	@Override
-	void addControl(Control control) {
-		// JavaFX doesn't record the child controls here. They go only on the Tabs.
-	}
-	
-	@Override
 	void createNativeObject() {
 		tabPane = new TabPane();
 	}

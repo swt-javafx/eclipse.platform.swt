@@ -48,6 +48,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.graphics.Region;
+import org.eclipse.swt.internal.DrawableGC;
 import org.eclipse.swt.internal.Util;
 
 /**
@@ -83,7 +84,7 @@ import org.eclipse.swt.internal.Util;
 public abstract class Control extends Widget implements Drawable {
 
 	private Object layoutData;
-	private Composite parent;
+	Composite parent;
 	private Color foreground;
 	private Color background;
 	private Font font;
@@ -783,14 +784,6 @@ public abstract class Control extends Widget implements Drawable {
 	
 	Font defaultFont() {
 		return display.getSystemFont();
-	}
-
-	@Override
-	void deregister() {
-		super.deregister();
-		
-		if (parent != null)
-			parent.removeControl(this);
 	}
 
 	@Override
@@ -1551,6 +1544,15 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
+	DrawableGC internal_new_GC() {
+		Util.logNotImplemented();
+		return null;
+	}
+	
+	void internal_dispose_GC(DrawableGC gc) {
+		Util.logNotImplemented();
+	}
+
 	protected final void internal_reapplyStyle() {
 		internal_getNativeObject().setStyle(internal_calculateStyleString());
 	}
@@ -1898,29 +1900,6 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void redraw(int x, int y, int width, int height, boolean all) {
 		// TODO
-	}
-
-	void register () {
-		if (parent != null)
-			parent.addControl(this);
-
-		javafx.scene.layout.Region control = getNativeControl();
-		if (control != null) {
-
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_ENTERED, getMouseHandler());
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_EXITED, getMouseHandler());
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_MOVED, getMouseHandler());
-
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, getMouseHandler());
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_RELEASED, getMouseHandler());
-			control.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, getMouseHandler());
-			
-			control.addEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, getKeyEventHandler());
-			control.addEventHandler(javafx.scene.input.KeyEvent.KEY_TYPED, getKeyEventHandler());
-			control.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, getKeyEventHandler());
-			
-			control.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, getContextMenuHandler());
-		}
 	}
 
 	/**

@@ -10,11 +10,15 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Rectangle;
 
 /**
  * Instances of this class provide a surface for drawing arbitrary graphics.
@@ -41,7 +45,12 @@ import org.eclipse.swt.graphics.GC;
  */
 public class Canvas extends Composite {
 
-	javafx.scene.canvas.Canvas canvas;
+	private Caret caret;
+	private Region scrollable;
+	
+	private boolean focusListenerAttached;
+	private javafx.scene.canvas.Canvas nativeCanvas;
+	private IME ime;
 	
 	Canvas() {
 	}
@@ -82,16 +91,9 @@ public class Canvas extends Composite {
 	}
 
 	@Override
-	void createNativeObject() {
-		super.createNativeObject();
-		
-		canvas = new javafx.scene.canvas.Canvas();
-	}
-	
-	@Override
 	protected Region createWidget() {
-		// TODO
-		return null;
+		scrollable = super.createWidget();
+		return scrollable;
 	}
 
 	/**
@@ -125,7 +127,10 @@ public class Canvas extends Composite {
 	 * @since 3.2
 	 */
 	public void drawBackground(GC gc, int x, int y, int width, int height) {
-		// TODO
+		Color bg = gc.getBackground();
+		gc.setBackground(getBackground());
+		gc.fillRectangle(x, y, width, height);
+		gc.setBackground(bg);
 	}
 
 	/**
@@ -149,10 +154,25 @@ public class Canvas extends Composite {
 	 *                </ul>
 	 */
 	public Caret getCaret() {
-		// TODO
-		return null;
+		return caret;
 	}
 
+	private InvalidationListener getFocusChangeListener() {
+		return new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				if( caret != null ) {
+					if( scrollable.isFocused() ) {
+						caret.internal_show();
+					} else {
+						caret.internal_hide();
+					}
+				}
+			}
+		};
+	}
+	
 	/**
 	 * Returns the IME.
 	 * 
@@ -169,15 +189,30 @@ public class Canvas extends Composite {
 	 * @since 3.4
 	 */
 	public IME getIME() {
-		// TODO
-		return null;
+		return ime;
 	}
 
 	@Override
-	void register() {
-		super.register();
-		
-		controlContainer.getChildren().setAll(canvas);
+	protected FXLayoutPane internal_createLayoutPane() {
+		return new FXLayoutPane(this) {
+			@Override
+			protected void layoutChildren() {
+				super.layoutChildren();
+				if( caret != null ) {
+					Rectangle r = caret.getBounds();
+					caret.internal_getNativeObject().resizeRelocate(r.x, r.y, r.width, r.height);
+				}
+			}
+		};
+	}
+	
+	@Override
+	protected javafx.scene.canvas.Canvas internal_initCanvas() {
+		javafx.scene.canvas.Canvas c = super.internal_initCanvas();
+		if( nativeCanvas == null ) {
+			nativeCanvas = c;
+		}
+		return c;
 	}
 	
 	/**
@@ -214,7 +249,9 @@ public class Canvas extends Composite {
 	 */
 	public void scroll(int destX, int destY, int x, int y, int width,
 			int height, boolean all) {
-		// TODO
+//		nativeCanvas.getGraphicsContext2D().translate(destX - x, destY - y);
+//		nativeCanvas.getGraphicsContext2D().save();
+		redraw();
 	}
 
 	/**
@@ -244,7 +281,23 @@ public class Canvas extends Composite {
 	 *                </ul>
 	 */
 	public void setCaret(Caret caret) {
-		// TODO
+		if( this.caret != null ) {
+			this.caret.internal_hide();
+			((FXLayoutPane)internal_getNativeControl()).getChildren().remove(this.caret.internal_getNativeObject());
+		}
+		this.caret = caret;
+		if( this.caret != null ) {
+			if( ! focusListenerAttached ) {
+				focusListenerAttached = true;
+				scrollable.focusedProperty().addListener(getFocusChangeListener());
+			}
+			internal_enableFocusTraversable();
+			if( scrollable.isFocused() ) {
+				this.caret.internal_show();	
+			}
+			((FXLayoutPane)internal_getNativeControl()).getChildren().add(this.caret.internal_getNativeObject());
+		}
+		internal_getNativeControl().layout();
 	}
 
 	/**
@@ -268,7 +321,7 @@ public class Canvas extends Composite {
 	 * @since 3.4
 	 */
 	public void setIME(IME ime) {
-		// TODO
+		this.ime = ime;
 	}
 
 }
