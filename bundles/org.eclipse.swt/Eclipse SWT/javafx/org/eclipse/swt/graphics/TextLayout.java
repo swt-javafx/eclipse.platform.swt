@@ -11,6 +11,8 @@
 package org.eclipse.swt.graphics;
 
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.internal.InternalTextLayout;
+import org.eclipse.swt.internal.NativeTextLayout;
 
 /**
  * <code>TextLayout</code> is a graphic object that represents styled text.
@@ -36,6 +38,8 @@ import org.eclipse.swt.SWTException;
  */
 public final class TextLayout extends Resource {
 
+	private InternalTextLayout layout;
+	
 	/**
 	 * Constructs a new instance of this class on the given device.
 	 * <p>
@@ -55,7 +59,12 @@ public final class TextLayout extends Resource {
 	 */
 	public TextLayout(Device device) {
 		super(device);
-		// TODO
+		layout = new NativeTextLayout(device);
+	}
+
+	@Override
+	public void dispose() {
+		layout.dispose();
 	}
 
 	/**
@@ -81,7 +90,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void draw(GC gc, int x, int y) {
-		// TODO
+		layout.draw(gc, x, y);
 	}
 
 	/**
@@ -118,7 +127,7 @@ public final class TextLayout extends Resource {
 	 */
 	public void draw(GC gc, int x, int y, int selectionStart, int selectionEnd,
 			Color selectionForeground, Color selectionBackground) {
-		// TODO
+		layout.draw(gc, x, y, selectionStart, selectionEnd, selectionForeground, selectionBackground);
 	}
 
 	/**
@@ -166,7 +175,7 @@ public final class TextLayout extends Resource {
 	 */
 	public void draw(GC gc, int x, int y, int selectionStart, int selectionEnd,
 			Color selectionForeground, Color selectionBackground, int flags) {
-		// TODO
+		layout.draw(gc, x, y, selectionStart, selectionEnd, selectionForeground, selectionBackground, flags);
 	}
 
 	/**
@@ -182,8 +191,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getAlignment() {
-		// TODO
-		return 0;
+		return layout.getAlignment();
 	}
 
 	/**
@@ -203,8 +211,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLineMetrics(int)
 	 */
 	public int getAscent() {
-		// TODO
-		return 0;
+		return layout.getAscent();
 	}
 
 	/**
@@ -225,8 +232,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLineBounds(int)
 	 */
 	public Rectangle getBounds() {
-		// TODO
-		return new Rectangle(0, 0, 0, 0);
+		return layout.getBounds();
 	}
 
 	/**
@@ -247,8 +253,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public Rectangle getBounds(int start, int end) {
-		// TODO
-		return null;
+		return layout.getBounds(start, end);
 	}
 
 	/**
@@ -268,8 +273,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLineMetrics(int)
 	 */
 	public int getDescent() {
-		// TODO
-		return 0;
+		return layout.getDescent();
 	}
 
 	/**
@@ -285,8 +289,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public Font getFont() {
-		// TODO
-		return null;
+		return layout.getFont();
 	}
 
 	/**
@@ -303,8 +306,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public int getIndent() {
-		// TODO
-		return 0;
+		return layout.getIndent();
 	}
 
 	/**
@@ -321,8 +323,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public boolean getJustify() {
-		// TODO
-		return false;
+		return layout.getJustify();
 	}
 
 	/**
@@ -345,8 +346,7 @@ public final class TextLayout extends Resource {
 	 *                disposed</li>
 	 */
 	public int getLevel(int offset) {
-		// TODO
-		return 0;
+		return layout.getLevel(offset);
 	}
 
 	/**
@@ -368,8 +368,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public Rectangle getLineBounds(int lineIndex) {
-		// TODO
-		return null;
+		return layout.getLineBounds(lineIndex);
 	}
 
 	/**
@@ -385,8 +384,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getLineCount() {
-		// TODO
-		return 0;
+		return layout.getLineCount();
 	}
 
 	/**
@@ -409,8 +407,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getLineIndex(int offset) {
-		// TODO
-		return 0;
+		return layout.getLineIndex(offset);
 	}
 
 	/**
@@ -432,8 +429,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public FontMetrics getLineMetrics(int lineIndex) {
-		// TODO
-		return null;
+		return layout.getLineMetrics(lineIndex);
 	}
 
 	/**
@@ -450,8 +446,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int[] getLineOffsets() {
-		// TODO
-		return null;
+		return layout.getLineOffsets();
 	}
 
 	/**
@@ -475,8 +470,7 @@ public final class TextLayout extends Resource {
 	 * @see #getOffset(int, int, int[])
 	 */
 	public Point getLocation(int offset, boolean trailing) {
-		// TODO
-		return null;
+		return layout.getLocation(offset, trailing);
 	}
 
 	/**
@@ -506,8 +500,7 @@ public final class TextLayout extends Resource {
 	 * @see #getPreviousOffset(int, int)
 	 */
 	public int getNextOffset(int offset, int movement) {
-		// TODO
-		return 0;
+		return layout.getNextOffset(offset, movement);
 	}
 
 	/**
@@ -539,8 +532,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLocation(int, boolean)
 	 */
 	public int getOffset(Point point, int[] trailing) {
-		// TODO
-		return 0;
+		return layout.getOffset(point, trailing);
 	}
 
 	/**
@@ -573,8 +565,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLocation(int, boolean)
 	 */
 	public int getOffset(int x, int y, int[] trailing) {
-		// TODO
-		return 0;
+		return layout.getOffset(x, y, trailing);
 	}
 
 	/**
@@ -589,8 +580,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getOrientation() {
-		// TODO
-		return 0;
+		return layout.getOrientation();
 	}
 
 	/**
@@ -620,8 +610,7 @@ public final class TextLayout extends Resource {
 	 * @see #getNextOffset(int, int)
 	 */
 	public int getPreviousOffset(int offset, int movement) {
-		// TODO
-		return 0;
+		return layout.getPreviousOffset(offset, movement);		
 	}
 
 	/**
@@ -642,8 +631,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public int[] getRanges() {
-		// TODO
-		return null;
+		return layout.getRanges();
 	}
 
 	/**
@@ -658,8 +646,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int[] getSegments() {
-		// TODO
-		return null;
+		return layout.getSegments();
 	}
 
 	/**
@@ -692,8 +679,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getSpacing() {
-		// TODO
-		return 0;
+		return layout.getSpacing();
 	}
 
 	/**
@@ -715,8 +701,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public TextStyle getStyle(int offset) {
-		// TODO
-		return null;
+		return layout.getStyle(offset);		
 	}
 
 	/**
@@ -735,8 +720,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public TextStyle[] getStyles() {
-		// TODO
-		return null;
+		return layout.getStyles();		
 	}
 
 	/**
@@ -751,8 +735,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int[] getTabs() {
-		// TODO
-		return null;
+		return layout.getTabs();
 	}
 
 	/**
@@ -768,8 +751,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		return layout.getText();
 	}
 
 	/**
@@ -784,8 +766,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public int getWidth() {
-		// TODO
-		return 0;
+		return layout.getWidth();
 	}
 
 	/**
@@ -808,10 +789,9 @@ public final class TextLayout extends Resource {
 
 	@Override
 	public boolean isDisposed() {
-		// TODO Auto-generated method stub
-		return false;
+		return layout.isDisposed();
 	}
-	
+
 	/**
 	 * Sets the text alignment for the receiver. The alignment controls how a
 	 * line of text is positioned horizontally. The argument should be one of
@@ -834,7 +814,7 @@ public final class TextLayout extends Resource {
 	 * @see #setWidth(int)
 	 */
 	public void setAlignment(int alignment) {
-		// TODO
+		layout.setAlignment(alignment);
 	}
 
 	/**
@@ -861,7 +841,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLineMetrics(int)
 	 */
 	public void setAscent(int ascent) {
-		// TODO
+		layout.setAscent(ascent);
 	}
 
 	/**
@@ -888,7 +868,7 @@ public final class TextLayout extends Resource {
 	 * @see #getLineMetrics(int)
 	 */
 	public void setDescent(int descent) {
-		// TODO
+		layout.setDescent(descent);
 	}
 
 	/**
@@ -913,7 +893,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setFont(Font font) {
-		// TODO
+		layout.setFont(font);
 	}
 
 	/**
@@ -934,7 +914,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public void setIndent(int indent) {
-		// TODO
+		layout.setIndent(indent);
 	}
 
 	/**
@@ -953,7 +933,7 @@ public final class TextLayout extends Resource {
 	 * @since 3.2
 	 */
 	public void setJustify(boolean justify) {
-		// TODO
+		layout.setJustify(justify);
 	}
 
 	/**
@@ -970,7 +950,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setOrientation(int orientation) {
-		// TODO
+		layout.setOrientation(orientation);
 	}
 
 	/**
@@ -991,7 +971,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setSpacing(int spacing) {
-		// TODO
+		layout.setSpacing(spacing); 
 	}
 
 	/**
@@ -1022,7 +1002,7 @@ public final class TextLayout extends Resource {
 	 * @see #setSegmentsChars(char[])
 	 */
 	public void setSegments(int[] segments) {
-		// TODO
+		layout.setSegments(segments);
 	}
 
 	/**
@@ -1068,7 +1048,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setStyle(TextStyle style, int start, int end) {
-		// TODO
+		layout.setStyle(style, start, end);
 	}
 
 	/**
@@ -1086,7 +1066,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setTabs(int[] tabs) {
-		// TODO
+		layout.setTabs(tabs);
 	}
 
 	/**
@@ -1110,7 +1090,7 @@ public final class TextLayout extends Resource {
 	 *                </ul>
 	 */
 	public void setText(String text) {
-		// TODO
+		layout.setText(text);
 	}
 
 	/**
@@ -1135,7 +1115,7 @@ public final class TextLayout extends Resource {
 	 * @see #setAlignment(int)
 	 */
 	public void setWidth(int width) {
-		// TODO
+		layout.setWidth(width);
 	}
 
 	/**

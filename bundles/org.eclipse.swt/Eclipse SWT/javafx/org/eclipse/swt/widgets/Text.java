@@ -579,12 +579,6 @@ public class Text extends Scrollable {
 		return "";
 	}
 
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Returns a <code>Point</code> whose x coordinate is the character position
 	 * representing the start of the selected text, and whose y coordinate is

@@ -239,7 +239,7 @@ public class TabItem extends Item {
 	 */
 	public void setControl(Control control) {
 		this.control = control;
-		tab.setContent(control.getNativeObject());
+		// TODO
 	}
 
 	/**

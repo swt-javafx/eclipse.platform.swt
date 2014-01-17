@@ -371,12 +371,6 @@ public class List extends Scrollable {
 		return null;
 	}
 
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Returns an array of <code>String</code>s that are currently selected in
 	 * the receiver. The order of the items is unspecified. An empty array

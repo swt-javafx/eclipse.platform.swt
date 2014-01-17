@@ -241,16 +241,6 @@ public class TabFolder extends Composite {
 		return items.toArray(new TabItem[items.size()]);
 	}
 
-	@Override
-	Region getNativeObject() {
-		return tabPane;
-	}
-	
-	@Override
-	Region getNativeControl() {
-		return tabPane;
-	}
-	
 	/**
 	 * Returns an array of <code>TabItem</code>s that are currently selected in
 	 * the receiver. An empty array indicates that no items are selected.

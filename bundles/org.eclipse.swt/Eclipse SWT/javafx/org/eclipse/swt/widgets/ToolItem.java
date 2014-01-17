@@ -540,13 +540,7 @@ public class ToolItem extends Item {
 	 */
 	public void setControl(Control control) {
 		this.control = control;
-		if ((style & SWT.SEPARATOR) != 0) {
-			if (control == null) {
-				((StackPane)item).getChildren().setAll(new Separator());
-			} else {
-				((StackPane)item).getChildren().setAll(control.getNativeObject());	
-			}
-		}
+		// TODO
 	}
 
 	/**

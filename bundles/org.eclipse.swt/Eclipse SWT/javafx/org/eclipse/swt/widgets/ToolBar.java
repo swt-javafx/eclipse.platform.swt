@@ -213,16 +213,6 @@ public class ToolBar extends Composite {
 		return items.toArray(new ToolItem[items.size()]);
 	}
 
-	@Override
-	Region getNativeObject() {
-		return toolBar;
-	}
-	
-	@Override
-	Region getNativeControl() {
-		return toolBar;
-	}
-	
 	/**
 	 * Returns the number of rows in the receiver. When the receiver has the
 	 * <code>WRAP</code> style, the number of rows can be greater than one.

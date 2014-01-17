@@ -354,12 +354,6 @@ public class Slider extends Control {
 		// TODO
 	}
 
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Sets the amount that the receiver's value will be modified by when the
 	 * page increment/decrement areas are selected to the argument, which must

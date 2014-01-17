@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Orientation;
 
 import org.eclipse.swt.SWT;
@@ -18,6 +20,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are selectable user interface objects that represent
@@ -91,16 +94,21 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class ScrollBar extends Widget {
 
-	javafx.scene.control.ScrollBar scrollBar;
+	private Scrollable parent;
 	
 	/**
 	 * Creates a new instance of the widget.
 	 */
 	ScrollBar(Scrollable parent, int style) {
-		super(parent, style);
-		createWidget();
+		super(parent.getDisplay(), style);
+		this.parent = parent;
 	}
 
+	ScrollBar(Scrollable parent, javafx.scene.control.ScrollBar nativeObject, int style) {
+		super(parent.getDisplay(), nativeObject, style);
+		this.parent = parent;
+	}
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the user changes the receiver's value, by sending it one of the
@@ -143,16 +151,13 @@ public class ScrollBar extends Widget {
 		addListener(SWT.DefaultSelection,typedListener);
 	}
 
-	void createNativeObject() {
-		scrollBar = new javafx.scene.control.ScrollBar();
-		Orientation o;
-		if ((style & SWT.HORIZONTAL) != 0)
-			o = Orientation.HORIZONTAL;
-		else
-			o = Orientation.VERTICAL;
-		scrollBar.setOrientation(o);
+	@Override
+	protected javafx.scene.control.ScrollBar createWidget() {
+		javafx.scene.control.ScrollBar scrollbar = new javafx.scene.control.ScrollBar();
+		scrollbar.setOrientation((style & SWT.HORIZONTAL) == SWT.HORIZONTAL ? Orientation.HORIZONTAL : Orientation.VERTICAL);
+		return scrollbar;
 	}
-	
+
 	/**
 	 * Returns <code>true</code> if the receiver is enabled, and
 	 * <code>false</code> otherwise. A disabled control is typically not
@@ -172,8 +177,7 @@ public class ScrollBar extends Widget {
 	 * @see #isEnabled
 	 */
 	public boolean getEnabled() {
-		// TODO
-		return false;
+		return !internal_getNativeObject().isDisabled();
 	}
 
 	/**
@@ -191,8 +195,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public int getIncrement() {
-		// TODO
-		return 0;
+		return (int) internal_getNativeObject().getUnitIncrement();
 	}
 
 	/**
@@ -209,8 +212,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		return (int) internal_getNativeObject().getMax();
 	}
 
 	/**
@@ -227,12 +229,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
-	}
-
-	public javafx.scene.control.ScrollBar getNativeObject() {
-		return scrollBar;
+		return (int) internal_getNativeObject().getMin();
 	}
 
 	/**
@@ -250,8 +247,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public int getPageIncrement() {
-		// TODO
-		return 0;
+		return (int) internal_getNativeObject().getBlockIncrement();
 	}
 
 	/**
@@ -268,8 +264,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public Scrollable getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
 	/**
@@ -286,8 +281,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		return (int) (internal_getNativeObject().getValue() * ((internal_getNativeObject().getMax() - internal_getNativeObject().getVisibleAmount()) / internal_getNativeObject().getMax()));
 	}
 
 	/**
@@ -306,8 +300,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public Point getSize() {
-		// TODO
-		return null;
+		return new Point((int)internal_getNativeObject().getWidth(), (int)internal_getNativeObject().getHeight());
 	}
 
 	/**
@@ -326,8 +319,7 @@ public class ScrollBar extends Widget {
 	 * @see ScrollBar
 	 */
 	public int getThumb() {
-		// TODO
-		return 0;
+		return (int) internal_getNativeObject().getVisibleAmount();
 	}
 
 	/**
@@ -347,8 +339,8 @@ public class ScrollBar extends Widget {
 	 * @since 3.6
 	 */
 	public Rectangle getThumbBounds() {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 10, 10);
 	}
 
 	/**
@@ -370,8 +362,8 @@ public class ScrollBar extends Widget {
 	 * @since 3.6
 	 */
 	public Rectangle getThumbTrackBounds() {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -394,10 +386,28 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public boolean getVisible() {
-		// TODO
-		return false;
+		return internal_getNativeObject().isVisible();
 	}
 
+	@Override
+	public javafx.scene.control.ScrollBar internal_getNativeObject() {
+		return (javafx.scene.control.ScrollBar) nativeObject;
+	}
+	
+	@Override
+	protected void initListeners() {
+		super.initListeners();
+		internal_getNativeObject().valueProperty().addListener(new ChangeListener<Number>() {
+
+			@Override
+			public void changed(ObservableValue<? extends Number> observable,
+					Number oldValue, Number newValue) {
+				Event evt = new Event();
+				internal_sendEvent(SWT.Selection, evt, true);
+			}
+		});
+	}
+	
 	/**
 	 * Returns <code>true</code> if the receiver is enabled and all of the
 	 * receiver's ancestors are enabled, and <code>false</code> otherwise. A
@@ -417,8 +427,7 @@ public class ScrollBar extends Widget {
 	 * @see #getEnabled
 	 */
 	public boolean isEnabled() {
-		// TODO
-		return false;
+		return ! internal_getNativeObject().isDisable();
 	}
 
 	/**
@@ -438,8 +447,7 @@ public class ScrollBar extends Widget {
 	 * @see #getVisible
 	 */
 	public boolean isVisible() {
-		// TODO
-		return false;
+		return internal_getNativeObject().isVisible();
 	}
 
 	/**
@@ -489,7 +497,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setEnabled(boolean enabled) {
-		// TODO
+		internal_getNativeObject().setDisable(!enabled);
 	}
 
 	/**
@@ -509,7 +517,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setIncrement(int value) {
-		// TODO
+		internal_getNativeObject().setUnitIncrement(value); 
 	}
 
 	/**
@@ -529,7 +537,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		internal_getNativeObject().setMax(value);
 	}
 
 	/**
@@ -549,7 +557,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		internal_getNativeObject().setMin(value);
 	}
 
 	/**
@@ -569,7 +577,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setPageIncrement(int value) {
-		// TODO
+		internal_getNativeObject().setBlockIncrement(value);
 	}
 
 	/**
@@ -588,7 +596,14 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setSelection(int selection) {
-		// TODO
+		double max = internal_getNativeObject().getMax();
+		if( max != 0.0 ) {
+			double divider = ((internal_getNativeObject().getMax()-internal_getNativeObject().getVisibleAmount())/max);
+			if( divider != 0 ) {
+				double v = selection*1.0 / divider;
+				internal_getNativeObject().setValue(v);
+			}
+		}
 	}
 
 	/**
@@ -613,7 +628,8 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setThumb(int value) {
-		// TODO
+//		value = Math.min (value, (int)(scrollbar.getMax() - scrollbar.getMin()));
+		internal_getNativeObject().setVisibleAmount(value);
 	}
 
 	/**
@@ -648,7 +664,12 @@ public class ScrollBar extends Widget {
 	 */
 	public void setValues(int selection, int minimum, int maximum, int thumb,
 			int increment, int pageIncrement) {
-		// TODO
+		setMinimum(minimum);
+		setMaximum(maximum);
+		setThumb(thumb);
+		setIncrement(increment);
+		setPageIncrement(pageIncrement);
+		setSelection(selection);
 	}
 
 	/**
@@ -672,7 +693,7 @@ public class ScrollBar extends Widget {
 	 *                </ul>
 	 */
 	public void setVisible(boolean visible) {
-		// TODO
+		internal_getNativeObject().setVisible(visible);
 	}
 
 }

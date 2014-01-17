@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 
 /**
@@ -34,6 +33,8 @@ import org.eclipse.swt.SWTException;
  *      information</a>
  */
 public final class Color extends Resource {
+	private javafx.scene.paint.Color color;
+	
 	/**
 	 * Constructs a new instance of this class given a device and the desired
 	 * red, green and blue values expressed as ints in the range 0 to 255 (where
@@ -66,7 +67,7 @@ public final class Color extends Resource {
 	 */
 	public Color(Device device, int red, int green, int blue) {
 		super(device);
-		// TODO
+		color = javafx.scene.paint.Color.rgb(red, green, blue);
 	}
 
 	/**
@@ -97,8 +98,12 @@ public final class Color extends Resource {
 	 * @see #dispose
 	 */
 	public Color(Device device, RGB rgb) {
-		super(device);
-		// TODO
+		this(device, rgb.red, rgb.green, rgb.blue);
+	}
+
+	@Override
+	public void dispose() {
+		color = null;
 	}
 
 	/**
@@ -113,8 +118,7 @@ public final class Color extends Resource {
 	 *                </ul>
 	 */
 	public int getBlue() {
-		// TODO
-		return 0;
+		return (int)(color.getBlue() * 255);
 	}
 
 	/**
@@ -129,8 +133,7 @@ public final class Color extends Resource {
 	 *                </ul>
 	 */
 	public int getGreen() {
-		// TODO
-		return 0;
+		return (int)(color.getGreen() * 255);
 	}
 
 	/**
@@ -145,8 +148,7 @@ public final class Color extends Resource {
 	 *                </ul>
 	 */
 	public int getRed() {
-		// TODO
-		return 0;
+		return (int)(color.getRed() * 255);
 	}
 
 	/**
@@ -161,11 +163,13 @@ public final class Color extends Resource {
 	 *                </ul>
 	 */
 	public RGB getRGB() {
-		if (isDisposed())
-			SWT.error(SWT.ERROR_GRAPHIC_DISPOSED);
 		return new RGB(getRed(), getGreen(), getBlue());
 	}
 
+	public javafx.scene.paint.Color internal_getNativeObject() {
+		return color;
+	}
+	
 	/**
 	 * Returns <code>true</code> if the color has been disposed, and
 	 * <code>false</code> otherwise.
@@ -179,9 +183,9 @@ public final class Color extends Resource {
 	 */
 	@Override
 	public boolean isDisposed() {
-		// TODO
-		return false;
+		return color == null;
 	}
+
 
 	/**
 	 * Returns a string containing a concise, human-readable description of the
@@ -191,10 +195,8 @@ public final class Color extends Resource {
 	 */
 	@Override
 	public String toString() {
-		if (isDisposed())
-			return "Color {*DISPOSED*}";
-		return "Color {" + getRed() + ", " + getGreen() + ", " + getBlue()
-				+ "}";
+		return "Color { "+getRed()+", "+getGreen()+","+getBlue()+" }";
 	}
+
 
 }

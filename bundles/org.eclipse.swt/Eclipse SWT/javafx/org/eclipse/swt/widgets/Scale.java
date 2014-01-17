@@ -173,12 +173,6 @@ public class Scale extends Control {
 		return 0;
 	}
 
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * page increment/decrement areas are selected.

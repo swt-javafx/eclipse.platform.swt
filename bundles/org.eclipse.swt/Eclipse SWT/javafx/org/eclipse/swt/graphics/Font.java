@@ -10,6 +10,10 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
 
@@ -33,8 +37,9 @@ import org.eclipse.swt.SWTException;
  */
 public final class Font extends Resource {
 	
-	private FontData[] fontData;
-
+	private javafx.scene.text.Font font;
+	private FontData fd;
+	
 	/**
 	 * Constructs a new font given a device and font data which describes the
 	 * desired font's appearance.
@@ -61,9 +66,7 @@ public final class Font extends Resource {
 	 *                </ul>
 	 */
 	public Font(Device device, FontData fd) {
-		super(device);
-		fontData = new FontData[] { fd };
-		// TODO
+		this(device, fd.getName(), fd.getHeightD(), fd.getStyle(), fd.getFXName());
 	}
 
 	/**
@@ -96,9 +99,8 @@ public final class Font extends Resource {
 	 * @since 2.1
 	 */
 	public Font(Device device, FontData[] fds) {
-		super(device);
-		fontData = fds;
-		// TODO
+		this(device, fds[0]);
+
 	}
 
 	/**
@@ -131,15 +133,46 @@ public final class Font extends Resource {
 	 *                </ul>
 	 */
 	public Font(Device device, String name, int height, int style) {
+		this(device,name,height,style,null);
+	}
+
+	Font(Device device, String name, double height, int style, String fxName) {
+		this(device, createFont(name, height, style, fxName));
+		fd = new FontData();
+		fd.setName(name);
+		fd.setHeight(height);
+		fd.setStyle(style);
+		fd.setFXName(font.getName());
+	}
+	
+	public Font(Device device, javafx.scene.text.Font font) {
 		super(device);
-		FontData fd = new FontData(name, height, style);
-		fontData = new FontData[] { fd };
+		this.font = font;
+		fd = new FontData();
+		fd.setName(font.getFamily());
+		fd.setHeight(font.getSize());
+		fd.setStyle(getStyle(font.getName()));
+		fd.setFXName(font.getName());
+	}
+	
+	private static javafx.scene.text.Font createFont(String name, double height, int style, String fxName) {
+		if( fxName != null ) {
+			return javafx.scene.text.Font.font(fxName, height);
+		} else {
+			return javafx.scene.text.Font.font(name, 
+					(style & SWT.BOLD) == SWT.BOLD ? FontWeight.BOLD : FontWeight.NORMAL, 
+							(style & SWT.ITALIC) == SWT.ITALIC ? FontPosture.ITALIC : FontPosture.REGULAR, height);
+		}
+	}
+	
+	@Override
+	void destroy() {
 		// TODO
 	}
 
 	@Override
-	void destroy() {
-		// TODO
+	public void dispose() {
+		font = null;
 	}
 
 	/**
@@ -157,7 +190,34 @@ public final class Font extends Resource {
 	 *                </ul>
 	 */
 	public FontData[] getFontData() {
-		return fontData;
+		return new FontData[] { fd };
+	}
+
+	private static int getStyle(String name) {
+		int style = SWT.NORMAL;
+		name = name.toLowerCase();
+		if( name.contains("bold") ) {
+			style |= SWT.BOLD;
+		}
+		if( name.contains("italic") || name.contains("obilique") ) {
+			style |= SWT.ITALIC;
+		}
+		return style;
+	}
+	
+	public String internal_getAsCSSString() {
+		StringBuffer b = new StringBuffer("-fx-font-family: " + fd.getName() + "; -fx-font-size: " + fd.getHeight() +";");
+		if( (fd.getStyle() & SWT.ITALIC) == SWT.ITALIC ) {
+			b.append("-fx-font-style: italic;" );
+		}
+		if( (fd.getStyle() & SWT.BOLD) == SWT.BOLD ) {
+			b.append("-fx-font-weight: bold;" );
+		}
+		return b.toString();
+	}
+
+	public javafx.scene.text.Font internal_getNativeObject() {
+		return font;
 	}
 
 	/**
@@ -173,8 +233,7 @@ public final class Font extends Resource {
 	 */
 	@Override
 	public boolean isDisposed() {
-		// TODO
-		return false;
+		return font == null;
 	}
 
 	/**

@@ -524,16 +524,6 @@ public class Combo extends Composite {
 		return false;
 	}
 
-	@Override
-	Region getNativeControl() {
-		return comboBox;
-	}
-	
-	@Override
-	Region getNativeObject() {
-		return comboBox;
-	}
-	
 	/**
 	 * Returns a <code>Point</code> whose x coordinate is the character position
 	 * representing the start of the selection in the receiver's text field, and

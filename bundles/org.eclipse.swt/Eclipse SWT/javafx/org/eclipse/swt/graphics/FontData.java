@@ -42,6 +42,14 @@ import org.eclipse.swt.SWT;
  *      information</a>
  */
 public final class FontData {
+	private String name;
+	private String fxName;
+	private int style;
+	private double height;
+	private String lang;
+	private String  country;
+	private String variant;
+	
 	/**
 	 * Constructs a new uninitialized font data.
 	 */
@@ -71,7 +79,60 @@ public final class FontData {
 	 * @see #toString
 	 */
 	public FontData(String string) {
-		// TODO
+		if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+		int start = 0;
+		int end = string.indexOf('|');
+		if (end == -1) SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		String version1 = string.substring(start, end);
+		try {
+			if (Integer.parseInt(version1) != 1) SWT.error(SWT.ERROR_INVALID_ARGUMENT); 
+		} catch (NumberFormatException e) {
+			SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		}
+		
+		start = end + 1;
+		end = string.indexOf('|', start);
+		if (end == -1) SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		String name = string.substring(start, end);
+		
+		start = end + 1;
+		end = string.indexOf('|', start);
+		if (end == -1) SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		double height = 0;
+		try {
+			height = Double.parseDouble(string.substring(start, end));
+		} catch (NumberFormatException e) {
+			SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		}
+		
+		start = end + 1;
+		end = string.indexOf('|', start);
+		if (end == -1) SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		int style = 0;
+		try {
+			style = Integer.parseInt(string.substring(start, end));
+		} catch (NumberFormatException e) {
+			SWT.error(SWT.ERROR_INVALID_ARGUMENT);
+		}
+
+		start = end + 1;
+		end = string.indexOf('|', start);
+		setName(name);
+		setHeight(height);
+		setStyle(style);
+		if (end == -1) return;
+		String platform = string.substring(start, end);
+
+		start = end + 1;
+		end = string.indexOf('|', start);
+		if (end == -1) return;
+		String version2 = string.substring(start, end);
+
+		if (platform.equals("COCOA") && version2.equals("1")) {
+			start = end + 1;
+			end = string.length();
+			if (start < end) fxName = string.substring(start, end);
+		}
 	}
 
 	/**
@@ -92,11 +153,16 @@ public final class FontData {
 	 *                </ul>
 	 */
 	public FontData(String name, int height, int style) {
-		setName(name);
-		setHeight(height);
-		setStyle(style);
+		this.name = name;
+		this.height = height;
+		this.style = style;
+		fxName = null;
 	}
 
+	String getFXName() {
+		return fxName;
+	}
+	
 	/**
 	 * Returns the height of the receiver in points.
 	 * 
@@ -105,10 +171,13 @@ public final class FontData {
 	 * @see #setHeight(int)
 	 */
 	public int getHeight() {
-		// TODO
-		return 0;
+		return (int) height;
 	}
 
+	double getHeightD() {
+		return height;
+	}
+	
 	/**
 	 * Returns the locale of the receiver.
 	 * <p>
@@ -126,8 +195,28 @@ public final class FontData {
 	 * @since 3.0
 	 */
 	public String getLocale() {
-		// TODO
-		return null;
+		StringBuilder buffer = new StringBuilder ();
+		char sep = '_';
+		if (lang != null) {
+			buffer.append (lang);
+			buffer.append (sep);
+		}
+		if (country != null) {
+			buffer.append (country);
+			buffer.append (sep);
+		}
+		if (variant != null) {
+			buffer.append (variant);
+		}
+		
+		String result = buffer.toString ();
+		int length = result.length ();
+		if (length > 0) {
+			if (result.charAt (length - 1) == sep) {
+				result = result.substring (0, length - 1);
+			}
+		} 
+		return result;
 	}
 
 	/**
@@ -140,8 +229,7 @@ public final class FontData {
 	 * @see #setName
 	 */
 	public String getName() {
-		// TODO
-		return "";
+		return name;
 	}
 
 	/**
@@ -153,10 +241,17 @@ public final class FontData {
 	 * @see #setStyle
 	 */
 	public int getStyle() {
-		// TODO
-		return 0;
+		return style;
 	}
 
+	void setFXName(String name) {
+		this.fxName = name;
+	}
+	
+	void setHeight(double height) {
+		this.height = height;
+	}
+	
 	/**
 	 * Sets the height of the receiver. The parameter is specified in terms of
 	 * points, where a point is one seventy-second of an inch.
@@ -172,7 +267,7 @@ public final class FontData {
 	 * @see #getHeight
 	 */
 	public void setHeight(int height) {
-		// TODO
+		this.height = height;
 	}
 
 	/**
@@ -193,7 +288,23 @@ public final class FontData {
 	 * @see java.util.Locale#toString
 	 */
 	public void setLocale(String locale) {
-		// TODO
+		lang = country = variant = null;
+		if (locale != null) {
+			char sep = '_';
+			int length = locale.length();
+			int firstSep, secondSep;
+			
+			firstSep = locale.indexOf(sep);
+			if (firstSep == -1) {
+				firstSep = secondSep = length;
+			} else {
+				secondSep = locale.indexOf(sep, firstSep + 1);
+				if (secondSep == -1) secondSep = length;
+			}
+			if (firstSep > 0) lang = locale.substring(0, firstSep);
+			if (secondSep > firstSep + 1) country = locale.substring(firstSep + 1, secondSep);
+			if (length > secondSep + 1) variant = locale.substring(secondSep + 1);
+		}
 	}
 
 	/**
@@ -225,7 +336,8 @@ public final class FontData {
 	 * @see #getName
 	 */
 	public void setName(String name) {
-		// TODO
+		this.name = name;
+		fxName = null;
 	}
 
 	/**
@@ -239,7 +351,8 @@ public final class FontData {
 	 * @see #getStyle
 	 */
 	public void setStyle(int style) {
-		// TODO
+		this.style = style;
+		fxName = null;
 	}
 
 	/**
@@ -253,8 +366,17 @@ public final class FontData {
 	 */
 	@Override
 	public String toString() {
-		// TODO
-		return null;
+		StringBuilder buffer = new StringBuilder(128);
+		buffer.append("1|");
+		buffer.append(getName());
+		buffer.append("|");
+		buffer.append(getHeightD());
+		buffer.append("|");
+		buffer.append(getStyle());
+		buffer.append("|");
+		buffer.append("FX|1|");
+		if (fxName != null) buffer.append(fxName);
+		return buffer.toString();
 	}
 
 }

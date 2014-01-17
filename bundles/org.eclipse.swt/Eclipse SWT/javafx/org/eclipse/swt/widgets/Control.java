@@ -1812,30 +1812,6 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
-	void reapplyStyle() {
-		StringBuffer b = new StringBuffer();
-		if (font != null) {
-			b.append(font.toCSSString());
-		}
-		
-		if (foreground != null) {
-			String rgb = "rgb(" + foreground.getRed() + ","
-					+ foreground.getGreen() + "," + foreground.getBlue() + ")";
-			b.append("-fx-text-inner-color: " + rgb
-					+ "; -fx-text-background-color: " + rgb + ";");
-		}
-		
-		if( background != null ) {
-			String rgb = "rgb(" + background.getRed() + ","
-					+ background.getGreen() + "," + background.getBlue() + ")";
-			b.append("-fx-background-color: " + rgb);
-		}
-		
-		if (getNativeObject() != null)
-			// TODO remove check
-			getNativeObject().setStyle(b.toString());
-	}
-	
 	/**
 	 * Causes the entire bounds of the receiver to be marked as needing to be
 	 * redrawn. The next time a paint request is processed, the control will be

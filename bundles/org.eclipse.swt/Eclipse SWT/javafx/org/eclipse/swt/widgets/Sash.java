@@ -118,18 +118,6 @@ public class Sash extends Control {
 		// TODO
 	}
 
-	@Override
-	void createNativeObject() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.

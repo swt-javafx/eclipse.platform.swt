@@ -1285,7 +1285,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public FontMetrics getFontMetrics() {
-		return new FontMetrics();
+		return new FontMetrics(0, 0, 0, 0, 0);
 	}
 
 	/**

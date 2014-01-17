@@ -116,12 +116,6 @@ public class Link extends Control {
 		
 	}
 	
-	@Override
-	Region getNativeObject() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	/**
 	 * Returns the receiver's text, which will be an empty string if it has
 	 * never been set.

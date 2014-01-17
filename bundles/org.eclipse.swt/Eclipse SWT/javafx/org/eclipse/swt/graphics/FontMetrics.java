@@ -23,6 +23,20 @@ package org.eclipse.swt.graphics;
  */
 public final class FontMetrics {
 
+	private final int ascent;
+	private final int descent;
+	private final int averageCharWidth;
+	private final int leading;
+	private final int height;
+	
+	public FontMetrics(int ascent, int descent, int averageCharWidth, int leading, int height) {
+		this.ascent = ascent;
+		this.descent = descent;
+		this.averageCharWidth = averageCharWidth;
+		this.leading = leading;
+		this.height = height;
+	}
+	
 	/**
 	 * Returns the ascent of the font described by the receiver. A font's
 	 * <em>ascent</em> is the distance from the baseline to the top of actual
@@ -31,8 +45,7 @@ public final class FontMetrics {
 	 * @return the ascent of the font
 	 */
 	public int getAscent() {
-		// TODO
-		return 0;
+		return ascent;
 	}
 
 	/**
@@ -42,8 +55,7 @@ public final class FontMetrics {
 	 * @return the average character width of the font
 	 */
 	public int getAverageCharWidth() {
-		// TODO
-		return 0;
+		return averageCharWidth;
 	}
 
 	/**
@@ -55,8 +67,7 @@ public final class FontMetrics {
 	 * @return the descent of the font
 	 */
 	public int getDescent() {
-		// TODO
-		return 0;
+		return descent;
 	}
 
 	/**
@@ -71,8 +82,7 @@ public final class FontMetrics {
 	 * @see #getLeading
 	 */
 	public int getHeight() {
-		// TODO
-		return 0;
+		return height;
 	}
 
 	/**
@@ -83,8 +93,7 @@ public final class FontMetrics {
 	 * @return the leading space of the font
 	 */
 	public int getLeading() {
-		// TODO
-		return 0;
+		return leading;
 	}
 
 }
