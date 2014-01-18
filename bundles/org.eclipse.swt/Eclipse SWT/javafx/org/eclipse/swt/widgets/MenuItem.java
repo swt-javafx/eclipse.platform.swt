@@ -10,8 +10,21 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.ArrayList;
+
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCharacterCombination;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -20,6 +33,7 @@ import org.eclipse.swt.events.HelpListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class represent a selectable user interface object that
@@ -44,9 +58,11 @@ import org.eclipse.swt.graphics.Image;
  */
 public class MenuItem extends Item {
 
-	javafx.scene.control.MenuItem menuItem;
-
-	Menu parent;
+	private Menu parent;
+	private javafx.scene.control.MenuItem nativeItem;
+	private Menu menu;
+	private int accelerator;
+	private static EventHandler<ActionEvent> SELECTION_HANDLER;
 	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -91,8 +107,8 @@ public class MenuItem extends Item {
 	public MenuItem(Menu parent, int style) {
 		super(parent, style);
 		this.parent = parent;
-		createWidget();
-		parent.addItem(this);
+		parent.internal_addItem(this);
+		armInit();
 	}
 
 	/**
@@ -141,8 +157,8 @@ public class MenuItem extends Item {
 	public MenuItem(Menu parent, int style, int index) {
 		super(parent, style);
 		this.parent = parent;
-		createWidget();
-		parent.addItem(this); // TODO index
+		parent.internal_addItem(this,index);
+		armInit();
 	}
 
 	/**
@@ -169,7 +185,9 @@ public class MenuItem extends Item {
 	 * @see #removeArmListener
 	 */
 	public void addArmListener(ArmListener listener) {
-		// TODO
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Arm, typedListener);
 	}
 
 	/**
@@ -242,24 +260,106 @@ public class MenuItem extends Item {
 	public void addSelectionListener(SelectionListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		TypedListener typedListener = new TypedListener (listener);
-		addListener (SWT.Hide,typedListener);
-		addListener (SWT.Show,typedListener);
+		TypedListener typedListener = new TypedListener(listener);
+		addListener (SWT.Selection,typedListener);
+		addListener (SWT.DefaultSelection,typedListener);
 	}
 
-	void createNativeObject() {
-		if ((style & SWT.PUSH) != 0) {
-			menuItem = new javafx.scene.control.MenuItem();
-		} else if ((style & SWT.CHECK) != 0) {
-			menuItem = new CheckMenuItem();
-		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
-			menuItem = new RadioMenuItem("");
+	private void armInit() {
+		EventHandler<javafx.event.Event> eventHandler = new EventHandler<javafx.event.Event>() {
+			private boolean initDone;
+			@Override
+			public void handle(javafx.event.Event event) {
+				if( initDone ) {
+					return;
+				}
+				initDone = true;
+				final Node node = internal_getNativeObject().impl_styleableGetNode();
+				node.focusedProperty().addListener(new InvalidationListener() {
+					
+					@Override
+					public void invalidated(Observable observable) {
+						if( node.isFocused() ) {
+							internal_sendEvent(SWT.Arm, new org.eclipse.swt.widgets.Event(), true);	
+						}
+					}
+				});
+			}
+		};
+		
+		if( this.parent.internal_getNativeObject() instanceof javafx.scene.control.Menu ) {
+			((javafx.scene.control.Menu)this.parent.internal_getNativeObject()).addEventHandler(javafx.scene.control.Menu.ON_SHOWN,eventHandler);			
+		} else if( this.parent.internal_getNativeObject() instanceof ContextMenu ) {
+			((ContextMenu)this.parent.internal_getNativeObject()).addEventHandler(javafx.scene.control.Menu.ON_SHOWN,eventHandler);
 		}
+	}
+
+	@Override
+	protected Object createWidget() {
+		// don't create an item when style is cascade
+		if( (style & SWT.PUSH) == SWT.PUSH ) {
+			nativeItem = new javafx.scene.control.MenuItem();
+		} else if( (style & SWT.CHECK) == SWT.CHECK ) {
+			nativeItem = new CheckMenuItem();
+		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
+			nativeItem = new RadioMenuItem("");
+		}
+		return nativeItem;
 	}
 	
 	@Override
-	void deregister() {
-		parent.removeItem(this);
+	public void dispose() {
+		parent.internal_removeItem(this);
+		super.dispose();
+	}
+	
+	static KeyCode keyChar (int key) {
+		//TODO - use the NS key constants
+		switch (key) {
+			case SWT.BS: return KeyCode.BACK_SPACE;
+			case SWT.CR: return KeyCode.ENTER; //TODO is the correct??
+			case SWT.DEL: return KeyCode.DELETE;
+			case SWT.ESC: return KeyCode.ESCAPE;
+			case SWT.LF: return KeyCode.ENTER; //TODO is the correct??
+			case SWT.TAB: return KeyCode.TAB;
+//			case ' ': return OS.kMenuBlankGlyph;
+//			case ' ': return OS.kMenuSpaceGlyph;		
+			case SWT.ALT: return KeyCode.ALT;
+			case SWT.SHIFT: return KeyCode.SHIFT;
+			case SWT.CONTROL: return KeyCode.CONTROL;
+			case SWT.COMMAND: return KeyCode.COMMAND;
+			case SWT.ARROW_UP: return KeyCode.UP;
+			case SWT.ARROW_DOWN: return KeyCode.DOWN;
+			case SWT.ARROW_LEFT: return KeyCode.LEFT;
+			case SWT.ARROW_RIGHT: return KeyCode.RIGHT;
+			case SWT.PAGE_UP: return KeyCode.PAGE_UP;
+			case SWT.PAGE_DOWN: return KeyCode.PAGE_DOWN;
+			case SWT.KEYPAD_CR: return KeyCode.ENTER;
+			case SWT.HELP: return KeyCode.HELP;
+			case SWT.HOME: return KeyCode.HOME;
+			case SWT.END: return KeyCode.END;
+//			case SWT.CAPS_LOCK: return ??;
+			case SWT.F1: return KeyCode.F1;
+			case SWT.F2: return KeyCode.F2;
+			case SWT.F3: return KeyCode.F3;
+			case SWT.F4: return KeyCode.F4;
+			case SWT.F5: return KeyCode.F5;
+			case SWT.F6: return KeyCode.F6;
+			case SWT.F7: return KeyCode.F7;
+			case SWT.F8: return KeyCode.F8;
+			case SWT.F9: return KeyCode.F9;
+			case SWT.F10: return KeyCode.F10;
+			case SWT.F11: return KeyCode.F11;
+			case SWT.F12: return KeyCode.F12;
+			case SWT.F13: return KeyCode.F13;
+			case SWT.F14: return KeyCode.F14;
+			case SWT.F15: return KeyCode.F15;
+			/*
+			* The following lines are intentionally commented.
+			*/
+//			case SWT.INSERT: return ??;
+		}
+		return null;
 	}
 	
 	/**
@@ -281,8 +381,7 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public int getAccelerator() {
-		// TODO
-		return 0;
+		return accelerator;
 	}
 
 	/**
@@ -304,8 +403,7 @@ public class MenuItem extends Item {
 	 * @see #isEnabled
 	 */
 	public boolean getEnabled() {
-		// TODO
-		return false;
+		return (state & DISABLED) == 0;
 	}
 
 	/**
@@ -345,12 +443,7 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public Menu getMenu() {
-		// TODO
-		return null;
-	}
-
-	javafx.scene.control.MenuItem getNativeObject() {
-		return menuItem;
+		return menu;
 	}
 
 	/**
@@ -367,8 +460,7 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public Menu getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
 	/**
@@ -388,10 +480,47 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getSelection() {
-		// TODO
+		if( nativeItem instanceof CheckMenuItem ) {
+			return ((CheckMenuItem) nativeItem).isSelected();
+		} else if( nativeItem instanceof RadioMenuItem ) {
+			return ((RadioMenuItem) nativeItem).isSelected();
+		}
 		return false;
 	}
 
+	private static EventHandler<ActionEvent> getSelectionHandler() {
+		if( SELECTION_HANDLER == null ) {
+			SELECTION_HANDLER = new EventHandler<ActionEvent>() {
+				
+				@Override
+				public void handle(ActionEvent event) {
+					org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+					MenuItem item = Widget.getWidget(event.getSource());
+					if( item != null ) {
+						item.internal_sendEvent(SWT.Selection, evt, true);
+					}
+				}
+			};
+		}
+		return SELECTION_HANDLER;
+	}
+	
+	@Override
+	protected void initListeners() {
+		super.initListeners();
+		if( nativeItem != null ) {
+			// Radio events are generated by the toggle-group in the menu
+			if( (style & SWT.RADIO) != SWT.RADIO ) {
+				nativeItem.setOnAction(getSelectionHandler());	
+			}
+		}
+	}
+	
+	@Override
+	public javafx.scene.control.MenuItem internal_getNativeObject() {
+		return nativeItem;
+	}
+	
 	/**
 	 * Returns <code>true</code> if the receiver is enabled and all of the
 	 * receiver's ancestors are enabled, and <code>false</code> otherwise. A
@@ -515,7 +644,50 @@ public class MenuItem extends Item {
 	 */
 	public void setAccelerator(int accelerator) {
 		checkWidget();
-		// TODO
+		this.accelerator = accelerator;
+		if( nativeItem != null ) {
+			if( accelerator != 0 ) {
+				int key = accelerator & SWT.KEY_MASK;
+				KeyCode k = keyChar(key);
+				
+				java.util.List<KeyCombination.Modifier> l = new ArrayList<>();
+				if( (accelerator & SWT.SHIFT) != 0 ) {
+					l.add(KeyCombination.SHIFT_DOWN);
+				}
+				
+				if( (accelerator & SWT.CONTROL) != 0 ) {
+					l.add(KeyCombination.CONTROL_DOWN);
+				}
+				
+				if( (accelerator & SWT.ALT) != 0 ) {
+					l.add(KeyCombination.ALT_DOWN);
+				}
+				
+				if( (accelerator & SWT.COMMAND) != 0 ) {
+					l.add(KeyCombination.META_DOWN);
+				}
+								
+				if( k == null ) {
+					for( KeyCode c : KeyCode.values() ) {
+						if( c.impl_getCode() == key ) {
+							k = c;
+							break;
+						}
+					}
+				}
+				
+				KeyCombination kc;
+				if( k != null ) {
+					kc = new KeyCodeCombination(k,l.toArray(new KeyCombination.Modifier[0]));
+				} else {
+					kc = new KeyCharacterCombination(String.valueOf((char)key),l.toArray(new KeyCombination.Modifier[0]));
+				}
+				
+				nativeItem.setAccelerator(kc);
+			} else {
+				nativeItem.setAccelerator(null);
+			}
+		}
 	}
 
 	/**
@@ -535,7 +707,10 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public void setEnabled(boolean enabled) {
-		// TODO
+		state |= DISABLED;
+		if( nativeItem != null ) {
+			nativeItem.setDisable(!enabled);
+		}
 	}
 
 	/**
@@ -583,7 +758,10 @@ public class MenuItem extends Item {
 	 */
 	@Override
 	public void setImage(Image image) {
-		// TODO
+		super.setImage(image);
+		if( nativeItem != null ) {
+			nativeItem.setGraphic(image == null ? null : new ImageView(image.internal_getImage()));	
+		}		
 	}
 
 	/**
@@ -620,7 +798,15 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public void setMenu(Menu menu) {
-		// TODO
+		this.menu = menu;
+		this.menu.setParentItem(this);
+		parent.internal_menuAttached(this,menu);
+		nativeItem = (javafx.scene.control.Menu) menu.internal_getNativeObject();
+		
+		setText(getText());
+		setImage(getImage());
+		setEnabled(getEnabled());
+		setAccelerator(getAccelerator());
 	}
 
 	/**
@@ -640,7 +826,13 @@ public class MenuItem extends Item {
 	 *                </ul>
 	 */
 	public void setSelection(boolean selected) {
-		// TODO
+		if( nativeItem != null)  {
+			if(nativeItem instanceof CheckMenuItem) {
+				((CheckMenuItem)nativeItem).setSelected(selected);
+			} else if( nativeItem instanceof RadioMenuItem ) {
+				((RadioMenuItem)nativeItem).setSelected(selected);
+			}
+		}
 	}
 
 	/**
@@ -684,9 +876,8 @@ public class MenuItem extends Item {
 	@Override
 	public void setText(String string) {
 		super.setText(string);
-		if (menuItem != null) {
-			menuItem.setText(string);
-					// TODO Util.fixAccelerator(Util.fixMnemonic(string)));	
+		if( nativeItem != null ) {
+			nativeItem.setText(Util.fixAccelerator(Util.fixMnemonic(string)));	
 		}
 	}
 

@@ -25,6 +25,7 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.HelpListener;
 import org.eclipse.swt.events.MenuListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are user interface objects that contain menu items.
@@ -52,19 +53,19 @@ import org.eclipse.swt.graphics.Point;
  */
 public class Menu extends Widget {
 
-	MenuBar bar;
-	ContextMenu contextMenu;
-	javafx.scene.control.Menu menu;
-	ToggleGroup toggleGroup;
-	
-	private static EventHandler<javafx.event.Event> contextMenuShowingHandler;
-	private static EventHandler<javafx.event.Event> menuShowingHandler;
-	private static ChangeListener<Toggle> toggleChangeListener;
-	
-	private Decorations parent;
-	private MenuItem cascade;
+	private MenuBar bar;
+	private ContextMenu contextMenu;
 	private java.util.List<MenuItem> items = new ArrayList<>();
-	private MenuItem defaultItem;
+	private javafx.scene.control.Menu menu;
+	private Decorations decoration;
+	private Menu parentMenu;
+	private Control control;
+	private static EventHandler<javafx.event.Event> SHOWING_HANDLER;
+	private static EventHandler<javafx.event.Event> CONTEXT_MENU_SHOWING_HANDLER;
+	private ToggleGroup group;
+	private static ChangeListener<Toggle> TOGGLE_CHANGE_LISTENER;
+	private MenuItem parentItem;
+	private static final String DUMMY = "DUMMY";
 	
 	/**
 	 * Constructs a new instance of this class given its parent, and sets the
@@ -97,8 +98,9 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Control parent) {
-		// TODO menuShell or do we not need this?
-		this(parent.getShell(), SWT.POP_UP);
+		super(parent.getDisplay(),SWT.POP_UP);
+		this.control = parent;
+//		initArm();
 	}
 
 	/**
@@ -147,21 +149,9 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Decorations parent, int style) {
-		checkSubclass ();
-		checkParent (parent);
-		this.style = style;
-		if (parent != null) {
-			display = parent.display;
-		} else {
-			display = Display.getCurrent ();
-			if (display == null) display = Display.getDefault ();
-			if (!display.isValidThread ()) {
-				error (SWT.ERROR_THREAD_INVALID_ACCESS);
-			}
-		}
-		this.parent = parent;
-		reskinWidget();
-		createWidget();
+		super(parent.getDisplay(),style);
+		this.decoration = parent;
+//		initArm();
 	}
 
 	/**
@@ -194,7 +184,9 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Menu parentMenu) {
-		this(parentMenu.getParent(), SWT.DROP_DOWN);
+		super(parentMenu.getDisplay(), SWT.DROP_DOWN);
+		this.parentMenu = parentMenu;
+//		initArm();
 	}
 
 	/**
@@ -227,9 +219,27 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(MenuItem parentItem) {
-		this(parentItem.getParent().getParent(), 0);
+		super(parentItem.getDisplay(),SWT.DROP_DOWN);
+		parentItem.setMenu(this);
+		Util.logNotImplemented();
 	}
 
+	private void addDummyItem() {
+		if( menu != null ) {
+			if( menu.getItems().isEmpty() ) {
+				javafx.scene.control.MenuItem item = new javafx.scene.control.MenuItem();
+				item.setUserData(DUMMY);
+				menu.getItems().add(item);
+			}
+		} else if( contextMenu != null ) {
+			if( contextMenu.getItems().isEmpty() && contextMenu.getItems().get(0).getUserData() == DUMMY ) {
+				javafx.scene.control.MenuItem item = new javafx.scene.control.MenuItem();
+				item.setUserData(DUMMY);
+				contextMenu.getItems().add(item);
+			}
+		}
+	}
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when help events are generated for the control, by sending it one of the
@@ -258,24 +268,6 @@ public class Menu extends Widget {
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
 		addListener (SWT.Help, typedListener);
-	}
-
-	void addItem(MenuItem item) {
-		items.add(item);
-		if (item.getNativeObject() != null) {
-			if ((item.getStyle() & SWT.RADIO) == SWT.RADIO) {
-				if (toggleGroup == null) {
-					toggleGroup = new ToggleGroup();
-					toggleGroup.selectedToggleProperty().addListener(getSelectedChangeListener());
-				}
-				toggleGroup.getToggles().add((Toggle)item.getNativeObject());
-			}
-			if (menu != null) {
-				menu.getItems().add(item.getNativeObject());
-			} else if( contextMenu != null ) {
-				contextMenu.getItems().add(item.getNativeObject());
-			}
-		}
 	}
 
 	/**
@@ -317,46 +309,56 @@ public class Menu extends Widget {
 		}
 	}
 
-	void createNativeObject() {
+	@Override
+	protected Object createWidget() {
 		if( (style & SWT.BAR) == SWT.BAR ) {
 			bar = new MenuBar();
+			return bar;
 		} else if( (style & SWT.POP_UP) == SWT.POP_UP ) {
 			contextMenu = new ContextMenu();
+			javafx.scene.control.MenuItem m = new javafx.scene.control.MenuItem();
+			m.setUserData(DUMMY);
 			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getContextMenuShowingHandler());
 			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getContextMenuShowingHandler());
+			return contextMenu;
 		} else if( (style & SWT.DROP_DOWN) == SWT.DROP_DOWN ) {
 			menu = new javafx.scene.control.Menu();
+			javafx.scene.control.MenuItem m = new javafx.scene.control.MenuItem();
+			m.setUserData(DUMMY);
+			menu.getItems().add(m);
 			menu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getMenuShowingHandler());
 			menu.addEventHandler(javafx.scene.control.Menu.ON_HIDDEN, getMenuShowingHandler());
 		}
+		
+		return null;
 	}
 	
 	private static EventHandler<javafx.event.Event> getContextMenuShowingHandler() {
-		if (contextMenuShowingHandler == null) {
-			contextMenuShowingHandler = new EventHandler<javafx.event.Event>() {
+		if( CONTEXT_MENU_SHOWING_HANDLER == null ) {
+			CONTEXT_MENU_SHOWING_HANDLER = new EventHandler<javafx.event.Event>() {
 				@Override
 				public void handle(javafx.event.Event event) {
-					Control c = Widget.getWidget(event.getSource());
-					c.sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
+					Menu c = Widget.getWidget(event.getSource());
+					c.internal_sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
 				}
 			};
 		}
-		return contextMenuShowingHandler;
+		return CONTEXT_MENU_SHOWING_HANDLER;
 	}
-
+	
 	private static EventHandler<javafx.event.Event> getMenuShowingHandler() {
-		if (menuShowingHandler == null) {
-			menuShowingHandler = new EventHandler<javafx.event.Event>() {
+		if( SHOWING_HANDLER == null ) {
+			SHOWING_HANDLER = new EventHandler<javafx.event.Event>() {
 				@Override
 				public void handle(javafx.event.Event event) {
-					Control c = Widget.getWidget(event.getSource());
-					c.sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
+					Menu c = Widget.getWidget(event.getSource());
+					c.internal_sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
 				}
 			};
 		}
-		return menuShowingHandler;
+		return SHOWING_HANDLER;
 	}
-
+	
 	/**
 	 * Returns the default menu item or null if none has been previously set.
 	 * 
@@ -373,7 +375,8 @@ public class Menu extends Widget {
 	 */
 	public MenuItem getDefaultItem() {
 		checkWidget();
-		return defaultItem;
+		Util.logNotImplemented();
+		return null;
 	}
 
 	/**
@@ -393,13 +396,13 @@ public class Menu extends Widget {
 	 * 
 	 * @see #isEnabled
 	 */
-	public boolean getEnabled() {
+	public boolean getEnabled () {
 		checkWidget();
-		if (bar != null) {
+		if( bar != null ) {
 			return ! bar.isDisable();
-		} else if (menu != null) {
+		} else if( menu != null ) {
 			return ! menu.isDisable();
-		} else if (contextMenu != null) {
+		} else if( contextMenu != null ) {
 			return false;
 		}
 		return false;
@@ -473,16 +476,6 @@ public class Menu extends Widget {
 		return items.toArray(new MenuItem[items.size()]);
 	}
 
-	Object getNativeObject() {
-		if (bar != null) {
-			return bar;
-		} else if (menu != null) {
-			return menu;
-		} else {
-			return contextMenu;
-		}
-	}
-	
 	/**
 	 * Returns the orientation of the receiver, which will be one of the
 	 * constants <code>SWT.LEFT_TO_RIGHT</code> or
@@ -520,7 +513,8 @@ public class Menu extends Widget {
 	 */
 	public Decorations getParent() {
 		checkWidget();
-		return parent;
+		Util.logNotImplemented();
+		return null;
 	}
 
 	/**
@@ -539,7 +533,7 @@ public class Menu extends Widget {
 	 */
 	public MenuItem getParentItem() {
 		checkWidget();
-		return cascade;
+		return parentItem;
 	}
 
 	/**
@@ -558,28 +552,29 @@ public class Menu extends Widget {
 	 */
 	public Menu getParentMenu() {
 		checkWidget();
-		if (cascade != null) return cascade.parent;
-		return null;
+		return parentMenu;
 	}
 
 	private static ChangeListener<Toggle> getSelectedChangeListener() {
-		if (toggleChangeListener == null) {
-			toggleChangeListener = new ChangeListener<Toggle>() {
+		if( TOGGLE_CHANGE_LISTENER == null ) {
+			TOGGLE_CHANGE_LISTENER = new ChangeListener<Toggle>() {
 				@Override
 				public void changed(ObservableValue<? extends Toggle> observable,
 						Toggle oldValue, Toggle newValue) {
-					if (oldValue != null) {
+					if( oldValue != null ) {
 						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-						Widget.getWidget(oldValue).sendEvent(SWT.Selection, evt, true);
+//						evt.item = Widget.getWidget(oldValue); 
+						Widget.getWidget(oldValue).internal_sendEvent(SWT.Selection, evt, true);
 					}
-					if (newValue != null) {
+					if( newValue != null ) {
 						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-						Widget.getWidget(newValue).sendEvent(SWT.Selection, evt, true);
+//						evt.item = Widget.getWidget(newValue);
+						Widget.getWidget(newValue).internal_sendEvent(SWT.Selection, evt, true);
 					}
 				}
 			};
 		}
-		return toggleChangeListener;
+		return TOGGLE_CHANGE_LISTENER;
 	}
 
 	/**
@@ -599,12 +594,13 @@ public class Menu extends Widget {
 	 * 
 	 * @see #getParent
 	 */
-	public Shell getShell() {
-		if (cascade.parent != null) {
-			return cascade.parent.getShell();
-		} else if (parent != null ) {
-			return parent.getShell();
+	public Shell getShell () {
+		if( parentMenu != null ) {
+			return parentMenu.getShell();
+		} else if( control != null ) {
+			return control.getShell();
 		}
+		Util.logNotImplemented();
 		return null;
 	}
 
@@ -627,11 +623,11 @@ public class Menu extends Widget {
 	 *                thread that created the receiver</li>
 	 *                </ul>
 	 */
-	public boolean getVisible() {
+	public boolean getVisible () {
 		checkWidget();
-		if (menu != null) {
+		if( menu != null ) {
 			return menu.isVisible();
-		} else if (contextMenu != null) {
+		} else if( contextMenu != null ) {
 			return contextMenu.isShowing();
 		} else {
 			return bar.isVisible();
@@ -663,6 +659,130 @@ public class Menu extends Widget {
 		checkWidget();
 		return items.indexOf(item);
 	}
+
+	@Override
+	public Object internal_getNativeObject() {
+		if( bar != null ) {
+			return bar;
+		} else if( menu != null ) {
+			return menu;
+		} else if( contextMenu != null ) {
+			return contextMenu;
+		}
+		return null;
+	}
+
+	void internal_addItem(MenuItem item) {
+		removeDummyItem();
+		items.add(item);
+		if( item.internal_getNativeObject() != null ) {
+			if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
+				if( group == null ) {
+					group = new ToggleGroup();
+					group.selectedToggleProperty().addListener(getSelectedChangeListener());
+				}
+				group.getToggles().add((Toggle) item.internal_getNativeObject());
+			}
+			if( menu != null ) {
+				menu.getItems().add(item.internal_getNativeObject());
+			} else if( contextMenu != null ) {
+				contextMenu.getItems().add(item.internal_getNativeObject());
+			}
+		}
+	}
+	
+	void internal_addItem(MenuItem item,int index) {
+		removeDummyItem();
+		items.add(index,item);
+		if( item.internal_getNativeObject() != null ) {
+			if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
+				if( group == null ) {
+					group = new ToggleGroup();
+					group.selectedToggleProperty().addListener(getSelectedChangeListener());
+				}
+				group.getToggles().add((Toggle) item.internal_getNativeObject());
+			}
+			if( menu != null ) {
+				menu.getItems().add(index,item.internal_getNativeObject());
+			} else if( contextMenu != null ) {
+				contextMenu.getItems().add(index,item.internal_getNativeObject());
+			}
+		}
+	}
+	
+	void internal_removeItem(MenuItem item) {
+		items.remove(item);
+		if( item.internal_getNativeObject() != null ) {
+			if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
+				if( group != null ) {
+					group.getToggles().remove(item.internal_getNativeObject());
+				}
+			}
+			if( menu != null ) {
+				menu.getItems().remove(item.internal_getNativeObject());	
+			} else {
+				contextMenu.getItems().remove(item.internal_getNativeObject());
+			}
+		}
+		addDummyItem();
+	}
+	
+	void internal_menuAttached(MenuItem menuItem, Menu menu) {
+		int idx = items.indexOf(menuItem);
+		if( bar != null ) {
+			bar.getMenus().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+		} else if( this.menu != null ) {
+			this.menu.getItems().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+		} else if( this.contextMenu != null ) {
+			this.contextMenu.getItems().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+		}
+	}
+	
+//	private void initArm() {
+//	if( menu != null ) {
+//		if( menu.impl_styleableGetNode() != null ) {
+//			final Node node = menu.impl_styleableGetNode();
+//			node.focusedProperty().addListener(new InvalidationListener() {
+//				
+//				@Override
+//				public void invalidated(Observable observable) {
+//					if( node.isFocused() ) {
+//						internal_sendEvent(SWT.Arm, new org.eclipse.swt.widgets.Event(), true);
+//					}
+//				}
+//			});
+//		} else if( parentMenu != null || bar != null ) {
+//			EventHandler<Event> eventHandler = new EventHandler<Event>() {
+//				private boolean initDone;
+//				@Override
+//				public void handle(Event event) {
+//					if( initDone ) {
+//						return;
+//					}
+//					initDone = true;
+//					final Node node = menu.impl_styleableGetNode();
+//					node.focusedProperty().addListener(new InvalidationListener() {
+//						
+//						@Override
+//						public void invalidated(Observable observable) {
+//							if( node.isFocused() ) {
+//								System.err.println("ARMED MENU");
+//								internal_sendEvent(SWT.Arm, new org.eclipse.swt.widgets.Event(), true);	
+//							}
+//						}
+//					});
+//				}
+//			};
+//			
+//			if( this.parentMenu.internal_getNativeObject() instanceof javafx.scene.control.Menu ) {
+//				((javafx.scene.control.Menu)this.parentMenu.internal_getNativeObject()).addEventHandler(javafx.scene.control.Menu.ON_SHOWN,eventHandler);			
+//			} else if( this.parentMenu.internal_getNativeObject() instanceof ContextMenu ) {
+//				((ContextMenu)this.parentMenu.internal_getNativeObject()).addEventHandler(javafx.scene.control.Menu.ON_SHOWN,eventHandler);
+//			}
+//			
+//		}
+//	}
+//}
 
 	/**
 	 * Returns <code>true</code> if the receiver is enabled and all of the
@@ -705,12 +825,55 @@ public class Menu extends Widget {
 	 */
 	public boolean isVisible() {
 		checkWidget();
-		if (cascade.parent != null) {
-			return getVisible() && cascade.parent.isVisible();
-		} else if (parent != null) {
-			return getVisible() && parent.isVisible();
+		if( parentMenu != null ) {
+			return getVisible() && parentMenu.isVisible();
+		} else if( decoration != null ) {
+			return getVisible() && decoration.isVisible();
+		} else if( control != null ) {
+			return getVisible() && control.isVisible();
 		}
 		return getVisible();
+	}
+
+	private void removeDummyItem() {
+		if( menu != null ) {
+			if( ! menu.getItems().isEmpty() && menu.getItems().get(0).getUserData() == DUMMY ) {
+				menu.getItems().clear();
+			}
+		} else if( contextMenu != null ) {
+			if( ! contextMenu.getItems().isEmpty() && contextMenu.getItems().get(0).getUserData() == DUMMY ) {
+				contextMenu.getItems().clear();
+			}
+		}
+	}
+	
+	/**
+	 * Removes the listener from the collection of listeners who will be
+	 * notified when the help events are generated for the control.
+	 * 
+	 * @param listener
+	 *            the listener which should no longer be notified
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @see HelpListener
+	 * @see #addHelpListener
+	 */
+	public void removeHelpListener(HelpListener listener) {
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (SWT.Help, listener);
 	}
 
 	/**
@@ -744,50 +907,6 @@ public class Menu extends Widget {
 	}
 
 	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when the help events are generated for the control.
-	 * 
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @see HelpListener
-	 * @see #addHelpListener
-	 */
-	public void removeHelpListener(HelpListener listener) {
-		checkWidget ();
-		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		if (eventTable == null) return;
-		eventTable.unhook (SWT.Help, listener);
-	}
-
-	void removeItem(MenuItem item) {
-		items.remove(item);
-		if (item.getNativeObject() != null ) {
-			if ((item.getStyle() & SWT.RADIO) != 0) {
-				if (toggleGroup != null) {
-					toggleGroup.getToggles().remove(item.getNativeObject());
-				}
-			}
-			if (menu != null) {
-				menu.getItems().remove(item.getNativeObject());	
-			} else {
-				contextMenu.getItems().remove(item.getNativeObject());
-			}
-		}
-	}
-	/**
 	 * Sets the default menu item to the argument or removes the default
 	 * emphasis when the argument is <code>null</code>.
 	 * 
@@ -808,8 +927,7 @@ public class Menu extends Widget {
 	 *                </ul>
 	 */
 	public void setDefaultItem(MenuItem item) {
-		defaultItem = item;
-		// TODO something with it
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -921,6 +1039,11 @@ public class Menu extends Widget {
 		// TODO
 	}
 
+	void setParentItem(MenuItem parentItem) {
+		this.parentItem = parentItem;
+		((javafx.scene.control.Menu)menu).setText(parentItem.getText());
+	}
+	
 	/**
 	 * Marks the receiver as visible if the argument is <code>true</code>, and
 	 * marks it invisible otherwise.
@@ -942,9 +1065,8 @@ public class Menu extends Widget {
 	 *                </ul>
 	 */
 	public void setVisible(boolean visible) {
-		if (contextMenu != null) {
-			// TODO
-//			contextMenu.show(((Shell)decoration).internal_getWindow());
+		if( contextMenu != null ) {
+			contextMenu.show(((Shell)decoration).internal_getWindow());
 		}
 	}
 
