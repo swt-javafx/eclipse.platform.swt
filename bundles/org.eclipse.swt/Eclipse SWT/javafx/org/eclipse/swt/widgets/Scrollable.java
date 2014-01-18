@@ -10,9 +10,12 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.layout.Region;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
 
 /**
  * This class is the abstract superclass of all classes which represent controls
@@ -109,8 +112,8 @@ public abstract class Scrollable extends Control {
 	 * @see #getClientArea
 	 */
 	public Rectangle computeTrim(int x, int y, int width, int height) {
-		// TODO
-		return new Rectangle(0, 0, 0, 0);
+		// TODO We need to take the scrollbars into account!
+		return new Rectangle(x, y, width, height);
 	}
 
 	/**
@@ -130,8 +133,8 @@ public abstract class Scrollable extends Control {
 	 * @see #computeTrim
 	 */
 	public Rectangle getClientArea() {
-		// TODO
-		return new Rectangle(0, 0, 0, 0);
+		Region c = internal_getClientControl();
+		return new Rectangle(0, 0, (int)c.getWidth(), (int)c.getHeight());
 	}
 
 	/**
@@ -149,7 +152,7 @@ public abstract class Scrollable extends Control {
 	 *                </ul>
 	 */
 	public ScrollBar getHorizontalBar() {
-		// TODO
+		Util.logNotImplemented();
 		return null;
 	}
 
@@ -175,8 +178,8 @@ public abstract class Scrollable extends Control {
 	 * @since 3.8
 	 */
 	public int getScrollbarsMode() {
-		// TODO
-		return 0;
+		Util.logNotImplemented();
+		return SWT.NONE;
 	}
 
 	/**
@@ -194,8 +197,12 @@ public abstract class Scrollable extends Control {
 	 *                </ul>
 	 */
 	public ScrollBar getVerticalBar() {
-		// TODO
+		Util.logNotImplemented();
 		return null;
 	}
 
+	protected Region internal_getClientControl() {
+		return internal_getNativeControl();
+	}
+	
 }

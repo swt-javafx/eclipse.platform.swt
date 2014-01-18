@@ -216,7 +216,6 @@ public class Display extends Device {
 			
 			@Override
 			public void handle(ActionEvent event) {
-				System.err.println("ELAPSED: " + hoverControl);
 				if( hoverControl != null ) {
 					Event evt = new Event();
 					Point p = hoverControl.toControl(getCursorLocation());

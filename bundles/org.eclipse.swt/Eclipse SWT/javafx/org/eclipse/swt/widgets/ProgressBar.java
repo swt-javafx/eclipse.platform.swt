@@ -92,7 +92,6 @@ public class ProgressBar extends Control {
 
 	@Override
 	public Point computeSize(int wHint, int hHint, boolean flushCache) {
-		System.err.println("COMPUTE: " + wHint + "/" +hHint );
 		return super.computeSize(wHint, hHint, flushCache);
 	}
 	
