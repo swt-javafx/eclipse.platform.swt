@@ -377,7 +377,8 @@ public class TableItem extends Item {
 		if( fonts != null && index < fonts.length ) {
 			return fonts[index];
 		}
-		return null;
+		// TODO is this the right answer?
+		return display.getSystemFont();
 	}
 
 	/**
