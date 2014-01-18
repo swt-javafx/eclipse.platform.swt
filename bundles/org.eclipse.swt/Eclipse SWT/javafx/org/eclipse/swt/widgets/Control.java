@@ -48,7 +48,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.graphics.Region;
-import org.eclipse.swt.internal.DrawableGC;
 import org.eclipse.swt.internal.Util;
 
 /**
@@ -779,9 +778,6 @@ public abstract class Control extends Widget implements Drawable {
 		return new Point(width, height);
 	}
 
-	void createNativeObject() {
-	}
-	
 	Font defaultFont() {
 		return display.getSystemFont();
 	}
@@ -1533,7 +1529,7 @@ public abstract class Control extends Widget implements Drawable {
 
 	@Override
 	public javafx.scene.layout.Region internal_getNativeObject() {
-		return null;
+		return (javafx.scene.layout.Region)super.internal_getNativeObject();
 	}
 
 	protected double internal_getWidth() {
@@ -1544,12 +1540,14 @@ public abstract class Control extends Widget implements Drawable {
 		return false;
 	}
 
-	DrawableGC internal_new_GC() {
+	@Override
+	public DrawableGC internal_new_GC() {
 		Util.logNotImplemented();
 		return null;
 	}
 	
-	void internal_dispose_GC(DrawableGC gc) {
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
 		Util.logNotImplemented();
 	}
 

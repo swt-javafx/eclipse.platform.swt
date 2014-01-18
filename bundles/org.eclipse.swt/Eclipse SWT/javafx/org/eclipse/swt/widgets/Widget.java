@@ -589,7 +589,7 @@ public abstract class Widget {
 	}
 	
 	public Object internal_getNativeObject() {
-		return null;
+		return nativeObject;
 	}
 
 	protected void internal_runNoEvent(Runnable runnable) {

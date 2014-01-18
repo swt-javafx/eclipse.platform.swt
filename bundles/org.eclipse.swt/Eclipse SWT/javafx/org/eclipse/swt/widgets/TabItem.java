@@ -11,9 +11,12 @@
 package org.eclipse.swt.widgets;
 
 import javafx.scene.control.Tab;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 
 /**
@@ -37,9 +40,9 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class TabItem extends Item {
 
-	TabFolder parent;
-	Tab tab;
-	Control control;
+	private Tab tab;
+	private Control control;
+	private TabFolder parent;
 	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -78,7 +81,9 @@ public class TabItem extends Item {
 	 * @see Widget#getStyle
 	 */
 	public TabItem(TabFolder parent, int style) {
-		this(parent, style, -1);
+		super(parent, style);
+		parent.internal_addTabItem(this);
+		this.parent = parent;
 	}
 
 	/**
@@ -123,14 +128,15 @@ public class TabItem extends Item {
 	 */
 	public TabItem(TabFolder parent, int style, int index) {
 		super(parent, style);
-		this.parent = parent;
-		createWidget();
+		parent.internal_addTabItem(this, index);
 	}
 
-	void createNativeObject() {
-		tab = new Tab();
-	};
-	
+	@Override
+	protected Tab createWidget() {
+		this.tab = new Tab();
+		return tab;
+	}
+
 	/**
 	 * Returns a rectangle describing the receiver's size and location relative
 	 * to its parent.
@@ -171,6 +177,12 @@ public class TabItem extends Item {
 		return control;
 	}
 
+	@Override
+	public String getText() {
+		checkWidget();
+		return notNullString(tab.getText());
+	}
+
 	public Tab getNativeObject() {
 		return tab;
 	}
@@ -189,8 +201,7 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public TabFolder getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
 	/**
@@ -207,13 +218,17 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public String getToolTipText() {
-		// TODO
-		return null;
+		String rv = null;
+		Tooltip t = tab.getTooltip();
+		if( t != null ) {
+			rv = t.getText();
+		}
+		return rv;
 	}
 
 	@Override
-	void register() {
-		parent.addItem(this);
+	public Tab internal_getNativeObject() {
+		return tab;
 	}
 	
 	/**
@@ -239,9 +254,20 @@ public class TabItem extends Item {
 	 */
 	public void setControl(Control control) {
 		this.control = control;
-		// TODO
+		tab.setContent(control.internal_getNativeObject());
 	}
 
+	@Override
+	public void setImage(Image image) {
+		super.setImage(image);
+		
+		if( image != null ) {
+			tab.setGraphic(new ImageView(image.internal_getImage()));	
+		} else {
+			tab.setGraphic(null);
+		}
+	}
+	
 	/**
 	 * Sets the receiver's text. The string may include the mnemonic character.
 	 * </p>
@@ -272,7 +298,8 @@ public class TabItem extends Item {
 	 */
 	@Override
 	public void setText(String string) {
-		super.setText(string);
+		checkWidget();
+		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
 		tab.setText(string);
 	}
 
@@ -300,7 +327,16 @@ public class TabItem extends Item {
 	 *                </ul>
 	 */
 	public void setToolTipText(String string) {
-		// TODO
+		if( string == null || string.isEmpty() ) {
+			tab.setTooltip(null);
+		} else {
+			Tooltip t = tab.getTooltip();
+			if( t == null ) {
+				tab.setTooltip(new Tooltip(string));
+			} else {
+				t.setText(string);
+			}
+		}
 	}
 
 }

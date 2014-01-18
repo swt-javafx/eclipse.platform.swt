@@ -14,12 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javafx.scene.control.TabPane;
-import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 
 /**
@@ -58,8 +58,9 @@ import org.eclipse.swt.graphics.Point;
  */
 public class TabFolder extends Composite {
 
-	TabPane tabPane;
-	List<TabItem> items = new ArrayList<>();
+	private List<TabItem> items = new ArrayList<TabItem>();
+	
+	private TabPane tabPane;
 	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -107,10 +108,11 @@ public class TabFolder extends Composite {
 	}
 	
 	@Override
-	void createNativeObject() {
+	protected TabPane createWidget() {
 		tabPane = new TabPane();
+		return tabPane;
 	}
-	
+
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the user changes the receiver's selection, by sending it one of the
@@ -171,6 +173,8 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public TabItem getItem(int index) {
+		checkWidget ();
+		if (!(0 <= index && index < items.size())) error (SWT.ERROR_INVALID_RANGE);
 		return items.get(index);
 	}
 
@@ -216,6 +220,7 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public int getItemCount() {
+		checkWidget ();
 		return items.size();
 	}
 
@@ -238,6 +243,7 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public TabItem[] getItems() {
+		checkWidget ();
 		return items.toArray(new TabItem[items.size()]);
 	}
 
@@ -260,8 +266,8 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public TabItem[] getSelection() {
-		// TODO
-		return null;
+		checkWidget ();
+		return new TabItem[]{items.get(getSelectionIndex())};
 	}
 
 	/**
@@ -279,8 +285,8 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public int getSelectionIndex() {
-		// TODO
-		return 0;
+		checkWidget ();
+		return tabPane.getSelectionModel().getSelectedIndex();
 	}
 
 	/**
@@ -305,10 +311,81 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public int indexOf(TabItem item) {
-		// TODO
-		return 0;
+		checkWidget ();
+		if (item == null) error (SWT.ERROR_NULL_ARGUMENT);
+		return items.indexOf(item);
 	}
 
+	void internal_addTabItem(TabItem item) {
+		this.items.add(item);
+		tabPane.getTabs().add(item.internal_getNativeObject());
+	}
+
+	void internal_addTabItem(TabItem item, int index) {
+		this.items.add(item);
+		tabPane.getTabs().add(index,item.internal_getNativeObject());
+	}
+
+	@Override
+	protected double internal_getHeight() {
+		return tabPane.getHeight();
+	}
+
+	@Override
+	protected double internal_getWidth() {
+		return tabPane.getWidth();
+	}
+
+	@Override
+	protected void internal_attachControl(Control c) {
+		// Not needed
+	}
+
+	@Override
+	protected void internal_attachControl(int idx, Control c) {
+		// Not needed
+	}
+
+	@Override
+	protected void internal_detachControl(Control c) {
+		// Not needed
+	}
+
+	@Override
+	protected void internal_setLayout(Layout layout) {
+		// Not needed
+	}
+
+	@Override
+	protected double internal_getPrefHeight() {
+		return tabPane.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+
+	@Override
+	protected double internal_getPrefWidth() {
+		return tabPane.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+
+	@Override
+	protected void internal_doLayout() {
+//		super.internal_doLayout();
+	}
+	
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+
+	@Override
+	public TabPane internal_getNativeObject() {
+		return tabPane;
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the user changes the receiver's selection.
@@ -357,7 +434,7 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public void setSelection(int index) {
-		// TODO
+		checkWidget ();
 	}
 
 	/**
@@ -382,7 +459,8 @@ public class TabFolder extends Composite {
 	 * @since 3.2
 	 */
 	public void setSelection(TabItem item) {
-		// TODO
+		checkWidget ();
+		if (item == null) error (SWT.ERROR_NULL_ARGUMENT);
 	}
 
 	/**
@@ -405,7 +483,8 @@ public class TabFolder extends Composite {
 	 *                </ul>
 	 */
 	public void setSelection(TabItem[] items) {
-		// TODO
+		checkWidget ();
+		if (items == null) error (SWT.ERROR_NULL_ARGUMENT);
 	}
 
 }

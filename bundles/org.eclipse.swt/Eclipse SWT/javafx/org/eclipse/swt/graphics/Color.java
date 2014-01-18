@@ -34,6 +34,7 @@ import org.eclipse.swt.SWTException;
  */
 public final class Color extends Resource {
 	private javafx.scene.paint.Color color;
+	private boolean disposable;
 	
 	/**
 	 * Constructs a new instance of this class given a device and the desired
@@ -66,8 +67,7 @@ public final class Color extends Resource {
 	 * @see #dispose
 	 */
 	public Color(Device device, int red, int green, int blue) {
-		super(device);
-		color = javafx.scene.paint.Color.rgb(red, green, blue);
+		this(device, red, green, blue, true);
 	}
 
 	/**
@@ -101,9 +101,16 @@ public final class Color extends Resource {
 		this(device, rgb.red, rgb.green, rgb.blue);
 	}
 
+	Color(Device device, int red, int green, int blue, boolean disposable) {
+		super(device);
+		color = javafx.scene.paint.Color.rgb(red, green, blue);
+		this.disposable = disposable;
+	}
+	
 	@Override
 	public void dispose() {
-		color = null;
+		if (disposable)
+			color = null;
 	}
 
 	/**

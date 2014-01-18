@@ -163,6 +163,30 @@ public class Display extends Device {
 	private Object data;
 	Tray tray;
 	
+	/*
+	* TEMPORARY CODE.  Install the runnable that
+	* gets the current display. This code will
+	* be removed in the future.
+	*/
+	static {
+		DeviceFinder = new Runnable () {
+			public void run () {
+				Device device = getCurrent ();
+				if (device == null) {
+					device = getDefault ();
+				}
+				setDevice (device);
+			}
+		};
+	}
+
+	/*
+	* TEMPORARY CODE.
+	*/
+	static void setDevice (Device device) {
+		CurrentDevice = device;
+	}
+
 	/**
 	 * Constructs a new instance of this class.
 	 * <p>

@@ -10,7 +10,18 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.IndexRange;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.input.KeyEvent;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -20,7 +31,10 @@ import org.eclipse.swt.events.SegmentListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are selectable user interface objects that allow the
@@ -83,9 +97,19 @@ public class Text extends Scrollable {
 	 * not initialized in the declaration to stop the compiler from inlining.
 	 */
 	static {
-		LIMIT = 0x7FFFFFFF;
-		DELIMITER = "\n";
+		LIMIT = Integer.MAX_VALUE; //FIXME Check with JavaFX people
+		DELIMITER = System.getProperty("line.separator");
 	}
+
+	private char echoChar;
+	private boolean doubleClick;
+	private int tabs  = 8;
+	private int textLimit = LIMIT;
+	
+	private static EventHandler<ActionEvent> DEFAULT_SELECTION_HANDLER;
+	private static EventHandler<KeyEvent> LIMIT_VERIFY_HANDLER;
+	
+	private TextInputControl control;
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -133,9 +157,19 @@ public class Text extends Scrollable {
 	 */
 	public Text(Composite parent, int style) {
 		super(parent, style);
-		// TODO
 	}
 
+	@Override
+	public void addListener(int eventType, Listener listener) {
+		super.addListener(eventType, listener);
+		if( eventType == SWT.DefaultSelection ) {
+			if( control instanceof TextField && ((TextField)control).getOnAction() == null ) {
+				//TODO This consumes the event (e.g. when there's a default button it is NOT called)
+				((TextField)control).setOnAction(getDefaultSelectionHandler());
+			}
+		}
+	}
+	
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the receiver's text is modified, by sending it one of the messages
@@ -160,7 +194,10 @@ public class Text extends Scrollable {
 	 * @see #removeModifyListener
 	 */
 	public void addModifyListener(ModifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		registerListener (SWT.Modify, typedListener);
 	}
 
 	/**
@@ -202,7 +239,9 @@ public class Text extends Scrollable {
 	 * @since 3.8
 	 */
 	public void addSegmentListener(SegmentListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		registerListener (SWT.Segments, new TypedListener (listener));
 	}
 
 	/**
@@ -242,7 +281,11 @@ public class Text extends Scrollable {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		registerListener (SWT.Selection,typedListener);
+		registerListener (SWT.DefaultSelection,typedListener);
 	}
 
 	/**
@@ -269,7 +312,10 @@ public class Text extends Scrollable {
 	 * @see #removeVerifyListener
 	 */
 	public void addVerifyListener(VerifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		registerListener (SWT.Verify, typedListener);
 	}
 
 	/**
@@ -294,7 +340,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void append(String string) {
-		// TODO
+		checkWidget ();
+		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
+		control.appendText(string);
 	}
 
 	/**
@@ -309,10 +357,23 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void clearSelection() {
-		checkWidget();
-		// TODO
+		checkWidget ();
+		control.deselect();
 	}
 
+	@Override
+	public Point computeSize(int wHint, int hHint, boolean flushCache) {
+		checkWidget ();
+		forceSizeProcessing();
+		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		
+		if (wHint != SWT.DEFAULT) width = wHint;
+		if (hHint != SWT.DEFAULT) height = hHint;
+				
+		return new Point(width, height);
+	}
+	
 	/**
 	 * Copies the selected text.
 	 * <p>
@@ -328,13 +389,51 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void copy() {
-		// TODO
+		checkWidget ();
+		control.copy();
 	}
 
 	@Override
-	void createNativeObject() {
-		// TODO Auto-generated method stub
+	protected Node createWidget() {
+		if( (style & SWT.MULTI) != 0 || (style & SWT.V_SCROLL) != 0 || (style & SWT.H_SCROLL) != 0 ) {
+			control = new TextArea();
+			if( (style & SWT.CENTER) == SWT.CENTER ) {
+				Util.logNotImplemented();
+			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
+				Util.logNotImplemented();
+			}
+			
+			if( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) {
+				Util.logNotImplemented();
+			}
+			
+			if( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) {
+				Util.logNotImplemented();
+			}
+			
+			if( (style & SWT.WRAP) == SWT.WRAP ) {
+				((TextArea)control).setWrapText(true);
+			}
+		} else if( (getStyle() & SWT.PASSWORD) != 0 ) {
+			control = new PasswordField();
+			if( (style & SWT.CENTER) == SWT.CENTER ) {
+				((PasswordField)control).setAlignment(Pos.CENTER);
+			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
+				((PasswordField)control).setAlignment(Pos.CENTER_RIGHT);
+			}
+		} else {
+			control = new TextField();
+			if( (style & SWT.CENTER) == SWT.CENTER ) {
+				((TextField)control).setAlignment(Pos.CENTER);
+			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
+				((TextField)control).setAlignment(Pos.CENTER_RIGHT);
+			}
+		}
 		
+		if( (getStyle() & SWT.READ_ONLY) != 0 ) {
+			control.setEditable(false);
+		}
+		return control;
 	}
 	
 	/**
@@ -353,7 +452,17 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void cut() {
-		// TODO
+		checkWidget ();
+		if ((getStyle() & SWT.READ_ONLY) != 0) return;
+		control.cut();
+	}
+
+	void enforceLimit() {
+		if( textLimit != LIMIT ) {
+			if( control.getText().length() > textLimit ) {
+				control.setText(control.getText().substring(0,textLimit));
+			}	
+		}
 	}
 
 	/**
@@ -373,8 +482,14 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCaretLineNumber() {
-		// TODO
-		return 0;
+		checkWidget ();
+		// FIXME Check if 0 or 1 based value
+		if( control instanceof TextArea ) {
+			return 1;
+		} else {
+			Util.logNotImplemented();
+			return 0;
+		}
 	}
 
 	/**
@@ -392,8 +507,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public Point getCaretLocation() {
-		// TODO
-		return null;
+		checkWidget ();
+		Util.logNotImplemented();
+		return new Point(0, 0);
 	}
 
 	/**
@@ -413,8 +529,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCaretPosition() {
-		// TODO
-		return 0;
+		checkWidget ();
+		return control.getCaretPosition();
 	}
 
 	/**
@@ -431,10 +547,31 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getCharCount() {
-		// TODO
-		return 0;
+		checkWidget ();
+		return control.getLength();
 	}
 
+	@Override
+	protected Font getDefaultFont() {
+		if( control.getFont() != null ) {
+			return new Font(getDisplay(), control.getFont(), true);	
+		}
+		return super.getDefaultFont();
+	}
+
+	private static EventHandler<ActionEvent> getDefaultSelectionHandler() {
+		if( DEFAULT_SELECTION_HANDLER == null ) {
+			DEFAULT_SELECTION_HANDLER = new EventHandler<ActionEvent>() {
+				
+				@Override
+				public void handle(ActionEvent event) {
+					Widget.getWidget(event.getSource()).internal_sendEvent(SWT.DefaultSelection, new Event(), true);
+				}
+			};
+		}
+		return DEFAULT_SELECTION_HANDLER;
+	}
+	
 	/**
 	 * Returns the double click enabled flag.
 	 * <p>
@@ -453,8 +590,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public boolean getDoubleClickEnabled() {
-		// TODO
-		return false;
+		checkWidget ();
+		return doubleClick;
 	}
 
 	/**
@@ -477,8 +614,8 @@ public class Text extends Scrollable {
 	 * @see #setEchoChar
 	 */
 	public char getEchoChar() {
-		// TODO
-		return 0;
+		checkWidget ();
+		return echoChar;
 	}
 
 	/**
@@ -495,10 +632,36 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public boolean getEditable() {
-		// TODO
-		return false;
+		checkWidget ();
+		return control.isEditable();
 	}
 
+	private static EventHandler<KeyEvent> getLimitVerifyHandler() {
+		if( LIMIT_VERIFY_HANDLER == null ) {
+			LIMIT_VERIFY_HANDLER = new EventHandler<KeyEvent>() {
+
+				@Override
+				public void handle(KeyEvent event) {
+					Text t = Widget.getWidget(event.getSource());
+					if( LIMIT != t.textLimit ) {
+						if( t.getText().length()+1 > t.textLimit ) {
+							event.consume();
+							return;
+						}
+					}
+					//TODO We need to deal with CTRL+V!!!
+					Event evt = new Event();
+					evt.text = event.getCharacter();
+					t.internal_sendEvent(SWT.Verify, evt, true);
+					if( ! evt.doit ) {
+						event.consume();
+					}
+				}
+			};
+		}
+		return LIMIT_VERIFY_HANDLER;
+	}
+	
 	/**
 	 * Returns the number of lines.
 	 * 
@@ -513,8 +676,12 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getLineCount() {
-		// TODO
-		return 0;
+		checkWidget ();
+		if( control instanceof TextField ) {
+			return 1;
+		} else {
+			return ((TextArea)control).getParagraphs().size();
+		}
 	}
 
 	/**
@@ -533,8 +700,8 @@ public class Text extends Scrollable {
 	 * @see #DELIMITER
 	 */
 	public String getLineDelimiter() {
-		// TODO
-		return "\n";
+		checkWidget ();
+		return DELIMITER;
 	}
 
 	/**
@@ -551,7 +718,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getLineHeight() {
-		// TODO
+		checkWidget ();
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -575,8 +743,13 @@ public class Text extends Scrollable {
 	 * @since 3.3
 	 */
 	public String getMessage() {
-		// TODO
-		return "";
+		checkWidget ();
+		if( control instanceof TextField ) {
+			return ((TextField) control).getPromptText();
+		} else {
+			Util.logNotImplemented();
+			return "";
+		}
 	}
 
 	/**
@@ -600,7 +773,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public Point getSelection() {
-		return null;
+		checkWidget ();
+		IndexRange r = control.getSelection();
+		return new Point(r.getStart(),r.getEnd());
 	}
 
 	/**
@@ -617,8 +792,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getSelectionCount() {
-		// TODO
-		return 0;
+		checkWidget ();
+		return control.getSelection().getLength();
 	}
 
 	/**
@@ -636,8 +811,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public String getSelectionText() {
-		// TODO
-		return null;
+		checkWidget ();
+		return control.getSelectedText();
 	}
 
 	/**
@@ -658,8 +833,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getTabs() {
-		// TODO
-		return 0;
+		return tabs;
 	}
 
 	/**
@@ -680,8 +854,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		checkWidget ();
+		return control.getText();
 	}
 
 	/**
@@ -707,8 +881,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public String getText(int start, int end) {
-		// TODO
-		return null;
+		checkWidget();
+		return control.getText(start, end);
 	}
 
 	/**
@@ -738,8 +912,8 @@ public class Text extends Scrollable {
 	 * @since 3.7
 	 */
 	public char[] getTextChars() {
-		// TODO
-		return null;
+		checkWidget();
+		return control.getText().toCharArray();
 	}
 
 	/**
@@ -763,8 +937,8 @@ public class Text extends Scrollable {
 	 * @see #LIMIT
 	 */
 	public int getTextLimit() {
-		// TODO
-		return 0;
+		checkWidget();
+		return textLimit;
 	}
 
 	/**
@@ -786,8 +960,12 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getTopIndex() {
-		// TODO
-		return 0;
+		if( control instanceof TextField ) {
+			return 0;
+		} else {
+			Util.logNotImplemented();
+			return 0;
+		}
 	}
 
 	/**
@@ -814,10 +992,43 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public int getTopPixel() {
-		// TODO
-		return 0;
+		if( control instanceof TextField ) {
+			return 0;
+		} else {
+			return (int)((TextArea) control).getScrollTop();
+		}
 	}
 
+	protected void initListeners() {
+		control.addEventFilter(KeyEvent.KEY_TYPED, getLimitVerifyHandler());
+		control.textProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				enforceLimit();
+				if( textLimit == LIMIT || control.getText().length() <= textLimit ) {
+					Event evt = new Event();
+					internal_sendEvent(SWT.Modify, evt, true);
+				}
+			}
+		});
+	}
+	
+	@Override
+	public TextInputControl internal_getNativeObject() {
+		return control;
+	}
+	
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+	
 	/**
 	 * Inserts a string.
 	 * <p>
@@ -841,7 +1052,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void insert(String string) {
-		// TODO
+		checkWidget();
+		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
+		control.insertText(control.getCaretPosition(), string);
 	}
 
 	/**
@@ -860,7 +1073,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void paste() {
-		// TODO
+		checkWidget();
+		if ((getStyle() & SWT.READ_ONLY) != 0) return;
+		control.paste();
 	}
 
 	/**
@@ -886,7 +1101,9 @@ public class Text extends Scrollable {
 	 * @see #addModifyListener
 	 */
 	public void removeModifyListener(ModifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener(SWT.Modify, listener);
 	}
 
 	/**
@@ -915,7 +1132,9 @@ public class Text extends Scrollable {
 	 * @since 3.8
 	 */
 	public void removeSegmentListener(SegmentListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener (SWT.Segments, listener);
 	}
 
 	/**
@@ -941,7 +1160,10 @@ public class Text extends Scrollable {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener (SWT.Selection, listener);
+		unregisterListener (SWT.DefaultSelection,listener);	
 	}
 
 	/**
@@ -967,7 +1189,9 @@ public class Text extends Scrollable {
 	 * @see #addVerifyListener
 	 */
 	public void removeVerifyListener(VerifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener (SWT.Verify, listener);	
 	}
 
 	/**
@@ -982,7 +1206,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void selectAll() {
-		// TODO
+		control.selectAll();
 	}
 
 	/**
@@ -1008,7 +1232,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setDoubleClickEnabled(boolean doubleClick) {
-		// TODO
+		Util.logNotImplemented();
+		this.doubleClick = doubleClick;
 	}
 
 	/**
@@ -1034,7 +1259,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setEchoChar(char echo) {
-		// TODO
+		Util.logNotImplemented();
+		this.echoChar = echo;
 	}
 
 	/**
@@ -1052,7 +1278,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setEditable(boolean editable) {
-		// TODO
+		control.setEditable(editable);
 	}
 
 	/**
@@ -1080,7 +1306,13 @@ public class Text extends Scrollable {
 	 * @since 3.3
 	 */
 	public void setMessage(String message) {
-		// TODO
+		checkWidget();
+		if (message == null) error (SWT.ERROR_NULL_ARGUMENT);
+		if( control instanceof TextField ) {
+			((TextField)control).setPromptText(message);	
+		} else {
+			Util.logNotImplemented();
+		}
 	}
 
 	/**
@@ -1134,7 +1366,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setSelection(int start) {
-		// TODO
+		checkWidget();
+		control.positionCaret(start);
 	}
 
 	/**
@@ -1165,7 +1398,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setSelection(int start, int end) {
-		// TODO
+		checkWidget();
+		control.selectRange(start, end);
 	}
 
 	/**
@@ -1199,7 +1433,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setSelection(Point selection) {
-		// TODO
+		checkWidget();
+		if (selection == null) error (SWT.ERROR_NULL_ARGUMENT);
+		setSelection(selection.x, selection.y);
 	}
 
 	/**
@@ -1222,7 +1458,8 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setTabs(int tabs) {
-		// TODO
+		Util.logNotImplemented();
+		this.tabs = tabs;
 	}
 
 	/**
@@ -1247,7 +1484,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		// TODO
+		control.setText(string);
 	}
 
 	/**
@@ -1281,7 +1518,7 @@ public class Text extends Scrollable {
 	 * @since 3.7
 	 */
 	public void setTextChars(char[] text) {
-		// TODO
+		setText(String.valueOf(text));
 	}
 
 	/**
@@ -1316,7 +1553,8 @@ public class Text extends Scrollable {
 	 * @see #LIMIT
 	 */
 	public void setTextLimit(int limit) {
-		// TODO
+		this.textLimit = limit;
+		enforceLimit();
 	}
 
 	/**
@@ -1336,7 +1574,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setTopIndex(int index) {
-		// TODO
+		Util.logNotImplemented();		
 	}
 
 	/**
@@ -1355,7 +1593,7 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void showSelection() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 }

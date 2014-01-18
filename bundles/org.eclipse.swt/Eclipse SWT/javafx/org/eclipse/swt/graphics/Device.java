@@ -10,9 +10,21 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
+import java.util.List;
+
+import javafx.geometry.Rectangle2D;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.WritableImage;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.internal.Util;
+import org.eclipse.swt.widgets.Control;
+
+import com.sun.javafx.geom.BaseBounds;
+import com.sun.javafx.geom.Shape;
+import com.sun.javafx.scene.text.TextLayoutFactory;
+import com.sun.javafx.tk.Toolkit;
 
 /**
  * This class is the abstract superclass of all device objects, such as the
@@ -26,11 +38,244 @@ import org.eclipse.swt.widgets.Display;
 public abstract class Device implements Drawable {
 
 	public static boolean DEBUG;
+	boolean tracking = DEBUG;
 	
-	private boolean disposed;
+	Color COLOR_BLACK, COLOR_DARK_RED, COLOR_DARK_GREEN, COLOR_DARK_YELLOW, COLOR_DARK_BLUE;
+	Color COLOR_DARK_MAGENTA, COLOR_DARK_CYAN, COLOR_GRAY, COLOR_DARK_GRAY, COLOR_RED;
+	Color COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE;
 
-	boolean tracking = false;
+	private Font SYSTEM_FONT;
+	private volatile boolean disposed;
+	
+	public static class NoOpDrawableGC implements DrawableGC {
+		private Font font;
+		private Drawable d;
+		
+		public NoOpDrawableGC(Drawable d, Font font) {
+			this.d = d;
+			this.font = font;
+		}
+		
+		@Override
+		public void setBackground(Color color) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void fillRectangle(int x, int y, int width, int height) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawRectangle(int x, int y, int width, int height) {
+			Util.logNotImplemented();
+		}
 
+		@Override
+		public void fillOval(int x, int y, int width, int height) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setAlpha(int alpha) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setTransform(Transform transform) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setForeground(Color color) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void fillPath(Path path) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawPath(Path path) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawImage(Image image, int srcX, int srcY, int srcWidth,
+				int srcHeight, int destX, int destY, int destWidth,
+				int destHeight) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setLineWidth(int lineWidth) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawLine(int x1, int y1, int x2, int y2) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawImage(Image image, int x, int y) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawText (String string, int x, int y, int flags) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawPolyline(int[] pointArray) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public Point textExtent(String string, int flags) {
+			TextLayoutFactory factory = Toolkit.getToolkit().getTextLayoutFactory();
+			com.sun.javafx.scene.text.TextLayout layout = factory.createLayout();
+			layout.setContent(string, getFont().internal_getNativeObject().impl_getNativeFont());
+			BaseBounds b = layout.getBounds();
+					
+			return new Point((int)b.getWidth(), (int)b.getHeight());
+		}
+		
+		@Override
+		public void setFont(org.eclipse.swt.graphics.Font font) {
+			this.font = font;
+		}
+		
+		@Override
+		public Font getFont() {
+			return font;
+		}
+		
+		@Override
+		public void fillGradientRectangle(int x, int y, int width, int height,
+				boolean vertical) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setClipping(Region region) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void fillPolygon(int[] pointArray) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawPolygon(int[] pointArray) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawRoundRectangle(int x, int y, int width, int height,
+				int arcWidth, int arcHeight) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void fillRoundRectangle(int x, int y, int width, int height,
+				int arcWidth, int arcHeight) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawPoint(int x, int y) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void drawFocus(int x, int y, int width, int height) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public Color getBackground() {
+			Util.logNotImplemented();
+			return null;
+		}
+		
+		@Override
+		public Color getForeground() {
+			Util.logNotImplemented();
+			return null;
+		}
+		
+		@Override
+		public void fillArc(int x, int y, int width, int height,
+				int startAngle, int arcAngle) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void copyArea(Image image, int x, int y) {
+			if( d instanceof Control ) {
+				javafx.scene.layout.Region nativeObject = ((Control) d).internal_getNativeControl();
+				SnapshotParameters p = new SnapshotParameters();
+				p.setViewport(new Rectangle2D(x, y, image.getBounds().width, image.getBounds().height));
+				nativeObject.snapshot(p, (WritableImage) image.internal_getImage());
+			}
+		}
+		
+		@Override
+		public void drawArc(int x, int y, int width, int height,
+				int startAngle, int arcAngle) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public Point stringExtent(String string) {
+			TextLayoutFactory factory = Toolkit.getToolkit().getTextLayoutFactory();
+			com.sun.javafx.scene.text.TextLayout layout = factory.createLayout();
+			layout.setContent(string, getFont().internal_getNativeObject().impl_getNativeFont());
+			BaseBounds b = layout.getBounds();
+					
+			return new Point((int)b.getWidth(), (int)b.getHeight());
+		}
+				
+		@Override
+		public void setLineCap(int cap) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setLineJoin(int join) {
+			Util.logNotImplemented();
+		}
+
+		@Override
+		public void drawShape(int x, int y, Shape shape) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setLineStyle(int lineStyle) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setBackgroundPattern(Pattern pattern) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void setForegroundPattern(Pattern pattern) {
+			Util.logNotImplemented();
+		}
+		
+		@Override
+		public void dispose() {
+			Util.logNotImplemented();
+		}
+	}
+	
 	/**
 	 * Constructs a new instance of this class.
 	 * <p>
@@ -43,7 +288,7 @@ public abstract class Device implements Drawable {
 	 * @since 3.1
 	 */
 	public Device() {
-		// TODO
+		this(null);
 	}
 
 	/**
@@ -60,7 +305,7 @@ public abstract class Device implements Drawable {
 	 * @see DeviceData
 	 */
 	public Device(DeviceData data) {
-		// TODO
+		init();
 	}
 
 	/*
@@ -138,23 +383,6 @@ public abstract class Device implements Drawable {
 	}
 
 	/**
-	 * Disposes of the operating system resources associated with the receiver.
-	 * After this method has been invoked, the receiver will answer
-	 * <code>true</code> when sent the message <code>isDisposed()</code>.
-	 * 
-	 * @see #release
-	 * @see #destroy
-	 * @see #checkDevice
-	 */
-	public void dispose() {
-		disposed = true;
-	}
-
-	void dispose_Object(Object object) {
-		// Nothing to do here
-	}
-
-	/**
 	 * Destroys the device in the operating system and releases the device's
 	 * handle. If the device does not have a handle, this method may do nothing
 	 * depending on the device.
@@ -172,6 +400,23 @@ public abstract class Device implements Drawable {
 	protected void destroy() {
 		dispose();
 		release();
+	}
+
+	/**
+	 * Disposes of the operating system resources associated with the receiver.
+	 * After this method has been invoked, the receiver will answer
+	 * <code>true</code> when sent the message <code>isDisposed()</code>.
+	 * 
+	 * @see #release
+	 * @see #destroy
+	 * @see #checkDevice
+	 */
+	public void dispose() {
+		disposed = true;
+	}
+
+	void dispose_Object(Object object) {
+		// Nothing to do here
 	}
 
 	/**
@@ -292,8 +537,20 @@ public abstract class Device implements Drawable {
 	 */
 	public FontData[] getFontList(String faceName, boolean scalable) {
 		checkDevice();
-		// TODO
-		return new FontData[0];
+		if (!scalable) return new FontData[0];
+		List<String> fontNames = javafx.scene.text.Font.getFontNames(faceName);
+		FontData[] rv = new FontData[fontNames.size()];
+		for( int i = 0; i < rv.length; i++ ) {
+			int style = SWT.NORMAL;
+			if( fontNames.get(i).toLowerCase().contains("bold") ) {
+				style |= SWT.BOLD;
+			}
+			if( fontNames.get(i).toLowerCase().contains("italic") ) {
+				style |= SWT.ITALIC;
+			}
+			rv[i] = new FontData(fontNames.get(i),0,style);
+		}
+		return rv;
 	}
 
 	/**
@@ -316,8 +573,25 @@ public abstract class Device implements Drawable {
 	 * @see SWT
 	 */
 	public Color getSystemColor(int id) {
-		// TODO
-		return new Color(this, 0, 0, 0);
+		switch (id) {
+			case SWT.COLOR_BLACK: 				return COLOR_BLACK;
+			case SWT.COLOR_DARK_RED: 			return COLOR_DARK_RED;
+			case SWT.COLOR_DARK_GREEN:	 		return COLOR_DARK_GREEN;
+			case SWT.COLOR_DARK_YELLOW: 		return COLOR_DARK_YELLOW;
+			case SWT.COLOR_DARK_BLUE: 			return COLOR_DARK_BLUE;
+			case SWT.COLOR_DARK_MAGENTA: 		return COLOR_DARK_MAGENTA;
+			case SWT.COLOR_DARK_CYAN: 			return COLOR_DARK_CYAN;
+			case SWT.COLOR_GRAY: 				return COLOR_GRAY;
+			case SWT.COLOR_DARK_GRAY: 			return COLOR_DARK_GRAY;
+			case SWT.COLOR_RED: 				return COLOR_RED;
+			case SWT.COLOR_GREEN: 				return COLOR_GREEN;
+			case SWT.COLOR_YELLOW: 				return COLOR_YELLOW;
+			case SWT.COLOR_BLUE: 				return COLOR_BLUE;
+			case SWT.COLOR_MAGENTA: 			return COLOR_MAGENTA;
+			case SWT.COLOR_CYAN: 				return COLOR_CYAN;
+			case SWT.COLOR_WHITE: 				return COLOR_WHITE;
+		}
+		return COLOR_BLACK;
 	}
 
 	/**
@@ -341,8 +615,7 @@ public abstract class Device implements Drawable {
 	 *                </ul>
 	 */
 	public Font getSystemFont() {
-		// TODO
-		return new Font(Display.getDefault(), new FontData());
+		return SYSTEM_FONT;
 	}
 
 	/**
@@ -378,9 +651,37 @@ public abstract class Device implements Drawable {
 	 * @see #create
 	 */
 	protected void init() {
-		// TODO
+		COLOR_BLACK = new Color (this, 0, 0, 0, false);
+		COLOR_DARK_RED = new Color (this, 0x80, 0, 0, false);
+		COLOR_DARK_GREEN = new Color (this, 0, 0x80, 0, false);
+		COLOR_DARK_YELLOW = new Color (this, 0x80, 0x80, 0, false);
+		COLOR_DARK_BLUE = new Color (this, 0, 0, 0x80, false);
+		COLOR_DARK_MAGENTA = new Color (this, 0x80, 0, 0x80, false);
+		COLOR_DARK_CYAN = new Color (this, 0, 0x80, 0x80, false);
+		COLOR_GRAY = new Color (this, 0xC0, 0xC0, 0xC0, false);
+		COLOR_DARK_GRAY = new Color (this, 0x80, 0x80, 0x80, false);
+		COLOR_RED = new Color (this, 0xFF, 0, 0, false);
+		COLOR_GREEN = new Color (this, 0, 0xFF, 0, false);
+		COLOR_YELLOW = new Color (this, 0xFF, 0xFF, 0, false);
+		COLOR_BLUE = new Color (this, 0, 0, 0xFF, false);
+		COLOR_MAGENTA = new Color (this, 0xFF, 0, 0xFF, false);
+		COLOR_CYAN = new Color (this, 0, 0xFF, 0xFF, false);
+		COLOR_WHITE = new Color (this, 0xFF, 0xFF, 0xFF, false);
+		
+		SYSTEM_FONT = new Font(this,javafx.scene.text.Font.getDefault(), false);
 	}
 
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this, getSystemFont());
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	/**
 	 * Invokes platform specific functionality to allocate a new GC handle.
 	 * <p>

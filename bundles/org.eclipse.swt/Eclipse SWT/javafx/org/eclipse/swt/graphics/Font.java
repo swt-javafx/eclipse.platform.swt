@@ -39,6 +39,7 @@ public final class Font extends Resource {
 	
 	private javafx.scene.text.Font font;
 	private FontData fd;
+	private boolean disposable;
 	
 	/**
 	 * Constructs a new font given a device and font data which describes the
@@ -66,7 +67,7 @@ public final class Font extends Resource {
 	 *                </ul>
 	 */
 	public Font(Device device, FontData fd) {
-		this(device, fd.getName(), fd.getHeightD(), fd.getStyle(), fd.getFXName());
+		this(device, fd.getName(), fd.getHeightD(), fd.getStyle(), fd.getFXName(), true);
 	}
 
 	/**
@@ -133,11 +134,11 @@ public final class Font extends Resource {
 	 *                </ul>
 	 */
 	public Font(Device device, String name, int height, int style) {
-		this(device,name,height,style,null);
+		this(device, name, height, style, null, true);
 	}
 
-	Font(Device device, String name, double height, int style, String fxName) {
-		this(device, createFont(name, height, style, fxName));
+	Font(Device device, String name, double height, int style, String fxName, boolean disposable) {
+		this(device, createFont(name, height, style, fxName), disposable);
 		fd = new FontData();
 		fd.setName(name);
 		fd.setHeight(height);
@@ -145,9 +146,10 @@ public final class Font extends Resource {
 		fd.setFXName(font.getName());
 	}
 	
-	public Font(Device device, javafx.scene.text.Font font) {
+	public Font(Device device, javafx.scene.text.Font font, boolean disposable) {
 		super(device);
 		this.font = font;
+		this.disposable = disposable;
 		fd = new FontData();
 		fd.setName(font.getFamily());
 		fd.setHeight(font.getSize());
@@ -172,7 +174,8 @@ public final class Font extends Resource {
 
 	@Override
 	public void dispose() {
-		font = null;
+		if (disposable)
+			font = null;
 	}
 
 	/**

@@ -14,9 +14,8 @@ import javafx.scene.control.TitledPane;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.internal.DrawableGC;
-import org.eclipse.swt.internal.NoOpDrawableGC;
 
 /**
  * Instances of this class provide an etched border with an optional title.

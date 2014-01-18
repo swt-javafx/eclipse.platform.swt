@@ -20,7 +20,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.internal.CanvasGC;
-import org.eclipse.swt.internal.DrawableGC;
 import org.eclipse.swt.internal.Util;
 
 /**
@@ -615,11 +614,13 @@ public final class Image extends Resource implements Drawable {
 		return image;
 	}
 
-	DrawableGC internal_new_GC() {
+	@Override
+	public DrawableGC internal_new_GC() {
 		return new CanvasGC(image);
 	}
 	
-	void internal_dispose_GC(DrawableGC gc) {
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
 		// TODO Auto-generated method stub
 	}
 	

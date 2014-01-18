@@ -10,11 +10,11 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Device;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of the receiver represent a selectable user interface object that
@@ -41,6 +41,8 @@ import org.eclipse.swt.events.SelectionListener;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class Scale extends Control {
+
+	private javafx.scene.control.Slider nativeWidget;
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -109,15 +111,17 @@ public class Scale extends Control {
 	 * @see #removeSelectionListener
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		TypedListener typedListener = new TypedListener(listener);
+		addListener(SWT.Selection,typedListener);
+		addListener(SWT.DefaultSelection,typedListener);
 	}
 
 	@Override
-	void createNativeObject() {
-		// TODO Auto-generated method stub
-		
+	protected javafx.scene.control.Slider createWidget() {
+		nativeWidget = new javafx.scene.control.Slider();
+		return nativeWidget;
 	}
-	
+
 	/**
 	 * Returns the amount that the receiver's value will be modified by when the
 	 * up/down (or right/left) arrows are pressed.
@@ -133,8 +137,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public int getIncrement() {
-		// TODO
-		return 0;
+		return (int) nativeWidget.getMajorTickUnit(); 
 	}
 
 	/**
@@ -151,8 +154,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		return (int) nativeWidget.getMax();
 	}
 
 	/**
@@ -169,8 +171,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		return (int) nativeWidget.getMin();
 	}
 
 	/**
@@ -188,7 +189,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public int getPageIncrement() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -206,8 +207,22 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		return (int) nativeWidget.getValue();
+	}
+
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new Device.NoOpDrawableGC(this, getFont());
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		
+	}
+
+	@Override
+	public javafx.scene.control.Slider internal_getNativeObject() {
+		return nativeWidget;
 	}
 
 	/**
@@ -233,7 +248,8 @@ public class Scale extends Control {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		removeListener(SWT.Selection, listener);
+		removeListener(SWT.DefaultSelection, listener);
 	}
 
 	/**
@@ -253,7 +269,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public void setIncrement(int increment) {
-		// TODO
+		nativeWidget.setMajorTickUnit(increment);
 	}
 
 	/**
@@ -275,7 +291,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		nativeWidget.setMax(value); 
 	}
 
 	/**
@@ -298,7 +314,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		nativeWidget.setMin(value); 
 	}
 
 	/**
@@ -318,7 +334,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public void setPageIncrement(int pageIncrement) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -337,7 +353,7 @@ public class Scale extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		nativeWidget.setValue(value); 
 	}
 
 }

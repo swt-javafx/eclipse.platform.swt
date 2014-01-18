@@ -10,12 +10,24 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
+import java.lang.reflect.Field;
+
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.geometry.Orientation;
+import javafx.scene.control.Skin;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
+
+import com.sun.javafx.scene.control.behavior.BehaviorBase;
+import com.sun.javafx.scene.control.behavior.SliderBehavior;
+import com.sun.javafx.scene.control.skin.BehaviorSkinBase;
 
 /**
  * Instances of this class are selectable user interface objects that represent
@@ -73,6 +85,35 @@ import org.eclipse.swt.events.SelectionListener;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class Slider extends Control {
+
+	private javafx.scene.control.Slider slider;
+	
+	boolean noEvent;
+	
+	int eventType = SWT.DRAG;
+
+	static class SWTBehavior extends SliderBehavior {
+		private Slider swtSlider;
+		public SWTBehavior(Slider swtSlider, javafx.scene.control.Slider slider) {
+			super(slider);
+			this.swtSlider = swtSlider;
+		}
+		
+		protected void callAction(String name) {
+			if( "Home".equals(name) ) {
+				swtSlider.eventType = SWT.HOME;
+			} else if( "End".equals(name) ) {
+				swtSlider.eventType = SWT.END;
+			} else if( "IncrementValue".equals(name) ) {
+				swtSlider.eventType = SWT.ARROW_DOWN;
+			} else if( "DecrementValue".equals(name) ) {
+				swtSlider.eventType = SWT.ARROW_UP;
+			}
+			super.callAction(name);
+			swtSlider.eventType = SWT.DRAG;
+			
+		}
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -148,13 +189,48 @@ public class Slider extends Control {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		registerListener (SWT.Selection,typedListener);
+		registerListener (SWT.DefaultSelection,typedListener);
 	}
 
 	@Override
-	void createNativeObject() {
-		// TODO Auto-generated method stub
+	public Point computeSize(int wHint, int hHint, boolean flushCache) {
+		forceSizeProcessing();
+		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+
+		if (wHint != SWT.DEFAULT)
+			width = wHint;
+		if (hHint != SWT.DEFAULT)
+			height = hHint;
+
+		Point p = new Point(width, height);
+		return p;
+	}
+
+	@Override
+	protected javafx.scene.control.Slider createWidget() {
+		slider = new javafx.scene.control.Slider(0, 100, 0) {
+			@Override
+			protected Skin<?> createDefaultSkin() {
+				Skin<?> s = super.createDefaultSkin();
+				replaceBehavior(Slider.this,this,s);
+				return s;
+			}
+		};
+		slider.setMajorTickUnit(1);
 		
+		if( (style & SWT.VERTICAL) == SWT.VERTICAL ) {
+			slider.setOrientation(Orientation.VERTICAL);
+		}
+		
+		if( (style & SWT.BORDER) == SWT.BORDER ) {
+			Util.logNotImplemented();
+		}
+		return slider;
 	}
 	
 	/**
@@ -172,8 +248,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getIncrement() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMajorTickUnit();
 	}
 
 	/**
@@ -190,8 +266,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMax();
 	}
 
 	/**
@@ -208,8 +284,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMin();
 	}
 
 	/**
@@ -227,7 +303,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getPageIncrement() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -245,8 +321,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getValue();
 	}
 
 	/**
@@ -263,10 +339,42 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public int getThumb() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getBlockIncrement();
 	}
 
+	@Override
+	protected void initListeners() {
+		slider.valueProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable arg0) {
+				if( noEvent ) {
+					return;
+				}
+				
+				Event event = new Event();
+				event.detail = eventType;
+				internal_sendEvent(SWT.Selection, event, true);
+			}
+		});
+	}
+
+	@Override
+	public javafx.scene.control.Slider internal_getNativeObject() {
+		return slider;
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		Util.logNotImplemented();
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the user changes the receiver's value.
@@ -290,7 +398,25 @@ public class Slider extends Control {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener(SWT.Selection, listener);
+		unregisterListener(SWT.DefaultSelection,listener);
+	}
+
+	private static boolean replaceBehavior(Slider swtSlider, javafx.scene.control.Slider slider, Skin<?> skin) {
+		try {
+			Field f = BehaviorSkinBase.class.getDeclaredField("behavior");
+			f.setAccessible(true);
+			BehaviorBase<?> b = (BehaviorBase<?>) f.get(skin);
+			b.dispose();
+			f.set(skin, new SWTBehavior(swtSlider,slider));
+			return true;
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	/**
@@ -310,7 +436,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setIncrement(int value) {
-		// TODO
+		checkWidget();
+		slider.setMajorTickUnit(value);
 	}
 
 	/**
@@ -331,7 +458,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		checkWidget();
+		slider.setMax(value);
 	}
 
 	/**
@@ -351,7 +479,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		checkWidget();
+		slider.setMin(value);
 	}
 
 	/**
@@ -371,7 +500,7 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setPageIncrement(int value) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -390,7 +519,13 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		checkWidget();
+		try {
+			noEvent = true;
+			slider.setValue(value);	
+		} finally {
+			noEvent = false;
+		}
 	}
 
 	/**
@@ -415,7 +550,8 @@ public class Slider extends Control {
 	 *                </ul>
 	 */
 	public void setThumb(int value) {
-		// TODO
+		checkWidget();
+		slider.setBlockIncrement(value);
 	}
 
 	/**
@@ -450,7 +586,14 @@ public class Slider extends Control {
 	 */
 	public void setValues(int selection, int minimum, int maximum, int thumb,
 			int increment, int pageIncrement) {
-		// TODO
+		setMinimum(minimum);
+		setMinimum(maximum);
+
+		setSelection(selection);
+
+		setThumb(thumb);
+		setIncrement(increment);
+		setPageIncrement(pageIncrement);
 	}
 
 }

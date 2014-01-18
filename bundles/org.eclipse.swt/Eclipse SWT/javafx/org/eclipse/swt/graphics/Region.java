@@ -10,8 +10,15 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
+import javafx.scene.shape.Polygon;
+
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
+
+import com.sun.javafx.geom.Area;
+import com.sun.javafx.geom.RectBounds;
+import com.sun.javafx.geom.RoundRectangle2D;
+import com.sun.javafx.geom.transform.Affine2D;
 
 /**
  * Instances of this class represent areas of an x-y coordinate system that are
@@ -29,6 +36,8 @@ import org.eclipse.swt.SWTException;
  */
 public final class Region extends Resource {
 
+	private Area area;
+
 	/**
 	 * Constructs a new empty region.
 	 * 
@@ -39,7 +48,7 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public Region() {
-		// TODO
+		this(null);
 	}
 
 	/**
@@ -68,7 +77,7 @@ public final class Region extends Resource {
 	 */
 	public Region(Device device) {
 		super(device);
-		// TODO
+		area = new Area();
 	}
 
 	/**
@@ -92,7 +101,11 @@ public final class Region extends Resource {
 	 * 
 	 */
 	public void add(int[] pointArray) {
-		// TODO
+		double[] points = new double[pointArray.length];
+		for( int i = 0; i < pointArray.length; i++ ) {
+			points[i] = pointArray[i];
+		}
+		area.add(new Area(new Polygon(points).impl_configShape()));
 	}
 
 	/**
@@ -115,7 +128,7 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public void add(Rectangle rect) {
-		// TODO
+		add(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -145,7 +158,7 @@ public final class Region extends Resource {
 	 * @since 3.1
 	 */
 	public void add(int x, int y, int width, int height) {
-		// TODO
+		area.add(new Area(new RoundRectangle2D(x, y, width, height, 0, 0)));
 	}
 
 	/**
@@ -169,7 +182,7 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public void add(Region region) {
-		// TODO
+		area.add(region.area);
 	}
 
 	/**
@@ -191,8 +204,7 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public boolean contains(int x, int y) {
-		// TODO
-		return false;
+		return area.contains(x, y);
 	}
 
 	/**
@@ -215,8 +227,12 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public boolean contains(Point pt) {
-		// TODO
-		return false;
+		return contains(pt.x, pt.y);
+	}
+
+	@Override
+	public void dispose() {
+		area = null;
 	}
 
 	/**
@@ -234,10 +250,14 @@ public final class Region extends Resource {
 	 * @see Rectangle#union
 	 */
 	public Rectangle getBounds() {
-		// TODO
-		return null;
+		RectBounds bounds = area.getBounds();
+		return new Rectangle((int)bounds.getMinX(), (int)bounds.getMinY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 	}
 
+	public Area internal_getNativeObject() {
+		return area;
+	}
+	
 	/**
 	 * Intersects the given rectangle to the collection of polygons the receiver
 	 * maintains to describe its area.
@@ -260,7 +280,7 @@ public final class Region extends Resource {
 	 * @since 3.0
 	 */
 	public void intersect(Rectangle rect) {
-		// TODO
+		intersect(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -290,7 +310,7 @@ public final class Region extends Resource {
 	 * @since 3.1
 	 */
 	public void intersect(int x, int y, int width, int height) {
-		// TODO
+		area.intersect(new Area(new RoundRectangle2D(x, y, width, height,0,0)));
 	}
 
 	/**
@@ -316,7 +336,7 @@ public final class Region extends Resource {
 	 * @since 3.0
 	 */
 	public void intersect(Region region) {
-		// TODO
+		area.intersect(region.area);
 	}
 
 	/**
@@ -344,8 +364,7 @@ public final class Region extends Resource {
 	 * @see Rectangle#intersects(Rectangle)
 	 */
 	public boolean intersects(int x, int y, int width, int height) {
-		// TODO
-		return false;
+		return area.intersects(new RectBounds(x, y, width, height));
 	}
 
 	/**
@@ -371,8 +390,7 @@ public final class Region extends Resource {
 	 * @see Rectangle#intersects(Rectangle)
 	 */
 	public boolean intersects(Rectangle rect) {
-		// TODO
-		return false;
+		return intersects(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -388,8 +406,7 @@ public final class Region extends Resource {
 	 */
 	@Override
 	public boolean isDisposed() {
-		// TODO
-		return false;
+		return area == null;
 	}
 
 	/**
@@ -407,8 +424,7 @@ public final class Region extends Resource {
 	 *                </ul>
 	 */
 	public boolean isEmpty() {
-		// TODO
-		return false;
+		return area.isEmpty();
 	}
 
 	/**
@@ -431,7 +447,11 @@ public final class Region extends Resource {
 	 * @since 3.0
 	 */
 	public void subtract(int[] pointArray) {
-		// TODO
+		double[] points = new double[pointArray.length];
+		for( int i = 0; i < pointArray.length; i++ ) {
+			points[i] = pointArray[i];
+		}
+		area.subtract(new Area(new Polygon(points).impl_configShape()));
 	}
 
 	/**
@@ -456,7 +476,7 @@ public final class Region extends Resource {
 	 * @since 3.0
 	 */
 	public void subtract(Rectangle rect) {
-		// TODO
+		subtract(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -486,7 +506,7 @@ public final class Region extends Resource {
 	 * @since 3.1
 	 */
 	public void subtract(int x, int y, int width, int height) {
-		// TODO
+		area.subtract(new Area(new RoundRectangle2D(x, y, width, height, 0, 0)));
 	}
 
 	/**
@@ -512,7 +532,7 @@ public final class Region extends Resource {
 	 * @since 3.0
 	 */
 	public void subtract(Region region) {
-		// TODO
+		area.subtract(region.area);
 	}
 
 	/**
@@ -533,7 +553,7 @@ public final class Region extends Resource {
 	 * @since 3.1
 	 */
 	public void translate(int x, int y) {
-		// TODO
+		area.transform(Affine2D.getTranslateInstance(x, y));
 	}
 
 	/**
@@ -556,7 +576,7 @@ public final class Region extends Resource {
 	 * @since 3.1
 	 */
 	public void translate(Point pt) {
-		// TODO
+		translate(pt.x, pt.y);
 	}
 
 }

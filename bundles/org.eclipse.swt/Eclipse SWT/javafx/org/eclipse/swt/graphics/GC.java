@@ -10,8 +10,19 @@
  *******************************************************************************/
 package org.eclipse.swt.graphics;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Drawable.DrawableGC;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Widget;
+
+import com.sun.javafx.font.PrismFontLoader;
+import com.sun.javafx.geom.BaseBounds;
+import com.sun.javafx.geom.Shape;
+import com.sun.javafx.scene.text.TextLayoutFactory;
+import com.sun.javafx.tk.Toolkit;
 
 /**
  * Class <code>GC</code> is where all of the drawing capabilities that are
@@ -57,6 +68,13 @@ import org.eclipse.swt.SWTException;
  *      information</a>
  */
 public final class GC extends Resource {
+	private Drawable drawable;
+	private DrawableGC gc;
+	private Region clipping;
+	private int style;
+	private int antialias;
+	private int alpha = 0;
+	
 	/**
 	 * Constructs a new instance of this class which has been configured to draw
 	 * on the specified drawable. Sets the foreground color, background color
@@ -85,7 +103,9 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public GC(Drawable drawable) {
-
+		super(getDevice(drawable));
+		this.drawable = drawable;
+		gc = drawable.internal_new_GC();
 	}
 
 	/**
@@ -121,7 +141,8 @@ public final class GC extends Resource {
 	 * @since 2.1.2
 	 */
 	public GC(Drawable drawable, int style) {
-		// TODO
+		this(drawable);
+		this.style = style;
 	}
 
 	/**
@@ -148,7 +169,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void copyArea(Image image, int x, int y) {
-		// TODO
+		gc.copyArea(image,x,y);
 	}
 
 	/**
@@ -217,6 +238,10 @@ public final class GC extends Resource {
 		// TODO
 	}
 
+	public void dispose() {
+		drawable.internal_dispose_GC(gc);
+	}
+	
 	/**
 	 * Draws the outline of a circular or elliptical arc within the specified
 	 * rectangular area.
@@ -260,7 +285,7 @@ public final class GC extends Resource {
 	 */
 	public void drawArc(int x, int y, int width, int height, int startAngle,
 			int arcAngle) {
-		// TODO
+		gc.drawArc(x,y,width,height,startAngle,arcAngle);
 	}
 
 	/**
@@ -287,7 +312,7 @@ public final class GC extends Resource {
 	 * @see #drawRectangle(int, int, int, int)
 	 */
 	public void drawFocus(int x, int y, int width, int height) {
-		// TODO
+		gc.drawFocus( x,  y,  width,  height);
 	}
 
 	/**
@@ -319,7 +344,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawImage(Image image, int x, int y) {
-		// TODO
+		gc.drawImage(image, x, y);
 	}
 
 	/**
@@ -372,7 +397,7 @@ public final class GC extends Resource {
 	 */
 	public void drawImage(Image image, int srcX, int srcY, int srcWidth,
 			int srcHeight, int destX, int destY, int destWidth, int destHeight) {
-		// TODO
+		gc.drawImage(image,srcX,srcY,srcWidth,srcHeight, destX, destY,destWidth,destHeight);
 	}
 
 	/**
@@ -395,7 +420,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawLine(int x1, int y1, int x2, int y2) {
-		// TODO
+		gc.drawLine(x1,y1,x2,y2);
 	}
 
 	/**
@@ -461,7 +486,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void drawPath(Path path) {
-		// TODO
+		gc.drawPath(path);
 	}
 
 	/**
@@ -485,7 +510,7 @@ public final class GC extends Resource {
 	 * @since 3.0
 	 */
 	public void drawPoint(int x, int y) {
-		// TODO
+		gc.drawPoint(x,y);
 	}
 
 	/**
@@ -511,7 +536,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawPolygon(int[] pointArray) {
-		// TODO
+		gc.drawPolygon(pointArray);
 	}
 
 	/**
@@ -536,7 +561,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawPolyline(int[] pointArray) {
-		// TODO
+		gc.drawPolyline(pointArray);
 	}
 
 	/**
@@ -561,7 +586,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawRectangle(int x, int y, int width, int height) {
-		// TODO
+		gc.drawRectangle(x,y,width,height);
 	}
 
 	/**
@@ -585,7 +610,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawRectangle(Rectangle rect) {
-		// TODO
+		drawRectangle(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -619,7 +644,7 @@ public final class GC extends Resource {
 	 */
 	public void drawRoundRectangle(int x, int y, int width, int height,
 			int arcWidth, int arcHeight) {
-		// TODO
+		gc.drawRoundRectangle( x,  y,  width,  height,  arcWidth,  arcHeight);
 	}
 
 	/**
@@ -648,7 +673,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawString(String string, int x, int y) {
-		// TODO
+		drawString(string,x,y, false);
 	}
 
 	/**
@@ -682,7 +707,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawString(String string, int x, int y, boolean isTransparent) {
-		// TODO
+		drawText(string, x, y, isTransparent ? SWT.DRAW_TRANSPARENT : 0);
 	}
 
 	/**
@@ -711,7 +736,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawText(String string, int x, int y) {
-		// TODO
+		drawText(string, x, y, SWT.DRAW_DELIMITER | SWT.DRAW_TAB);
 	}
 
 	/**
@@ -744,7 +769,9 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawText(String string, int x, int y, boolean isTransparent) {
-		// TODO
+		int flags = SWT.DRAW_DELIMITER | SWT.DRAW_TAB;
+		if (isTransparent) flags |= SWT.DRAW_TRANSPARENT;
+		drawText(string, x, y, flags);
 	}
 
 	/**
@@ -790,7 +817,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void drawText(String string, int x, int y, int flags) {
-		// TODO
+		gc.drawText(string, x, y, flags);
 	}
 
 	/**
@@ -838,7 +865,7 @@ public final class GC extends Resource {
 	 */
 	public void fillArc(int x, int y, int width, int height, int startAngle,
 			int arcAngle) {
-		// TODO
+		gc.fillArc(x,y,width,height,startAngle,arcAngle);
 	}
 
 	/**
@@ -870,7 +897,7 @@ public final class GC extends Resource {
 	 */
 	public void fillGradientRectangle(int x, int y, int width, int height,
 			boolean vertical) {
-		// TODO
+		gc.fillGradientRectangle(x,y,width,height,vertical);
 	}
 
 	/**
@@ -897,7 +924,7 @@ public final class GC extends Resource {
 	 * @see #drawOval
 	 */
 	public void fillOval(int x, int y, int width, int height) {
-		// TODO
+		gc.fillOval(x, y, width, height);
 	}
 
 	/**
@@ -929,7 +956,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void fillPath(Path path) {
-		// TODO
+		gc.fillPath(path);
 	}
 
 	/**
@@ -957,7 +984,7 @@ public final class GC extends Resource {
 	 * @see #drawPolygon
 	 */
 	public void fillPolygon(int[] pointArray) {
-		// TODO
+		gc.fillPolygon(pointArray);
 	}
 
 	/**
@@ -982,7 +1009,7 @@ public final class GC extends Resource {
 	 * @see #drawRectangle(int, int, int, int)
 	 */
 	public void fillRectangle(int x, int y, int width, int height) {
-		// TODO
+		gc.fillRectangle(x, y, width, height);
 	}
 
 	/**
@@ -1005,7 +1032,7 @@ public final class GC extends Resource {
 	 * @see #drawRectangle(int, int, int, int)
 	 */
 	public void fillRectangle(Rectangle rect) {
-		// TODO
+		fillRectangle(rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/**
@@ -1035,7 +1062,7 @@ public final class GC extends Resource {
 	 */
 	public void fillRoundRectangle(int x, int y, int width, int height,
 			int arcWidth, int arcHeight) {
-		// TODO
+		gc.fillRoundRectangle( x,  y,  width,  height,  arcWidth,  arcHeight);
 	}
 
 	/**
@@ -1058,8 +1085,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public int getAdvanceWidth(char ch) {
-		// TODO
-		return 0;
+		return stringExtent(new String(new char[]{ch})).x;
 	}
 
 	/**
@@ -1091,8 +1117,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public boolean getAdvanced() {
-		// TODO
-		return false;
+		return true;
 	}
 
 	/**
@@ -1110,8 +1135,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public int getAlpha() {
-		// TODO
-		return 0;
+		return alpha;
 	}
 
 	/**
@@ -1133,8 +1157,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public int getAntialias() {
-		// TODO
-		return 0;
+		return antialias;
 	}
 
 	/**
@@ -1149,8 +1172,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Color getBackground() {
-		// TODO
-		return null;
+		return gc.getBackground();
 	}
 
 	/**
@@ -1210,8 +1232,20 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Rectangle getClipping() {
-		// TODO
-		return null;
+		Rectangle r = drawable.getBounds();
+//		if( drawable instanceof Control ) {
+//			r = ((Control) drawable).getBounds();
+//		} else if( drawable instanceof Image ) {
+//			r = ((Image) drawable).getBounds();
+//		} else {
+//			r = new Rectangle(0, 0, 0, 0);
+//		}
+		Region reg = new Region();
+		reg.add(r);
+		if( clipping != null ) {
+			reg.intersect(clipping);
+		}
+		return reg.getBounds();
 	}
 
 	/**
@@ -1233,9 +1267,25 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void getClipping(Region region) {
-		// TODO
+		region.subtract(region);
+		region.add(drawable.getBounds());
+		if( clipping != null ) {
+			region.intersect(clipping);
+		}
 	}
 
+	private static Device getDevice(Drawable drawable) {
+		if( drawable instanceof Device ) {
+			return (Device) drawable;
+		} else if( drawable instanceof Widget ) {
+			return ((Widget) drawable).getDisplay();
+		} else if( drawable instanceof Resource ) {
+			return ((Resource)drawable).getDevice();
+		} else {
+			return Display.getCurrent();
+		}
+	}
+	
 	/**
 	 * Returns the receiver's fill rule, which will be one of
 	 * <code>SWT.FILL_EVEN_ODD</code> or <code>SWT.FILL_WINDING</code>.
@@ -1268,8 +1318,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Font getFont() {
-		// TODO
-		return null;
+		return gc.getFont();
 	}
 
 	/**
@@ -1285,7 +1334,21 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public FontMetrics getFontMetrics() {
-		return new FontMetrics(0, 0, 0, 0, 0);
+		Font f = Display.getCurrent().getSystemFont();
+		if( drawable instanceof Control ) {
+			f = ((Control) drawable).getFont();
+		}
+		
+		String s = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";  //$NON-NLS-1$
+		TextLayoutFactory factory = Toolkit.getToolkit().getTextLayoutFactory();
+		com.sun.javafx.scene.text.TextLayout layout = factory.createLayout();
+		layout.setContent(s, f.internal_getNativeObject().impl_getNativeFont());
+		BaseBounds bounds = layout.getBounds();
+		int averageCharWidth = (int)(Math.ceil(bounds.getWidth()) / s.length());
+		
+		com.sun.javafx.tk.FontMetrics fontMetrics = PrismFontLoader.getInstance().getFontMetrics(f.internal_getNativeObject());
+		
+		return new FontMetrics((int)fontMetrics.getAscent(), (int)fontMetrics.getDescent(), averageCharWidth, (int)fontMetrics.getLeading(), (int)fontMetrics.getLineHeight());
 	}
 
 	/**
@@ -1300,8 +1363,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Color getForeground() {
-		// TODO
-		return null;
+		return gc.getForeground();
 	}
 
 	/**
@@ -1506,8 +1568,7 @@ public final class GC extends Resource {
 	 * @since 2.1.2
 	 */
 	public int getStyle() {
-		// TODO
-		return 0;
+		return style;
 	}
 
 	/**
@@ -1581,6 +1642,10 @@ public final class GC extends Resource {
 		return false;
 	}
 
+	public void internal_drawShape(int x, int y, Shape shape) {
+		gc.drawShape(x,y,shape);
+	}
+	
 	/**
 	 * Returns <code>true</code> if the receiver has a clipping region set into
 	 * it, and <code>false</code> otherwise. If this method returns false, the
@@ -1667,7 +1732,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setAdvanced(boolean advanced) {
-		// TODO
+		// Nothing to do here
 	}
 
 	/**
@@ -1695,7 +1760,8 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setAlpha(int alpha) {
-		// TODO
+		this.alpha = alpha;
+		gc.setAlpha(alpha);
 	}
 
 	/**
@@ -1732,7 +1798,8 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setAntialias(int antialias) {
-		// TODO
+		// Not supported on FX
+		this.antialias = antialias;
 	}
 
 	/**
@@ -1755,7 +1822,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setBackground(Color color) {
-		// TODO
+		gc.setBackground(color);
 	}
 
 	/**
@@ -1788,7 +1855,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setBackgroundPattern(Pattern pattern) {
-		// TODO
+		gc.setBackgroundPattern(pattern);
 	}
 
 	/**
@@ -1811,7 +1878,9 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setClipping(int x, int y, int width, int height) {
-		// TODO
+		Region r = new Region();
+		r.add(x, y, width, height);
+		setClipping(r);
 	}
 
 	/**
@@ -1864,7 +1933,13 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setClipping(Rectangle rect) {
-		// TODO
+		if( rect != null ) {
+			Region r = new Region();
+			r.add(rect);
+			setClipping(r);
+		} else {
+			setClipping((Region)null);
+		}
 	}
 
 	/**
@@ -1887,7 +1962,8 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setClipping(Region region) {
-		// TODO
+		this.clipping = region;
+		gc.setClipping(region);
 	}
 
 	/**
@@ -1911,7 +1987,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setFont(Font font) {
-		// TODO
+		gc.setFont(font);
 	}
 
 	/**
@@ -1959,7 +2035,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setForeground(Color color) {
-		// TODO
+		gc.setForeground(color);
 	}
 
 	/**
@@ -1992,7 +2068,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setForegroundPattern(Pattern pattern) {
-		// TODO
+		gc.setForegroundPattern(pattern);
 	}
 
 	/**
@@ -2085,7 +2161,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setLineCap(int cap) {
-		// TODO
+		gc.setLineCap(cap);
 	}
 
 	/**
@@ -2135,7 +2211,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setLineJoin(int join) {
-		// TODO
+		gc.setLineJoin(join);
 	}
 
 	/**
@@ -2158,7 +2234,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setLineStyle(int lineStyle) {
-		// TODO
+		gc.setLineStyle(lineStyle);
 	}
 
 	/**
@@ -2181,7 +2257,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public void setLineWidth(int lineWidth) {
-		// TODO
+		gc.setLineWidth(lineWidth);
 	}
 
 	/**
@@ -2253,7 +2329,7 @@ public final class GC extends Resource {
 	 * @since 3.1
 	 */
 	public void setTransform(Transform transform) {
-		// TODO
+		gc.setTransform(transform);
 	}
 
 	/**
@@ -2309,8 +2385,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Point stringExtent(String string) {
-		// TODO
-		return new Point(0, 0);
+		return gc.stringExtent(string);
 	}
 
 	/**
@@ -2337,8 +2412,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Point textExtent(String string) {
-		// TODO
-		return new Point(0, 0);
+		return textExtent(string, SWT.DRAW_DELIMITER | SWT.DRAW_TAB);
 	}
 
 	/**
@@ -2378,8 +2452,7 @@ public final class GC extends Resource {
 	 *                </ul>
 	 */
 	public Point textExtent(String string, int flags) {
-		// TODO
-		return new Point(0, 0);
+		return gc.textExtent(string,flags);
 	}
 
 }

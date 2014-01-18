@@ -10,10 +10,13 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.Arrays;
-
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.scene.control.ComboBox;
-import javafx.scene.layout.Region;
+import javafx.scene.input.KeyEvent;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -22,6 +25,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are controls that allow the user to choose an item
@@ -65,13 +69,24 @@ import org.eclipse.swt.graphics.Point;
  */
 public class Combo extends Composite {
 
+	private ComboBox<String> control;
+	private ObservableList<String> items;
+	private static EventHandler<KeyEvent> DEFAULT_SELECTION_HANDLER;
+	
 	/**
 	 * the operating system limit for the number of characters
 	 * that the text field in an instance of this class can hold
 	 */
-	public final static int LIMIT = 1000; // TODO
-
-	ComboBox<String> comboBox;
+	public static final int LIMIT;
+	
+	/*
+	* These values can be different on different platforms.
+	* Therefore they are not initialized in the declaration
+	* to stop the compiler from inlining.
+	*/
+	static {
+		LIMIT = 0x7FFFFFFF;
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -134,7 +149,7 @@ public class Combo extends Composite {
 	 * @see #add(String,int)
 	 */
 	public void add(String string) {
-		comboBox.getItems().add(string);
+		items.add(string);
 	}
 
 	/**
@@ -167,7 +182,7 @@ public class Combo extends Composite {
 	 * @see #add(String)
 	 */
 	public void add(String string, int index) {
-		comboBox.getItems().add(index, string);
+		items.add(index, string);
 	}
 
 	/**
@@ -194,7 +209,10 @@ public class Combo extends Composite {
 	 * @see #removeModifyListener
 	 */
 	public void addModifyListener(ModifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Modify, typedListener);
 	}
 
 	/**
@@ -227,7 +245,11 @@ public class Combo extends Composite {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Selection,typedListener);
+		addListener (SWT.DefaultSelection,typedListener);
 	}
 
 	/**
@@ -256,7 +278,10 @@ public class Combo extends Composite {
 	 * @since 3.1
 	 */
 	public void addVerifyListener(VerifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		TypedListener typedListener = new TypedListener (listener);
+		addListener (SWT.Verify, typedListener);
 	}
 
 	/**
@@ -279,7 +304,8 @@ public class Combo extends Composite {
 	 * @see #deselectAll
 	 */
 	public void clearSelection() {
-		comboBox.getEditor().clear();
+		checkWidget ();
+		control.getSelectionModel().clearSelection();
 	}
 
 	/**
@@ -299,15 +325,16 @@ public class Combo extends Composite {
 	 * @since 2.1
 	 */
 	public void copy() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	@Override
-	void createNativeObject() {
-		comboBox = new ComboBox<String>();
-		if ((style & SWT.READ_ONLY) !=0) comboBox.setEditable(false);
-		else comboBox.setEditable(true);
-		if ((style & SWT.SIMPLE)!=0) throw new IllegalArgumentException("SWT.SIMPLE NOT IMPLEMENTED YET");
+	protected ComboBox<String> createWidget() {
+		control = new ComboBox<String>();
+		control.setEditable((style & SWT.READ_ONLY) != SWT.READ_ONLY);
+		items = FXCollections.observableArrayList();
+		control.setItems(items);
+		return control;
 	}
 	
 	/**
@@ -328,7 +355,7 @@ public class Combo extends Composite {
 	 * @since 2.1
 	 */
 	public void cut() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -348,7 +375,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void deselect(int index) {
-		comboBox.getSelectionModel().clearSelection(index);
+		checkWidget();
+		control.getSelectionModel().clearSelection(index);
 	}
 
 	/**
@@ -369,7 +397,7 @@ public class Combo extends Composite {
 	 * @see #clearSelection
 	 */
 	public void deselectAll() {
-		comboBox.getSelectionModel().clearSelection();
+		control.getSelectionModel().clearSelection();
 	}
 
 	/**
@@ -389,7 +417,8 @@ public class Combo extends Composite {
 	 * @since 3.8
 	 */
 	public Point getCaretLocation() {
-		return null;//TODO
+		Util.logNotImplemented();
+		return null;
 	}
 
 	/**
@@ -411,9 +440,26 @@ public class Combo extends Composite {
 	 * @since 3.8
 	 */
 	public int getCaretPosition() {
-		return comboBox.getEditor().getCaretPosition();
+		Util.logNotImplemented();
+		return 0;
 	}
 
+	private static EventHandler<KeyEvent> getDefaultSelecionHandler() {
+		if(DEFAULT_SELECTION_HANDLER==null){
+			DEFAULT_SELECTION_HANDLER = new EventHandler<KeyEvent>() {
+				
+				@Override
+				public void handle(KeyEvent event) {
+					if(event.getCharacter().contains("\r") || event.getCharacter().contains("\n")) {
+						Event evt = new Event();
+						Widget.getWidget(event.getSource()).internal_sendEvent(SWT.DefaultSelection, evt, true);
+					}
+				}
+			};
+		}
+		return DEFAULT_SELECTION_HANDLER;
+	}
+	
 	/**
 	 * Returns the item at the given, zero-relative index in the receiver's
 	 * list. Throws an exception if the index is out of range.
@@ -437,7 +483,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public String getItem(int index) {
-		return comboBox.getItems().get(index);
+		checkWidget();
+		return items.get(index);
 	}
 
 	/**
@@ -454,7 +501,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int getItemCount() {
-		return comboBox.getItems().size();
+		return items.size();
 	}
 
 	/**
@@ -472,7 +519,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int getItemHeight() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -495,7 +542,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public String[] getItems() {
-		return (String[])comboBox.getItems().toArray();
+		return items.toArray(new String[items.size()]);
 	}
 
 	/**
@@ -520,8 +567,8 @@ public class Combo extends Composite {
 	 * @since 3.4
 	 */
 	public boolean getListVisible() {
-		// TODO
-		return false;
+		checkWidget();
+		return control.isShowing();
 	}
 
 	/**
@@ -546,7 +593,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public Point getSelection() {
-		// TODO
+		Util.logNotImplemented();
 		return null;
 	}
 
@@ -565,7 +612,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int getSelectionIndex() {
-		return comboBox.getSelectionModel().getSelectedIndex();
+		checkWidget();
+		return control.getSelectionModel().getSelectedIndex();
 	}
 
 	/**
@@ -583,10 +631,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public String getText() {
-		String editableText = comboBox.getEditor().getText();
-		String ultimateEditableText = editableText==null?"":editableText;
-		String ultimateSelectedText = comboBox.getSelectionModel().getSelectedItem()==null?"":comboBox.getSelectionModel().getSelectedItem();
-		return comboBox.isEditable()?ultimateEditableText:ultimateSelectedText;
+		checkWidget();
+		return control.getValue();
 	}
 
 	/**
@@ -603,7 +649,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int getTextHeight() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -650,7 +696,8 @@ public class Combo extends Composite {
 	 * @since 3.0
 	 */
 	public int getVisibleItemCount() {
-		return comboBox.getVisibleRowCount();
+		checkWidget();
+		return control.getVisibleRowCount();
 	}
 
 	/**
@@ -675,7 +722,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int indexOf(String string) {
-		return comboBox.getItems().indexOf(string);
+		checkWidget();
+		return items.indexOf(string);
 	}
 
 	/**
@@ -703,10 +751,75 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public int indexOf(String string, int start) {
-		// TODO
-		return 0;
+		checkWidget();
+		return items.subList(start, items.size()-1).indexOf(string);
 	}
 
+	@Override
+	protected void initListeners() {
+		super.initListeners();
+		control.getSelectionModel().selectedIndexProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				Event evt = new Event();
+				internal_sendEvent(SWT.Selection, evt, true); 
+			}
+		});
+		if( control.isEditable() ) {
+			registerConnection(control.getEditor());
+			control.getEditor().addEventHandler(KeyEvent.KEY_TYPED, getDefaultSelecionHandler());
+		}
+	}
+	
+	@Override
+	protected void internal_attachControl(Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+	
+	protected void internal_attachControl(int idx, Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+	
+	@Override
+	protected void internal_detachControl(Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+	
+	@Override
+	protected void internal_doLayout() {
+	}
+
+	@Override
+	public ComboBox<String> internal_getNativeObject() {
+		return control;
+	}
+	
+	@Override
+	protected double internal_getHeight() {
+		return control.getHeight();
+	}
+	
+	@Override
+	protected double internal_getPrefHeight() {
+		return control.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+	
+	@Override
+	protected double internal_getPrefWidth() {
+		return control.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+	
+	@Override
+	protected double internal_getWidth() {
+		return control.getWidth();
+	}
+	
+	@Override
+	protected void internal_setLayout(Layout layout) {
+		// No children supported
+	}
+	
 	/**
 	 * Pastes text from clipboard.
 	 * <p>
@@ -725,7 +838,9 @@ public class Combo extends Composite {
 	 * @since 2.1
 	 */
 	public void paste() {
-		// TODO
+		checkWidget ();
+		//TODO No JavaFX API yet
+		throw new UnsupportedOperationException();
 	}
 
 	/**
@@ -750,7 +865,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void remove(int index) {
-		comboBox.getItems().remove(index);
+		checkWidget();
+		items.remove(index);
 	}
 
 	/**
@@ -777,7 +893,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void remove(int start, int end) {
-		comboBox.getItems().remove(start, end);
+		checkWidget();
+		items.remove(start, end);
 	}
 
 	/**
@@ -802,7 +919,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void remove(String string) {
-		comboBox.getItems().remove(string);
+		checkWidget();
+		items.remove(string);
 	}
 
 	/**
@@ -818,8 +936,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void removeAll() {
-		comboBox.getItems().clear();
-		comboBox.getEditor().clear();
+		checkWidget();
+		items.clear();
 	}
 
 	/**
@@ -845,7 +963,9 @@ public class Combo extends Composite {
 	 * @see #addModifyListener
 	 */
 	public void removeModifyListener(ModifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener(SWT.Modify, listener);
 	}
 
 	/**
@@ -871,7 +991,10 @@ public class Combo extends Composite {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener(SWT.Selection, listener);
+		unregisterListener(SWT.DefaultSelection,listener);	
 	}
 
 	/**
@@ -899,7 +1022,9 @@ public class Combo extends Composite {
 	 * @since 3.1
 	 */
 	public void removeVerifyListener(VerifyListener listener) {
-		// TODO
+		checkWidget ();
+		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
+		unregisterListener(SWT.Verify, listener);
 	}
 
 	/**
@@ -919,7 +1044,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void select(int index) {
-		comboBox.getSelectionModel().select(index);
+		checkWidget ();
+		control.getSelectionModel().select(index);
 	}
 
 	/**
@@ -947,7 +1073,9 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void setItem(int index, String string) {
-		comboBox.getItems().set(index, string);
+		checkWidget ();
+		int idx = indexOf(string, index);
+		control.getSelectionModel().select(idx);
 	}
 
 	/**
@@ -971,7 +1099,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void setItems(String[] items) {
-		comboBox.getItems().setAll(Arrays.asList(items));
+		checkWidget ();
+		this.items.setAll(items);
 	}
 
 	/**
@@ -997,7 +1126,12 @@ public class Combo extends Composite {
 	 * @since 3.4
 	 */
 	public void setListVisible(boolean visible) {
-		// TODO
+		checkWidget ();
+		if( visible ) {
+			control.show();	
+		} else {
+			control.hide();
+		}
 	}
 
 	/**
@@ -1021,7 +1155,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void setSelection(Point selection) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -1053,7 +1187,8 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		comboBox.getEditor().setText(string);
+		checkWidget ();
+		control.setValue(string);
 	}
 
 	/**
@@ -1084,7 +1219,7 @@ public class Combo extends Composite {
 	 * @see #LIMIT
 	 */
 	public void setTextLimit(int limit) {
-		//TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -1109,7 +1244,8 @@ public class Combo extends Composite {
 	 * @since 3.0
 	 */
 	public void setVisibleItemCount(int count) {
-		comboBox.setVisibleRowCount(count);
+		checkWidget ();
+		control.setVisibleRowCount(count);
 	}
 	
 }

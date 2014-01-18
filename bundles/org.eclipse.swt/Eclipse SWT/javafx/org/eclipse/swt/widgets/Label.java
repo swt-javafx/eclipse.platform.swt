@@ -12,12 +12,17 @@ package org.eclipse.swt.widgets;
 
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Separator;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 
 /**
  * Instances of this class represent a non-selectable user interface object that
@@ -54,9 +59,8 @@ import org.eclipse.swt.graphics.Image;
  */
 public class Label extends Control {
 
-	private javafx.scene.control.Label label;
+	private javafx.scene.control.Label control;
 	private Separator separator;
-	
 	private Image image;
 	
 	/**
@@ -106,20 +110,31 @@ public class Label extends Control {
 		super(parent, style);
 	}
 
-	javafx.scene.layout.Region getNativeObject() {
-		if (label != null)
-			return label;
-		return separator;
-	};
-	
+	public Point computeSize(int wHint, int hHint, boolean flushCache) {
+		checkWidget ();
+		forceSizeProcessing();
+		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+
+		if (wHint != SWT.DEFAULT)
+			width = wHint;
+		if (hHint != SWT.DEFAULT)
+			height = hHint;
+
+		Point p = new Point(width, height);
+		return p;
+	}
+
 	@Override
-	void createNativeObject() {
+	protected Node createWidget() {
 		if( (style & SWT.SEPARATOR) != 0 ) {
 			separator = new Separator();
 			separator.setOrientation((style & SWT.VERTICAL) == SWT.VERTICAL ? Orientation.VERTICAL : Orientation.HORIZONTAL);
+			return separator;
 		} else {
-			label = new javafx.scene.control.Label();
-			label.setWrapText((style & SWT.WRAP) == SWT.WRAP);
+			control = new javafx.scene.control.Label();
+			control.setWrapText((style & SWT.WRAP) == SWT.WRAP);
+			return control;
 		}
 	}
 	
@@ -140,13 +155,22 @@ public class Label extends Control {
 	 *                </ul>
 	 */
 	public int getAlignment() {
-		checkWidget();
-		if ((style & SWT.SEPARATOR) != 0) return SWT.LEFT;
+		checkWidget ();
+		if ((style & SWT.SEPARATOR) != 0) return 0;
+		if ((style & SWT.LEFT) != 0) return SWT.LEFT;
 		if ((style & SWT.CENTER) != 0) return SWT.CENTER;
 		if ((style & SWT.RIGHT) != 0) return SWT.RIGHT;
 		return SWT.LEFT;
 	}
 
+	@Override
+	protected Font getDefaultFont() {
+		if( control.getFont() != null ) {
+			return new Font(getDisplay(), control.getFont(), true);	
+		}
+		return super.getDefaultFont();
+	}
+	
 	/**
 	 * Returns the receiver's image if it has one, or null if it does not.
 	 * 
@@ -181,10 +205,24 @@ public class Label extends Control {
 	public String getText() {
 		checkWidget ();
 		if ((style & SWT.SEPARATOR) != 0) return "";
-		String text = label.getText();
-		return text != null ? text : null;
+		return notNullString(control.getText());
 	}
 
+	@Override
+	public Region internal_getNativeObject() {
+		return control == null ? separator : control;
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+	
 	/**
 	 * Controls how text and images will be displayed in the receiver. The
 	 * argument should be one of <code>LEFT</code>, <code>RIGHT</code> or
@@ -221,8 +259,7 @@ public class Label extends Control {
 			p = Pos.CENTER_LEFT;
 			break;
 		}
-		
-		label.setAlignment(p);
+		control.setAlignment(p);
 	}
 
 	/**
@@ -248,7 +285,7 @@ public class Label extends Control {
 	public void setImage(Image image) {
 		checkWidget();
 		if ((style & SWT.SEPARATOR) != 0) return;
-		label.setGraphic(image == null ? null : new ImageView(image.getNativeObject()));
+		control.setGraphic(image == null ? null : new ImageView(image.internal_getImage()));
 	}
 
 	/**
@@ -286,7 +323,7 @@ public class Label extends Control {
 		checkWidget ();
 		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
 		if ((style & SWT.SEPARATOR) != 0) return;
-		label.setText(string);
+		control.setText(string);
 	}
 
 }

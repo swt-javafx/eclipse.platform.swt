@@ -12,11 +12,11 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
-import javafx.scene.layout.Region;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class support the layout of selectable tool bar items.
@@ -53,9 +53,9 @@ import org.eclipse.swt.graphics.Point;
  */
 public class ToolBar extends Composite {
 
-	javafx.scene.control.ToolBar toolBar;
-	java.util.List<ToolItem> items = new ArrayList<>();
-
+	private javafx.scene.control.ToolBar toolbar;
+	private java.util.List<ToolItem> items = new ArrayList<ToolItem>();
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -97,23 +97,12 @@ public class ToolBar extends Composite {
 	 */
 	public ToolBar(Composite parent, int style) {
 		super(parent, style);
-		createWidget();
 	}
 
-	void addItem(ToolItem item) {
-		checkWidget();
-		items.add(item);
-		toolBar.getItems().add(item.getNativeObject());
-	}
-
-	void addItem(ToolItem item, int index) {
-		items.add(index, item);
-		toolBar.getItems().add(index, item.getNativeObject());
-	}
-	
 	@Override
-	void createNativeObject() {
-		toolBar = new javafx.scene.control.ToolBar();
+	protected javafx.scene.control.ToolBar createWidget() {
+		toolbar = new javafx.scene.control.ToolBar();
+		return toolbar;
 	}
 	
 	/**
@@ -164,9 +153,9 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public ToolItem getItem(Point point) {
-		for (ToolItem item : items) {
-			if (item.getNativeObject().getBoundsInParent().contains(point.x, point.y)) {
-				return item;
+		for( ToolItem i : items ) {
+			if( i.internal_getNativeObject().getBoundsInParent().contains(point.x, point.y) ) {
+				return i;
 			}
 		}
 		return null;
@@ -229,7 +218,7 @@ public class ToolBar extends Composite {
 	 *                </ul>
 	 */
 	public int getRowCount() {
-		// TODO
+		Util.logNotImplemented();
 		return 1;
 	}
 
@@ -261,17 +250,54 @@ public class ToolBar extends Composite {
 		return items.indexOf(item);
 	}
 
-	@Override
-	void releaseChildren(boolean destroy) {
-		items.clear();
-		toolBar.getItems().clear();
-		super.releaseChildren (destroy);
+	boolean internal_mouseAsFilter() {
+		return true;
 	}
 	
-	void removeItem(ToolItem item) {
-		checkWidget();
-		items.remove(item);
-		toolBar.getItems().remove(item);
+	@Override
+	public javafx.scene.control.ToolBar internal_getNativeObject() {
+		return toolbar;
+	}
+	
+	@Override
+	protected void internal_attachControl(Control c) {
+	}
+	
+	@Override
+	protected void internal_attachControl(int idx, Control c) {
+	}
+	
+	@Override
+	protected void internal_detachControl(Control c) {
 	}
 
+	void internal_itemAdded(ToolItem item) {
+		items.add(item);
+		toolbar.getItems().add(item.internal_getNativeObject());
+	}
+
+	void internal_itemAdded(ToolItem item, int index) {
+		items.add(item);
+		toolbar.getItems().add(index, item.internal_getNativeObject());
+	}
+
+	void internal_itemRemoved(ToolItem item) {
+		items.remove(item);
+		toolbar.getItems().remove(item.internal_getNativeObject());
+	}
+	
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+
+	public void pack() {
+		forceSizeProcessing();
+		setSize((int)internal_getNativeControl().prefWidth(-1), (int)internal_getNativeControl().prefHeight(-1));
+	}
+	
 }

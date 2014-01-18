@@ -14,6 +14,9 @@ import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of the receiver represent an unselectable user interface object
@@ -41,6 +44,11 @@ import org.eclipse.swt.SWTException;
  */
 public class ProgressBar extends Control {
 
+	private int minimum = 0;
+	private int maximum = 100;
+	
+	private javafx.scene.control.ProgressBar bar;
+	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -82,6 +90,19 @@ public class ProgressBar extends Control {
 		super(parent, style);
 	}
 
+	@Override
+	public Point computeSize(int wHint, int hHint, boolean flushCache) {
+		System.err.println("COMPUTE: " + wHint + "/" +hHint );
+		return super.computeSize(wHint, hHint, flushCache);
+	}
+	
+	@Override
+	protected Object createWidget() {
+		bar = new javafx.scene.control.ProgressBar();
+		bar.setProgress(0.0);
+		return bar;
+	}
+	
 	/**
 	 * Returns the maximum value which the receiver will allow.
 	 * 
@@ -96,8 +117,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		return maximum;
 	}
 
 	/**
@@ -114,8 +134,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		return minimum;
 	}
 
 	/**
@@ -132,8 +151,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		return (int)(minimum + ((maximum - minimum) * bar.getProgress()));
 	}
 
 	/**
@@ -157,10 +175,24 @@ public class ProgressBar extends Control {
 	 * @since 3.4
 	 */
 	public int getState() {
-		// TODO
-		return 0;
+		Util.logNotImplemented();
+		return SWT.NORMAL;
 	}
 
+	@Override
+	public Region internal_getNativeObject() {
+		return bar;
+	}
+	
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new NoOpDrawableGC(this,getFont());
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+	}
+	
 	/**
 	 * Sets the maximum value that the receiver will allow. This new value will
 	 * be ignored if it is not greater than the receiver's current minimum
@@ -180,7 +212,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		this.maximum = value;
 	}
 
 	/**
@@ -203,7 +235,7 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		this.minimum = value;
 	}
 
 	/**
@@ -222,7 +254,8 @@ public class ProgressBar extends Control {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		double v = Math.max(0,Math.min(value / (maximum - minimum * 1.0), 100));
+		bar.setProgress(v);
 	}
 
 	/**
@@ -251,7 +284,7 @@ public class ProgressBar extends Control {
 	 * @since 3.4
 	 */
 	public void setState(int state) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 }

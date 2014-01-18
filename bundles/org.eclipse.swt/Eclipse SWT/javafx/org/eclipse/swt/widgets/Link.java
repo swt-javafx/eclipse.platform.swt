@@ -11,10 +11,13 @@
 package org.eclipse.swt.widgets;
 
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.TextFlow;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Device;
 
 /**
  * Instances of this class represent a selectable user interface object that
@@ -40,6 +43,8 @@ import org.eclipse.swt.events.SelectionListener;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class Link extends Control {
+
+	private String text;
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -111,9 +116,11 @@ public class Link extends Control {
 	}
 
 	@Override
-	void createNativeObject() {
-		// TODO Auto-generated method stub
-		
+	protected Object createWidget() {
+		StackPane p = new StackPane();
+		TextFlow flow = new TextFlow();
+		p.getChildren().add(flow);
+		return p;
 	}
 	
 	/**
@@ -131,8 +138,17 @@ public class Link extends Control {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		return text;
+	}
+
+	@Override
+	public DrawableGC internal_new_GC() {
+		return new Device.NoOpDrawableGC(this, getFont());
+	}
+
+	@Override
+	public void internal_dispose_GC(DrawableGC gc) {
+		
 	}
 
 	/**

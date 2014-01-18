@@ -9,14 +9,13 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/bidi"/>
-	<classpathentry kind="src" path="Eclipse SWT/emulated/coolbar"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/datetime"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/expand"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/taskbar"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/tooltip"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/tray"/>
 	<classpathentry kind="src" path="Eclipse SWT/javafx"/>
-	<classpathentry kind="src" path="Eclipse SWT/common"/>
+	<classpathentry excluding="org/eclipse/swt/graphics/Drawable.java" kind="src" path="Eclipse SWT/common"/>
 	<classpathentry kind="src" path="Eclipse SWT/common_j2se"/>
 	<classpathentry kind="src" path="Eclipse SWT PI/common"/>
 	<classpathentry kind="src" path="Eclipse SWT PI/common_j2se"/>
