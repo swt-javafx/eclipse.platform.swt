@@ -85,6 +85,14 @@ import org.eclipse.swt.graphics.Image;
  */
 public class Decorations extends Canvas {
 
+	private Button defaultButton;
+	private String text;
+	private Image image;
+	private boolean minimized;
+	private boolean maximized;
+	private Image[] images;
+	private Menu menuBar;
+	
 	Decorations() {
 	}
 	
@@ -153,8 +161,7 @@ public class Decorations extends Canvas {
 	 * @see #setDefaultButton(Button)
 	 */
 	public Button getDefaultButton() {
-		// TODO
-		return null;
+		return defaultButton;
 	}
 
 	/**
@@ -180,8 +187,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public Image getImage() {
-		// TODO
-		return null;
+		return this.image; 
 	}
 
 	/**
@@ -213,8 +219,7 @@ public class Decorations extends Canvas {
 	 * @since 3.0
 	 */
 	public Image[] getImages() {
-		// TODO
-		return null;
+		return this.images;
 	}
 
 	/**
@@ -234,8 +239,7 @@ public class Decorations extends Canvas {
 	 * @see #setMaximized
 	 */
 	public boolean getMaximized() {
-		// TODO
-		return false;
+		return maximized;
 	}
 
 	/**
@@ -253,8 +257,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public Menu getMenuBar() {
-		// TODO
-		return null;
+		return menuBar;
 	}
 
 	/**
@@ -274,8 +277,7 @@ public class Decorations extends Canvas {
 	 * @see #setMinimized
 	 */
 	public boolean getMinimized() {
-		// TODO
-		return false;
+		return this.minimized;
 	}
 
 	/**
@@ -294,8 +296,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		return this.text;
 	}
 
 	/**
@@ -329,7 +330,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public void setDefaultButton(Button button) {
-		// TODO
+		this.defaultButton = button;
 	}
 
 	/**
@@ -355,7 +356,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public void setImage(Image image) {
-		// TODO
+		this.image = image;
 	}
 
 	/**
@@ -387,7 +388,7 @@ public class Decorations extends Canvas {
 	 * @since 3.0
 	 */
 	public void setImages(Image[] images) {
-		// TODO
+		this.images = images;
 	}
 
 	/**
@@ -417,7 +418,7 @@ public class Decorations extends Canvas {
 	 * @see #setMinimized
 	 */
 	public void setMaximized(boolean maximized) {
-		// TODO
+		this.maximized = maximized;
 	}
 
 	/**
@@ -442,7 +443,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public void setMenuBar(Menu menu) {
-		// TODO
+		this.menuBar = menu;
 	}
 
 	/**
@@ -472,7 +473,7 @@ public class Decorations extends Canvas {
 	 * @see #setMaximized
 	 */
 	public void setMinimized(boolean minimized) {
-		// TODO
+		this.minimized = minimized;
 	}
 
 	/**
@@ -496,7 +497,7 @@ public class Decorations extends Canvas {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		// TODO
+		this.text = string;
 	}
 
 }

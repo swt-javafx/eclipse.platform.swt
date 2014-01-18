@@ -10,11 +10,14 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.scene.control.TreeTableColumn;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class represent a column in a tree widget.
@@ -42,6 +45,14 @@ import org.eclipse.swt.events.SelectionListener;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class TreeColumn extends Item {
+
+	private TreeTableColumn<TreeItem, ColumnItem> column;
+	private Tree parent;
+	private int index;
+	private String tooltipText;
+	
+	static class ColumnItem {
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -83,8 +94,7 @@ public class TreeColumn extends Item {
 	 */
 	public TreeColumn(Tree parent, int style) {
 		super(parent, style);
-		parent.addColumn(this);
-		// TODO
+		index = parent.getColumnCount();
 	}
 
 	/**
@@ -134,8 +144,7 @@ public class TreeColumn extends Item {
 	 */
 	public TreeColumn(Tree parent, int style, int index) {
 		super(parent, style);
-		parent.addColumn(this);
-		// TODO
+		this.index = index;
 	}
 
 	/**
@@ -162,7 +171,7 @@ public class TreeColumn extends Item {
 	 * @see #removeControlListener
 	 */
 	public void addControlListener(ControlListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -195,9 +204,15 @@ public class TreeColumn extends Item {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
+	@Override
+	protected TreeTableColumn<TreeItem, ColumnItem> createWidget() {
+		column = new TreeTableColumn<>();
+		return column;
+	}
+	
 	/**
 	 * Returns a value which describes the position of the text or image in the
 	 * receiver. The value will be one of <code>LEFT</code>, <code>RIGHT</code>
@@ -241,8 +256,8 @@ public class TreeColumn extends Item {
 	 * @since 3.2
 	 */
 	public boolean getMoveable() {
-		// TODO
-		return false;
+		Util.logNotImplemented();
+		return true;
 	}
 
 	/**
@@ -259,8 +274,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public Tree getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
 	/**
@@ -278,8 +292,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public boolean getResizable() {
-		// TODO
-		return false;
+		return column.isResizable();
 	}
 
 	/**
@@ -298,8 +311,8 @@ public class TreeColumn extends Item {
 	 * @since 3.2
 	 */
 	public String getToolTipText() {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return tooltipText;
 	}
 
 	/**
@@ -316,10 +329,14 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public int getWidth() {
-		// TODO
-		return 0;
+		return (int) column.getWidth();
 	}
 
+	@Override
+	public TreeTableColumn<TreeItem, ColumnItem> internal_getNativeObject() {
+		return column;
+	}
+	
 	/**
 	 * Causes the receiver to be resized to its preferred size. For a composite,
 	 * this involves computing the preferred size from its layout, if there is
@@ -335,7 +352,7 @@ public class TreeColumn extends Item {
 	 * 
 	 */
 	public void pack() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -361,7 +378,7 @@ public class TreeColumn extends Item {
 	 * @see #addControlListener
 	 */
 	public void removeControlListener(ControlListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -387,7 +404,7 @@ public class TreeColumn extends Item {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		Util.logNotImplemented();		
 	}
 
 	/**
@@ -438,7 +455,7 @@ public class TreeColumn extends Item {
 	 * @since 3.2
 	 */
 	public void setMoveable(boolean moveable) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -457,7 +474,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public void setResizable(boolean resizable) {
-		// TODO
+		column.setResizable(resizable);
 	}
 
 	/**
@@ -486,7 +503,8 @@ public class TreeColumn extends Item {
 	 * @since 3.2
 	 */
 	public void setToolTipText(String string) {
-		// TODO
+		Util.logNotImplemented();
+		this.tooltipText = string;
 	}
 
 	/**
@@ -504,7 +522,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public void setWidth(int width) {
-		// TODO
+		column.setPrefWidth(width);
 	}
 
 }

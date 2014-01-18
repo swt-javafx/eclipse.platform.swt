@@ -10,12 +10,19 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import javafx.util.Callback;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
+import org.eclipse.swt.widgets.Table.SWTTableRow;
 
 /**
  * Instances of this class represent a selectable user interface object that
@@ -37,6 +44,37 @@ import org.eclipse.swt.graphics.Rectangle;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class TableItem extends Item {
+
+	private String[] texts;
+	private Image[] images;
+	private Color[] backgrounds;
+	private Font[] fonts;
+	private Color[] foregrounds;
+	private boolean checked;
+	private boolean grayed;
+	
+	private Table parent;
+	private java.util.List<Registration> registrations;
+	
+	class Registration {
+		private int index;
+		private Callback<AttributeType, Void> callback;
+		
+		public Registration(int index, Callback<AttributeType, Void> callback) {
+			this.index = index;
+			this.callback = callback;
+		}
+		
+		public void dispose() {
+			registrations.remove(this);
+		}
+	}
+	
+	enum AttributeType {
+		TEXT,
+		IMAGE,
+		CHECK
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -80,10 +118,17 @@ public class TableItem extends Item {
 	 */
 	public TableItem(Table parent, int style, int index) {
 		super(parent, style);
-		parent.addItem(this);
-		// TODO
+		this.parent = parent;
+		this.registrations = new ArrayList<>();
+		parent.internal_itemAdded(this, index);
 	}
 
+	TableItem(Table parent) {
+		super(parent, SWT.NONE);
+		this.parent = parent;
+		this.registrations = new ArrayList<>();
+	}
+	
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
 	 * <code>Table</code>) and a style value describing its behavior and
@@ -122,9 +167,54 @@ public class TableItem extends Item {
 	 */
 	public TableItem(Table parent, int style) {
 		super(parent, style);
-		parent.addItem(this);
+		this.parent = parent;
+		this.registrations = new ArrayList<>();
+		parent.internal_itemAdded(this);
 	}
 
+	private <T> void arrayUpdate(AttributeType type, T[] originalAr, T[] newAr) {
+		newAr = Arrays.copyOf(newAr,newAr.length);
+		
+		T[] i1;
+		T[] i2;
+		if( originalAr.length > newAr.length ) {
+			i1 = originalAr;
+			i2 = newAr;
+		} else {
+			i1 = newAr;
+			i2 = originalAr;
+		}
+		
+		switch (type) {
+		case IMAGE:
+			images = (Image[]) newAr;
+			break;
+		case TEXT:
+			texts = (String[]) newAr;
+			break;
+		default:
+			throw new IllegalArgumentException("Unsupported type '"+type+"'");
+		}
+		
+		for( int i = 0; i < i1.length; i++ ) {
+			if( i < i2.length ) {
+				if( i1[i] != i2[i] ) {
+					fireModification(i, type);
+				}
+			} else {
+				fireModification(i, type);
+			}
+		}
+	}
+	
+	private void fireModification(int index, AttributeType type) {
+		for( Registration r : registrations.toArray(new Registration[0]) ) {
+			if( r.index == index ) {
+				r.callback.call(type);
+			}
+		}
+	}
+	
 	/**
 	 * Returns the receiver's background color.
 	 * 
@@ -141,29 +231,8 @@ public class TableItem extends Item {
 	 * @since 2.0
 	 */
 	public Color getBackground() {
-		// TODO
-		return null;
-	}
-
-	/**
-	 * Returns a rectangle describing the size and location of the receiver's
-	 * text relative to its parent.
-	 * 
-	 * @return the bounding rectangle of the receiver's text
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
-	 * @since 3.2
-	 */
-	public Rectangle getBounds() {
-		// TODO
-		return null;
+		checkWidget();
+		return getBackground(0); 
 	}
 
 	/**
@@ -184,8 +253,40 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public Color getBackground(int index) {
-		// TODO
+		checkWidget();
+		if( backgrounds != null ) {
+			if( index <  backgrounds.length ) {
+				return backgrounds[index];	
+			} else if( backgrounds.length > 0 ) {
+				return backgrounds[0];
+			}
+		}
 		return null;
+	}
+
+	/**
+	 * Returns a rectangle describing the size and location of the receiver's
+	 * text relative to its parent.
+	 * 
+	 * @return the bounding rectangle of the receiver's text
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 * 
+	 * @since 3.2
+	 */
+	public Rectangle getBounds() {
+		checkWidget();
+		SWTTableRow row = parent.internal_getTableRow(this);
+		if( row != null ) {
+			return row.getBounds(0);
+		}
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -205,8 +306,12 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public Rectangle getBounds(int index) {
-		// TODO
-		return null;
+		checkWidget();
+		SWTTableRow row = parent.internal_getTableRow(this);
+		if( row != null ) {
+			return row.getBounds(index);
+		}
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -225,8 +330,8 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getChecked() {
-		// TODO
-		return false;
+		checkWidget();
+		return checked;
 	}
 
 	/**
@@ -246,8 +351,7 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public Font getFont() {
-		// TODO
-		return getDisplay().getSystemFont();
+		return getFont(0);
 	}
 
 	/**
@@ -269,8 +373,11 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public Font getFont(int index) {
-		// TODO
-		return getDisplay().getSystemFont();
+		checkWidget();
+		if( fonts != null && index < fonts.length ) {
+			return fonts[index];
+		}
+		return null;
 	}
 
 	/**
@@ -289,8 +396,7 @@ public class TableItem extends Item {
 	 * @since 2.0
 	 */
 	public Color getForeground() {
-		// TODO
-		return null;
+		return getForeground(0);
 	}
 
 	/**
@@ -312,7 +418,15 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public Color getForeground(int index) {
-		// TODO
+		checkWidget();
+		if( foregrounds != null ) {
+			if( index < foregrounds.length ) {
+				System.err.println(index + " =>" + foregrounds[index]);
+				return foregrounds[index];	
+			} else if( foregrounds.length > 0 ) {
+				return foregrounds[0];
+			}
+		}
 		return null;
 	}
 
@@ -331,10 +445,15 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getGrayed() {
-		// TODO
-		return false;
+		checkWidget();
+		return grayed;
 	}
 
+	@Override
+	public Image getImage() {
+		return getImage(0);
+	}
+	
 	/**
 	 * Returns the image stored at the given column index in the receiver, or
 	 * null if the image has not been set or if the column does not exist.
@@ -352,7 +471,9 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public Image getImage(int index) {
-		// TODO
+		if( images != null && index < images.length ) {
+			return images[index];
+		}
 		return null;
 	}
 
@@ -374,8 +495,8 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public Rectangle getImageBounds(int index) {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -410,10 +531,14 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public Table getParent() {
-		// TODO
-		return null;
+		return parent;
 	}
 
+	@Override
+	public String getText() {
+		return getText(0);
+	}
+	
 	/**
 	 * Returns the text stored at the given column index in the receiver, or
 	 * empty string if the text has not been set.
@@ -431,8 +556,11 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public String getText(int index) {
-		// TODO
-		return null;
+		if( texts != null && index < texts.length ) {
+			return Util.notNull(texts[index]);
+		}
+		
+		return "";
 	}
 
 	/**
@@ -455,10 +583,16 @@ public class TableItem extends Item {
 	 * @since 3.3
 	 */
 	public Rectangle getTextBounds(int index) {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 0, 0);
 	}
 
+	Registration internal_registerModificationListener(int index, Callback<AttributeType, Void> callback) {
+		Registration r = new Registration(index,callback);
+		registrations.add(r);
+		return r;
+	}
+	
 	/**
 	 * Sets the receiver's background color to the color specified by the
 	 * argument, or to the default system color for the item if the argument is
@@ -483,7 +617,7 @@ public class TableItem extends Item {
 	 * @since 2.0
 	 */
 	public void setBackground(Color color) {
-		// TODO
+		setBackground(0, color);
 	}
 
 	/**
@@ -512,7 +646,11 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public void setBackground(int index, Color color) {
-		// TODO
+		checkWidget();
+		if( backgrounds == null ) {
+			backgrounds = new Color[index+1];
+		}
+		backgrounds = Util.setIndexValue(index, backgrounds, color);
 	}
 
 	/**
@@ -531,7 +669,9 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setChecked(boolean checked) {
-		// TODO
+		checkWidget();
+		this.checked = checked;
+		fireModification(0, AttributeType.CHECK);
 	}
 
 	/**
@@ -558,7 +698,7 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public void setFont(Font font) {
-		// TODO
+		setFont(0, font);
 	}
 
 	/**
@@ -587,7 +727,11 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public void setFont(int index, Font font) {
-		// TODO
+		checkWidget();
+		if( fonts == null ) {
+			fonts = new Font[index+1];
+		}
+		Util.setIndexValue(index, fonts, font);
 	}
 
 	/**
@@ -614,7 +758,7 @@ public class TableItem extends Item {
 	 * @since 2.0
 	 */
 	public void setForeground(Color color) {
-		// TODO
+		setForeground(0, color);
 	}
 
 	/**
@@ -643,7 +787,11 @@ public class TableItem extends Item {
 	 * @since 3.0
 	 */
 	public void setForeground(int index, Color color) {
-		// TODO
+		checkWidget();
+		if( foregrounds == null ) {
+			foregrounds = new Color[index+1];
+		}
+		foregrounds = Util.setIndexValue(index, foregrounds, color);
 	}
 
 	/**
@@ -662,9 +810,15 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setGrayed(boolean grayed) {
-		// TODO
+		this.grayed = grayed;
+		fireModification(0, AttributeType.CHECK);
 	}
 
+	@Override
+	public void setImage(Image image) {
+		setImage(0,image);
+	}
+	
 	/**
 	 * Sets the receiver's image at a column.
 	 * 
@@ -687,7 +841,11 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setImage(int index, Image image) {
-		// TODO
+		if( images == null ) {
+			images = new Image[index];
+		}
+		images = Util.setIndexValue(index, images, image);
+		fireModification(index, AttributeType.IMAGE);
 	}
 
 	/**
@@ -711,7 +869,18 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setImage(Image[] images) {
-		// TODO
+		if( images.length == 0 ) {
+			Image[] oldImages = this.images;
+			this.images = null;
+			
+			if( oldImages != null ) {
+				for( int i = 0; i < oldImages.length; i++ ) {
+					fireModification(i, AttributeType.IMAGE);
+				}	
+			}
+		} else {
+			arrayUpdate(AttributeType.IMAGE, this.images == null ? new Image[0] : this.images, images);
+		}
 	}
 
 	/**
@@ -732,6 +901,11 @@ public class TableItem extends Item {
 		// TODO
 	}
 
+	@Override
+	public void setText(String string) {
+		setText(0,string);
+	}
+	
 	/**
 	 * Sets the receiver's text at a column
 	 * 
@@ -753,6 +927,11 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setText(int index, String string) {
+		if( texts == null ) {
+			texts = new String[index];
+		}
+		texts = Util.setIndexValue(index, texts, string);
+		fireModification(index, AttributeType.TEXT);
 		// TODO
 	}
 
@@ -775,7 +954,11 @@ public class TableItem extends Item {
 	 *                </ul>
 	 */
 	public void setText(String[] strings) {
-		// TODO
+		if( strings.length == 0 ) {
+			this.texts = null;
+		} else {
+			arrayUpdate(AttributeType.TEXT, this.texts == null ? new String[0] : this.texts, strings);
+		}
 	}
 
 }

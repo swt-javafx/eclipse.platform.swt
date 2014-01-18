@@ -10,12 +10,22 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.collections.ObservableList;
+import javafx.util.Callback;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Util;
+import org.eclipse.swt.widgets.Tree.SWTTreeRow;
 
 /**
  * Instances of this class represent a selectable user interface object that
@@ -38,6 +48,40 @@ import org.eclipse.swt.graphics.Rectangle;
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class TreeItem extends Item {
+
+	private javafx.scene.control.TreeItem<TreeItem> nativeObject;
+	
+	private Tree tree;
+	private TreeItem parentItem;
+	private java.util.List<Registration> registrations;
+	
+	private String[] texts;
+	private Image[] images;
+	private Color[] backgrounds;
+	private Font[] fonts;
+	private Color[] foregrounds;
+	private boolean checked;
+	private boolean grayed;
+	
+	class Registration {
+		private int index;
+		private Callback<AttributeType, Void> callback;
+		
+		public Registration(int index, Callback<AttributeType, Void> callback) {
+			this.index = index;
+			this.callback = callback;
+		}
+		
+		public void dispose() {
+			registrations.remove(this);
+		}
+	}
+	
+	enum AttributeType {
+		TEXT,
+		IMAGE,
+		CHECK
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent (which must be a
@@ -77,8 +121,9 @@ public class TreeItem extends Item {
 	 */
 	public TreeItem(Tree parent, int style) {
 		super(parent, style);
-		parent.addItem(this);
-		// TODO
+		this.tree = parent;
+		this.registrations = new ArrayList<>();
+		tree.internal_itemAdded(this);
 	}
 
 	/**
@@ -123,8 +168,9 @@ public class TreeItem extends Item {
 	 */
 	public TreeItem(Tree parent, int style, int index) {
 		super(parent, style);
-		parent.addItem(this);
-		// TODO
+		this.tree = parent;
+		this.registrations = new ArrayList<>();
+		tree.internal_itemAdded(this, index);
 	}
 
 	/**
@@ -165,7 +211,9 @@ public class TreeItem extends Item {
 	 */
 	public TreeItem(TreeItem parentItem, int style) {
 		super(parentItem, style);
-		// TODO
+		this.parentItem = parentItem;
+		this.registrations = new ArrayList<>();
+		parentItem.nativeObject.getChildren().add(nativeObject);
 	}
 
 	/**
@@ -209,10 +257,47 @@ public class TreeItem extends Item {
 	 * @see Widget#getStyle
 	 */
 	public TreeItem(TreeItem parentItem, int style, int index) {
-		super(null, style);
-		// TODO
+		super(parentItem, style);
+		this.parentItem = parentItem;
+		this.registrations = new ArrayList<>();
+		parentItem.nativeObject.getChildren().add(index, nativeObject);
 	}
 
+	private <T> void arrayUpdate(AttributeType type, T[] originalAr, T[] newAr) {
+		newAr = Arrays.copyOf(newAr,newAr.length);
+		
+		T[] i1;
+		T[] i2;
+		if( originalAr.length > newAr.length ) {
+			i1 = originalAr;
+			i2 = newAr;
+		} else {
+			i1 = newAr;
+			i2 = originalAr;
+		}
+		
+		switch (type) {
+		case IMAGE:
+			images = (Image[]) newAr;
+			break;
+		case TEXT:
+			texts = (String[]) newAr;
+			break;
+		default:
+			throw new IllegalArgumentException("Unsupported type '"+type+"'");
+		}
+		
+		for( int i = 0; i < i1.length; i++ ) {
+			if( i < i2.length ) {
+				if( i1[i] != i2[i] ) {
+					fireModification(i, AttributeType.IMAGE);
+				}
+			} else {
+				fireModification(i, AttributeType.IMAGE);
+			}
+		}
+	}
+	
 	/**
 	 * Clears the item at the given zero-relative index in the receiver. The
 	 * text, icon and other attributes of the item are set to the default value.
@@ -246,7 +331,7 @@ public class TreeItem extends Item {
 	 * @since 3.2
 	 */
 	public void clear(int index, boolean all) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -273,9 +358,54 @@ public class TreeItem extends Item {
 	 * @since 3.2
 	 */
 	public void clearAll(boolean all) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
+	@Override
+	protected javafx.scene.control.TreeItem<TreeItem> createWidget() {
+		nativeObject = new javafx.scene.control.TreeItem<>(this);
+		nativeObject.expandedProperty().addListener(new InvalidationListener() {
+			
+			@Override
+			public void invalidated(Observable observable) {
+				Event evt = new Event();
+				evt.item = TreeItem.this;
+				getTree().internal_sendEvent(nativeObject.isExpanded() ? SWT.Expand : SWT.Collapse, evt, true);
+			}
+		});
+		return nativeObject;
+	}
+	
+	@Override
+	public void dispose() {
+		if( tree != null ) {
+			tree.internal_itemRemoved(this);
+			tree = null;
+		} else {
+			parentItem.internal_itemRemoved(this);
+			nativeObject.setValue(null);
+			parentItem = null;
+		}
+		
+		javafx.scene.control.TreeItem<TreeItem>[] children = nativeObject.getChildren().toArray(new javafx.scene.control.TreeItem[0]);
+		// clear the list this makes the remove faster
+		nativeObject.getChildren().clear();
+		
+		for( javafx.scene.control.TreeItem<TreeItem> i : children ) {
+			i.getValue().dispose();
+		}
+		
+		super.dispose();
+	}
+	
+	private void fireModification(int index, AttributeType type) {
+		for( Registration r : registrations.toArray(new Registration[0]) ) {
+			if( r.index == index ) {
+				r.callback.call(type);
+			}
+		}
+	}
+	
 	/**
 	 * Returns the receiver's background color.
 	 * 
@@ -293,8 +423,8 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public Color getBackground() {
-		// TODO
-		return null;
+		checkWidget();
+		return getBackground(0); 
 	}
 
 	/**
@@ -315,7 +445,10 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Color getBackground(int index) {
-		// TODO
+		checkWidget();
+		if( backgrounds != null && index <  backgrounds.length ) {
+			return backgrounds[index];
+		}
 		return null;
 	}
 
@@ -338,8 +471,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Rectangle getBounds(int index) {
-		// TODO
-		return null;
+		SWTTreeRow row = getTree().internal_getTreeRow(this);
+		if( row != null ) {
+			return row.swt_getBounds(index);
+		}
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -357,8 +493,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public Rectangle getBounds() {
-		// TODO
-		return null;
+		return getBounds(0);
 	}
 
 	/**
@@ -376,8 +511,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getChecked() {
-		// TODO
-		return false;
+		return checked;
 	}
 
 	/**
@@ -395,8 +529,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getExpanded() {
-		// TODO
-		return false;
+		return grayed;
 	}
 
 	/**
@@ -416,8 +549,7 @@ public class TreeItem extends Item {
 	 * @since 3.0
 	 */
 	public Font getFont() {
-		// TODO
-		return getDisplay().getSystemFont();
+		return getFont(0);
 	}
 
 	/**
@@ -439,8 +571,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Font getFont(int index) {
-		// TODO
-		return getDisplay().getSystemFont();
+		checkWidget();
+		if( fonts != null && index < fonts.length ) {
+			return fonts[index];
+		}
+		return null;
 	}
 
 	/**
@@ -460,8 +595,7 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public Color getForeground() {
-		// TODO
-		return null;
+		return getForeground(0);
 	}
 
 	/**
@@ -483,7 +617,10 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Color getForeground(int index) {
-		// TODO
+		checkWidget();
+		if( foregrounds != null && index < foregrounds.length ) {
+			return foregrounds[index];
+		}
 		return null;
 	}
 
@@ -501,8 +638,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public boolean getGrayed() {
-		// TODO
-		return false;
+		return grayed;
 	}
 
 	/**
@@ -524,10 +660,17 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Image getImage(int index) {
-		// TODO
+		if( images != null && index < images.length ) {
+			return images[index];
+		}
 		return null;
 	}
 
+	@Override
+	public Image getImage() {
+		return getImage(0);
+	}
+	
 	/**
 	 * Returns a rectangle describing the size and location relative to its
 	 * parent of an image at a column in the tree.
@@ -547,8 +690,8 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public Rectangle getImageBounds(int index) {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 0, 0);
 	}
 
 	/**
@@ -566,8 +709,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public int getItemCount() {
-		// TODO
-		return 0;
+		return nativeObject.getChildren().size();
 	}
 
 	/**
@@ -595,8 +737,7 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public TreeItem getItem(int index) {
-		// TODO
-		return null;
+		return nativeObject.getChildren().get(index).getValue();
 	}
 
 	/**
@@ -618,8 +759,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public TreeItem[] getItems() {
-		// TODO
-		return null;
+		return Tree.extractItemArray(nativeObject.getChildren());
 	}
 
 	/**
@@ -636,8 +776,7 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public Tree getParent() {
-		// TODO
-		return null;
+		return getTree();
 	}
 
 	/**
@@ -655,10 +794,14 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public TreeItem getParentItem() {
-		// TODO
-		return null;
+		return parentItem;
 	}
 
+	@Override
+	public String getText() {
+		return getText(0);
+	}
+	
 	/**
 	 * Returns the text stored at the given column index in the receiver, or
 	 * empty string if the text has not been set.
@@ -678,8 +821,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public String getText(int index) {
-		// TODO
-		return null;
+		if( texts != null && index < texts.length ) {
+			return Util.notNull(texts[index]);
+		}
+		
+		return "";
 	}
 
 	/**
@@ -701,8 +847,15 @@ public class TreeItem extends Item {
 	 * @since 3.3
 	 */
 	public Rectangle getTextBounds(int index) {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return new Rectangle(0, 0, 0, 0);
+	}
+
+	private Tree getTree() {
+		if( tree == null ) {
+			return parentItem.getTree();
+		}
+		return tree;
 	}
 
 	/**
@@ -731,10 +884,25 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public int indexOf(TreeItem item) {
-		// TODO
-		return 0;
+		ObservableList<javafx.scene.control.TreeItem<TreeItem>> children = nativeObject.getChildren();
+		for( int i = 0; i < children.size(); i++ ) {
+			if( children.get(i).getValue() == item ) {
+				return i;
+			}
+		}
+		
+		return -1;
 	}
 
+	@Override
+	public javafx.scene.control.TreeItem<TreeItem> internal_getNativeObject() {
+		return nativeObject;
+	}
+
+	private void internal_itemRemoved(TreeItem item) {
+		nativeObject.getChildren().remove(item.nativeObject);
+	}
+	
 	/**
 	 * Removes all of the items from the receiver.
 	 * <p>
@@ -777,7 +945,7 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public void setBackground(Color color) {
-		// TODO
+		setBackground(0, color);
 	}
 
 	/**
@@ -807,7 +975,11 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public void setBackground(int index, Color color) {
-		// TODO
+		checkWidget();
+		if( backgrounds == null ) {
+			backgrounds = new Color[index+1];
+		}
+		Util.setIndexValue(index, backgrounds, color);
 	}
 
 	/**
@@ -825,7 +997,8 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public void setChecked(boolean checked) {
-		// TODO
+		this.checked = checked;
+		fireModification(0, AttributeType.CHECK);
 	}
 
 	/**
@@ -843,7 +1016,13 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public void setExpanded(boolean expanded) {
-		// TODO
+		getTree().internal_runNoEvent(new Runnable() {
+			
+			@Override
+			public void run() {
+				nativeObject.setExpanded(expanded);
+			}
+		});
 	}
 
 	/**
@@ -870,7 +1049,7 @@ public class TreeItem extends Item {
 	 * @since 3.0
 	 */
 	public void setFont(Font font) {
-		// TODO
+		setFont(0, font);
 	}
 
 	/**
@@ -899,7 +1078,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public void setFont(int index, Font font) {
-		// TODO
+		checkWidget();
+		if( fonts == null ) {
+			fonts = new Font[index+1];
+		}
+		Util.setIndexValue(index, fonts, font);
 	}
 
 	/**
@@ -927,7 +1110,7 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public void setForeground(Color color) {
-		// TODO
+		setForeground(0, color);
 	}
 
 	/**
@@ -957,7 +1140,11 @@ public class TreeItem extends Item {
 	 * 
 	 */
 	public void setForeground(int index, Color color) {
-		// TODO
+		checkWidget();
+		if( foregrounds == null ) {
+			foregrounds = new Color[index+1];
+		}
+		Util.setIndexValue(0, foregrounds, color);
 	}
 
 	/**
@@ -976,9 +1163,15 @@ public class TreeItem extends Item {
 	 *                </ul>
 	 */
 	public void setGrayed(boolean grayed) {
-		// TODO
+		this.grayed = grayed;
+		fireModification(0, AttributeType.CHECK);
 	}
 
+	@Override
+	public void setImage(Image image) {
+		setImage(0,image);
+	}
+	
 	/**
 	 * Sets the receiver's image at a column.
 	 * 
@@ -1003,7 +1196,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public void setImage(int index, Image image) {
-		// TODO
+		if( images == null ) {
+			images = new Image[index];
+		}
+		images = Util.setIndexValue(index, images, image);
+		fireModification(index, AttributeType.IMAGE);
 	}
 
 	/**
@@ -1029,7 +1226,18 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public void setImage(Image[] images) {
-		// TODO
+		if( images.length == 0 ) {
+			Image[] oldImages = this.images;
+			this.images = null;
+			
+			if( oldImages != null ) {
+				for( int i = 0; i < oldImages.length; i++ ) {
+					fireModification(i, AttributeType.IMAGE);
+				}	
+			}
+		} else {
+			arrayUpdate(AttributeType.IMAGE, this.images == null ? new Image[0] : this.images, images);
+		}
 	}
 
 	/**
@@ -1049,9 +1257,14 @@ public class TreeItem extends Item {
 	 * @since 3.2
 	 */
 	public void setItemCount(int count) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
+	@Override
+	public void setText(String string) {
+		setText(0,string);
+	}
+	
 	/**
 	 * Sets the receiver's text at a column
 	 * 
@@ -1075,7 +1288,10 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public void setText(int index, String string) {
-		// TODO
+		if( texts == null ) {
+			texts = new String[index];
+		}
+		texts = Util.setIndexValue(index, texts, text);
 	}
 
 	/**
@@ -1099,7 +1315,11 @@ public class TreeItem extends Item {
 	 * @since 3.1
 	 */
 	public void setText(String[] strings) {
-		// TODO
+		if( texts.length == 0 ) {
+			this.texts = null;
+		} else {
+			arrayUpdate(AttributeType.TEXT, this.texts == null ? new String[0] : this.texts, texts);
+		}
 	}
 
 }
