@@ -1292,7 +1292,7 @@ public class TreeItem extends Item {
 		if( texts == null ) {
 			texts = new String[index];
 		}
-		texts = Util.setIndexValue(index, texts, text);
+		texts = Util.setIndexValue(index, texts, string);
 	}
 
 	/**
@@ -1319,7 +1319,7 @@ public class TreeItem extends Item {
 		if( texts.length == 0 ) {
 			this.texts = null;
 		} else {
-			arrayUpdate(AttributeType.TEXT, this.texts == null ? new String[0] : this.texts, texts);
+			arrayUpdate(AttributeType.TEXT, this.texts == null ? new String[0] : this.texts, strings);
 		}
 	}
 
