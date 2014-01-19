@@ -353,11 +353,6 @@ public class Button extends Control {
 		}
 	}
 
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		Util.logNotImplemented();
-	}
-
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.

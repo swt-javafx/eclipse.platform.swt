@@ -538,11 +538,6 @@ public class Composite extends Scrollable {
 		controlContainer.getChildren().remove(c.internal_getNativeObject());
 	}
 	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		gc.dispose();
-	}
-	
 	protected void internal_doLayout() {
 		controlContainer.layout();
 	}

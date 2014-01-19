@@ -1548,7 +1548,7 @@ public abstract class Control extends Widget implements Drawable {
 	
 	@Override
 	public void internal_dispose_GC(DrawableGC gc) {
-		Util.logNotImplemented();
+		gc.dispose();
 	}
 
 	protected final void internal_reapplyStyle() {

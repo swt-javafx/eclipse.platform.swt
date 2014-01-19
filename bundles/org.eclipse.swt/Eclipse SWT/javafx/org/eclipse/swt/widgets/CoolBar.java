@@ -354,10 +354,6 @@ public class CoolBar extends Composite {
 //		pane.getChildren().remove(item.getChevronNode());
 	}
 	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-	}
-	
 	void internalRedraw(int x, int y, int width, int height) {
 		if ((style & SWT.VERTICAL) != 0) {
 			redraw(y, x, height, width, false);
