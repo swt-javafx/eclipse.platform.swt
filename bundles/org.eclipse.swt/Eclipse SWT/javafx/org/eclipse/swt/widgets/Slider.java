@@ -21,7 +21,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
 
@@ -365,16 +364,6 @@ public class Slider extends Control {
 		return slider;
 	}
 
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		Util.logNotImplemented();
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the user changes the receiver's value.

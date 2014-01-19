@@ -713,12 +713,15 @@ public class Composite extends Scrollable {
 	
 	@Override
 	public DrawableGC internal_new_GC() {
-		internal_initCanvas();
-		return new CanvasGC(canvas,
-				getFont(),
-				getBackground(),
-				getForeground()
-				);
+		if( canvas == null ) {
+			return super.internal_new_GC();
+		} else {
+			return new CanvasGC(canvas,
+					getFont(),
+					getBackground(),
+					getForeground()
+					);	
+		}
 	}
 	
 	protected void internal_setLayout(Layout layout) {

@@ -49,7 +49,6 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.custom.TableCursor;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.Drawable;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.GC;
@@ -1609,11 +1608,6 @@ public class Table extends Composite {
 	}
 	
 	@Override
-	public DrawableGC internal_new_GC() {
-		return new Device.NoOpDrawableGC(this,getFont());
-	}
-	
-	@Override
 	protected void internal_attachControl(Control c) {
 		if( c instanceof TableCursor ) { 
 			c.internal_getNativeObject().setManaged(false);
@@ -2433,6 +2427,10 @@ public class Table extends Composite {
 		if( flow != null ) {
 			SWTTableRow first = (SWTTableRow) getFlow().getFirstVisibleCellWithinViewPort();
 			SWTTableRow last = (SWTTableRow) getFlow().getLastVisibleCellWithinViewPort();
+			
+			if( first == null) {
+				return;
+			}
 			
 			int i = list.indexOf(first.getTableItem());
 			int j;

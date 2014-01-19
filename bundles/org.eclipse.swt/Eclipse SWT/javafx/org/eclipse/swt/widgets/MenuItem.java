@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCharacterCombination;
 import javafx.scene.input.KeyCode;
@@ -275,15 +276,16 @@ public class MenuItem extends Item {
 				}
 				initDone = true;
 				final Node node = internal_getNativeObject().impl_styleableGetNode();
-				node.focusedProperty().addListener(new InvalidationListener() {
-					
-					@Override
-					public void invalidated(Observable observable) {
-						if( node.isFocused() ) {
-							internal_sendEvent(SWT.Arm, new org.eclipse.swt.widgets.Event(), true);	
+				if( node != null ) {
+					node.focusedProperty().addListener(new InvalidationListener() {
+						@Override
+						public void invalidated(Observable observable) {
+							if( node.isFocused() ) {
+								internal_sendEvent(SWT.Arm, new org.eclipse.swt.widgets.Event(), true);	
+							}
 						}
-					}
-				});
+					});
+				}
 			}
 		};
 		
@@ -303,6 +305,10 @@ public class MenuItem extends Item {
 			nativeItem = new CheckMenuItem();
 		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
 			nativeItem = new RadioMenuItem("");
+		} else if( (style & SWT.SEPARATOR) == SWT.SEPARATOR ) {
+			nativeItem = new SeparatorMenuItem();
+		} else {
+			nativeItem = new javafx.scene.control.Menu("Placeholder");
 		}
 		return nativeItem;
 	}

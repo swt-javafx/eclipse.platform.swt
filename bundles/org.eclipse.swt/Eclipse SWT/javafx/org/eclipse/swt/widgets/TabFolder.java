@@ -19,8 +19,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class implement the notebook user interface metaphor. It
@@ -327,16 +327,6 @@ public class TabFolder extends Composite {
 	}
 
 	@Override
-	protected double internal_getHeight() {
-		return tabPane.getHeight();
-	}
-
-	@Override
-	protected double internal_getWidth() {
-		return tabPane.getWidth();
-	}
-
-	@Override
 	protected void internal_attachControl(Control c) {
 		// Not needed
 	}
@@ -352,8 +342,23 @@ public class TabFolder extends Composite {
 	}
 
 	@Override
-	protected void internal_setLayout(Layout layout) {
-		// Not needed
+		protected void internal_doLayout() {
+	//		super.internal_doLayout();
+		}
+
+	@Override
+	protected double internal_getHeight() {
+		return tabPane.getHeight();
+	}
+
+	@Override
+	protected double internal_getWidth() {
+		return tabPane.getWidth();
+	}
+
+	@Override
+	public TabPane internal_getNativeObject() {
+		return tabPane;
 	}
 
 	@Override
@@ -367,25 +372,16 @@ public class TabFolder extends Composite {
 	}
 
 	@Override
-	protected void internal_doLayout() {
-//		super.internal_doLayout();
-	}
-	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
+	protected javafx.scene.canvas.Canvas internal_initCanvas() {
+		Util.logNotImplemented();
+		return null;
+ 	}
 
 	@Override
-	public TabPane internal_getNativeObject() {
-		return tabPane;
+	protected void internal_setLayout(Layout layout) {
+		// Not needed
 	}
-	
+
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the user changes the receiver's selection.

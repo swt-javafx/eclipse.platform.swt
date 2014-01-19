@@ -48,6 +48,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.graphics.Region;
+import org.eclipse.swt.internal.MeasureGC;
 import org.eclipse.swt.internal.Util;
 
 /**
@@ -1542,8 +1543,7 @@ public abstract class Control extends Widget implements Drawable {
 
 	@Override
 	public DrawableGC internal_new_GC() {
-		Util.logNotImplemented();
-		return null;
+		return new MeasureGC(this);
 	}
 	
 	@Override

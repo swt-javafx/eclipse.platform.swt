@@ -14,7 +14,6 @@ import javafx.scene.control.TitledPane;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Rectangle;
 
 /**
@@ -173,16 +172,6 @@ public class Group extends Composite {
 	@Override
 	protected void internal_doLayout() {
 		pane.layout();
-	}
-	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
 	}
 	
 	/**

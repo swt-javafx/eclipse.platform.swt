@@ -247,10 +247,10 @@ public class CanvasGC implements DrawableGC {
 		//TODO Deal with flags
 		TextLayoutFactory factory = Toolkit.getToolkit().getTextLayoutFactory();
 		TextLayout layout = factory.createLayout();
-		layout.setContent(string, canvas.getGraphicsContext2D().getFont().impl_getNativeFont());
+		layout.setContent(string, getFont().internal_getNativeObject().impl_getNativeFont());
 		BaseBounds b = layout.getBounds();
 				
-		return new Point((int)b.getWidth(), (int)b.getHeight());
+		return new Point((int)Math.ceil(b.getWidth()), (int)Math.ceil(b.getHeight()));
 	}
 	
 	@Override
@@ -375,7 +375,7 @@ public class CanvasGC implements DrawableGC {
 		layout.setContent(string, getFont().internal_getNativeObject().impl_getNativeFont());
 		BaseBounds b = layout.getBounds();
 				
-		return new Point((int)b.getWidth(), (int)b.getHeight());
+		return new Point((int)Math.ceil(b.getWidth()), (int)Math.ceil(b.getHeight()));
 	}
 	
 //	@Override

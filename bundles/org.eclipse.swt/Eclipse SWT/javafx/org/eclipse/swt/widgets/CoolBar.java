@@ -22,7 +22,6 @@ import javafx.scene.shape.Line;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.internal.Util;
@@ -357,11 +356,6 @@ public class CoolBar extends Composite {
 	
 	@Override
 	public void internal_dispose_GC(DrawableGC gc) {
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
 	}
 	
 	void internalRedraw(int x, int y, int width, int height) {

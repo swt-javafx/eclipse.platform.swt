@@ -31,7 +31,6 @@ import org.eclipse.swt.events.SegmentListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
@@ -396,7 +395,7 @@ public class Text extends Scrollable {
 	@Override
 	protected Node createWidget() {
 		if( (style & SWT.MULTI) != 0 || (style & SWT.V_SCROLL) != 0 || (style & SWT.H_SCROLL) != 0 ) {
-			control = new TextArea();
+			control = new TextArea("");
 			if( (style & SWT.CENTER) == SWT.CENTER ) {
 				Util.logNotImplemented();
 			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
@@ -416,13 +415,14 @@ public class Text extends Scrollable {
 			}
 		} else if( (getStyle() & SWT.PASSWORD) != 0 ) {
 			control = new PasswordField();
+			control.setText("");
 			if( (style & SWT.CENTER) == SWT.CENTER ) {
 				((PasswordField)control).setAlignment(Pos.CENTER);
 			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
 				((PasswordField)control).setAlignment(Pos.CENTER_RIGHT);
 			}
 		} else {
-			control = new TextField();
+			control = new TextField("");
 			if( (style & SWT.CENTER) == SWT.CENTER ) {
 				((TextField)control).setAlignment(Pos.CENTER);
 			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
@@ -1019,16 +1019,6 @@ public class Text extends Scrollable {
 		return control;
 	}
 	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-	
 	/**
 	 * Inserts a string.
 	 * <p>
@@ -1484,6 +1474,9 @@ public class Text extends Scrollable {
 	 *                </ul>
 	 */
 	public void setText(String string) {
+		if (string == null) {
+			SWT.error(SWT.ERROR_NULL_ARGUMENT);
+		}
 		control.setText(string);
 	}
 

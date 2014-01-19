@@ -19,7 +19,6 @@ import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
@@ -213,16 +212,6 @@ public class Label extends Control {
 		return control == null ? separator : control;
 	}
 
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-	
 	/**
 	 * Controls how text and images will be displayed in the receiver. The
 	 * argument should be one of <code>LEFT</code>, <code>RIGHT</code> or

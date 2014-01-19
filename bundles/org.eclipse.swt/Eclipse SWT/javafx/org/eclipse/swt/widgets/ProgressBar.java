@@ -14,7 +14,6 @@ import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
 
@@ -181,15 +180,6 @@ public class ProgressBar extends Control {
 	@Override
 	public Region internal_getNativeObject() {
 		return bar;
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
 	}
 	
 	/**

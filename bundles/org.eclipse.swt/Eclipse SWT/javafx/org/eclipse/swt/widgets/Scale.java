@@ -13,7 +13,6 @@ package org.eclipse.swt.widgets;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.internal.Util;
 
 /**
@@ -208,16 +207,6 @@ public class Scale extends Control {
 	 */
 	public int getSelection() {
 		return (int) nativeWidget.getValue();
-	}
-
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new Device.NoOpDrawableGC(this, getFont());
-	}
-
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
 	}
 
 	@Override

@@ -29,7 +29,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
 
@@ -667,15 +666,6 @@ public class List extends Scrollable {
 		return control;
 	}
 
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-	
 	/**
 	 * Returns <code>true</code> if the item is selected, and <code>false</code>
 	 * otherwise. Indices out of range are ignored.

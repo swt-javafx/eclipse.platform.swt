@@ -449,7 +449,8 @@ public class Shell extends Decorations {
 		final Scene s = new Scene(internal_getNativeObject());
 		s.getStylesheets().add(getClass().getClassLoader().getResource("org/eclipse/swt/internal/swt.css").toExternalForm());
 		stage.setScene(s);
-		if( (getStyle() & SWT.TOOL) == SWT.TOOL ) {
+		//TODO what to do with SWT.TOOL???
+		if( /* (getStyle() & SWT.TOOL) == SWT.TOOL ||*/ (getStyle() & SWT.NO_TRIM) == SWT.NO_TRIM ) {
 			stage.initStyle(StageStyle.UNDECORATED);
 		}
 		
@@ -1182,7 +1183,13 @@ public class Shell extends Decorations {
 	}
 
 	public void setVisible (boolean visible) {
-		stage.show();
+		if( visible ) {
+			stage.show();	
+		} else {
+			if( stage.isShowing() ) {
+				stage.hide();	
+			}
+		}
 	}
 	
 }

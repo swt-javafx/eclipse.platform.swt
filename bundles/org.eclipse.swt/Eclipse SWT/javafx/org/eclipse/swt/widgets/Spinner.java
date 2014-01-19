@@ -16,6 +16,7 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
+import org.eclipse.swt.internal.Util;
 
 /**
  * Instances of this class are selectable user interface objects that allow the
@@ -63,6 +64,8 @@ public class Spinner extends Composite {
 	static {
 		LIMIT = 0x7FFFFFFF;
 	}
+
+	private javafx.scene.control.Slider slider;
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -127,8 +130,8 @@ public class Spinner extends Composite {
 	 * @see #removeModifyListener
 	 */
 	public void addModifyListener(ModifyListener listener) {
-		// TODO
-	}
+		Util.logNotImplemented();
+}
 
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
@@ -161,7 +164,7 @@ public class Spinner extends Composite {
 	 * @see SelectionEvent
 	 */
 	public void addSelectionListener(SelectionListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -188,7 +191,7 @@ public class Spinner extends Composite {
 	 * @see #removeVerifyListener
 	 */
 	void addVerifyListener(VerifyListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -206,7 +209,14 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void copy() {
-		// TODO
+		Util.logNotImplemented();
+	}
+
+	@Override
+	protected javafx.scene.control.Slider createWidget() {
+		slider = new javafx.scene.control.Slider(0, 100, 0);
+		slider.setMajorTickUnit(1);
+		return slider;
 	}
 
 	/**
@@ -225,7 +235,25 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void cut() {
-		// TODO
+		Util.logNotImplemented();
+	}
+
+	/**
+	 * Returns the number of decimal places used by the receiver.
+	 * 
+	 * @return the digits
+	 * 
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public int getDigits() {
+		Util.logNotImplemented();
+		return 0;
 	}
 
 	/**
@@ -243,8 +271,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public int getIncrement() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMajorTickUnit();
 	}
 
 	/**
@@ -261,8 +289,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public int getMaximum() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMax();
 	}
 
 	/**
@@ -279,8 +307,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public int getMinimum() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getMin();
 	}
 
 	/**
@@ -298,7 +326,7 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public int getPageIncrement() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -316,8 +344,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public int getSelection() {
-		// TODO
-		return 0;
+		checkWidget();
+		return (int) slider.getValue();
 	}
 
 	/**
@@ -337,8 +365,8 @@ public class Spinner extends Composite {
 	 * @since 3.4
 	 */
 	public String getText() {
-		// TODO
-		return null;
+		Util.logNotImplemented();
+		return "";
 	}
 
 	/**
@@ -362,26 +390,47 @@ public class Spinner extends Composite {
 	 * @since 3.4
 	 */
 	public int getTextLimit() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
-	/**
-	 * Returns the number of decimal places used by the receiver.
-	 * 
-	 * @return the digits
-	 * 
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public int getDigits() {
-		// TODO
-		return 0;
+	@Override
+	protected void internal_attachControl(Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+	
+	protected void internal_attachControl(int idx, Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+	
+	@Override
+	protected void internal_detachControl(Control c) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+
+	@Override
+	public javafx.scene.control.Slider internal_getNativeObject() {
+		return slider;
+	}
+
+	@Override
+	protected double internal_getHeight() {
+		return slider.getHeight();
+	}
+
+	@Override
+	protected double internal_getPrefHeight() {
+		return slider.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+
+	@Override
+	protected double internal_getPrefWidth() {
+		return slider.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+	}
+
+	@Override
+	protected double internal_getWidth() {
+		return slider.getWidth();
 	}
 
 	/**
@@ -400,7 +449,7 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void paste() {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -426,7 +475,7 @@ public class Spinner extends Composite {
 	 * @see #addModifyListener
 	 */
 	public void removeModifyListener(ModifyListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -452,7 +501,7 @@ public class Spinner extends Composite {
 	 * @see #addSelectionListener
 	 */
 	public void removeSelectionListener(SelectionListener listener) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -478,7 +527,38 @@ public class Spinner extends Composite {
 	 * @see #addVerifyListener
 	 */
 	void removeVerifyListener(VerifyListener listener) {
-		// TODO
+		Util.logNotImplemented();
+	}
+
+	/**
+	 * Sets the number of decimal places used by the receiver.
+	 * <p>
+	 * The digit setting is used to allow for floating point values in the
+	 * receiver. For example, to set the selection to a floating point value of
+	 * 1.37 call setDigits() with a value of 2 and setSelection() with a value
+	 * of 137. Similarly, if getDigits() has a value of 2 and getSelection()
+	 * returns 137 this should be interpreted as 1.37. This applies to all
+	 * numeric APIs.
+	 * </p>
+	 * 
+	 * @param value
+	 *            the new digits (must be greater than or equal to zero)
+	 * 
+	 * @exception IllegalArgumentException
+	 *                <ul>
+	 *                <li>ERROR_INVALID_ARGUMENT - if the value is less than
+	 *                zero</li>
+	 *                </ul>
+	 * @exception SWTException
+	 *                <ul>
+	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
+	 *                disposed</li>
+	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
+	 *                thread that created the receiver</li>
+	 *                </ul>
+	 */
+	public void setDigits(int value) {
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -497,7 +577,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void setIncrement(int value) {
-		// TODO
+		checkWidget();
+		slider.setMajorTickUnit(value);
 	}
 
 	/**
@@ -519,7 +600,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void setMaximum(int value) {
-		// TODO
+		checkWidget();
+		slider.setMax(value);
 	}
 
 	/**
@@ -541,7 +623,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void setMinimum(int value) {
-		// TODO
+		checkWidget();
+		slider.setMin(value);
 	}
 
 	/**
@@ -561,7 +644,7 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void setPageIncrement(int value) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -581,7 +664,8 @@ public class Spinner extends Composite {
 	 *                </ul>
 	 */
 	public void setSelection(int value) {
-		// TODO
+		checkWidget();
+		slider.setValue(value);
 	}
 
 	/**
@@ -614,38 +698,7 @@ public class Spinner extends Composite {
 	 * @since 3.4
 	 */
 	public void setTextLimit(int limit) {
-		// TODO
-	}
-
-	/**
-	 * Sets the number of decimal places used by the receiver.
-	 * <p>
-	 * The digit setting is used to allow for floating point values in the
-	 * receiver. For example, to set the selection to a floating point value of
-	 * 1.37 call setDigits() with a value of 2 and setSelection() with a value
-	 * of 137. Similarly, if getDigits() has a value of 2 and getSelection()
-	 * returns 137 this should be interpreted as 1.37. This applies to all
-	 * numeric APIs.
-	 * </p>
-	 * 
-	 * @param value
-	 *            the new digits (must be greater than or equal to zero)
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_INVALID_ARGUMENT - if the value is less than
-	 *                zero</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 */
-	public void setDigits(int value) {
-		// TODO
+		Util.logNotImplemented();
 	}
 
 	/**
@@ -682,7 +735,14 @@ public class Spinner extends Composite {
 	 */
 	public void setValues(int selection, int minimum, int maximum, int digits,
 			int increment, int pageIncrement) {
-		// TODO
+		setMinimum(minimum);
+		setMinimum(maximum);
+		setDigits(digits);
+		
+		setSelection(selection);
+
+		setIncrement(increment);
+		setPageIncrement(pageIncrement);
 	}
 
 }

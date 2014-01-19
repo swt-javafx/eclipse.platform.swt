@@ -10,14 +10,12 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.TextFlow;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device;
 
 /**
  * Instances of this class represent a selectable user interface object that
@@ -139,16 +137,6 @@ public class Link extends Control {
 	 */
 	public String getText() {
 		return text;
-	}
-
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new Device.NoOpDrawableGC(this, getFont());
-	}
-
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
 	}
 
 	/**

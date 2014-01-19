@@ -39,7 +39,6 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.TreeListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Drawable;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.GC;
@@ -161,16 +160,6 @@ public class Tree extends Composite {
 	@Override
 	protected void internal_detachControl(Control c) {
 		Util.logNotImplemented();
-	}
-	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
 	}
 	
 	class TreeCellImpl extends TreeCell<TreeItem> implements SWTTreeRow, Drawable {
@@ -1261,18 +1250,27 @@ public class Tree extends Composite {
 		return rootItem.getChildren().indexOf(item);
 	}
 
-	boolean internal_isMeasureItem() {
-		return measureItem;
+	public void internal_columnAdded(TreeColumn column) {
+		Util.logNotImplemented();
+		if( treeTableView == null ) {
+			treeTableView = new TreeTableView<TreeItem>();
+			container.getChildren().setAll(treeTableView);
+		}
 	}
-	
-	boolean internal_isPaintItem() {
-		return paintItem;
+
+	protected Region internal_getEventTarget() {
+		return treeView != null ? treeView : treeTableView;
 	}
-	
-	boolean internal_isEraseItem() {
-		return eraseItem;
+
+	public Region internal_getNativeControl() {
+		return treeView != null ? treeView : treeTableView;
 	}
-	
+
+	@Override
+	public Region internal_getNativeObject() {
+		return container;
+	}
+
 	public SWTTreeRow internal_getTreeRow(TreeItem item) {
 		for( SWTTreeRow c : currentCells.keySet() ) {
 			System.err.println(c.swt_getTreeItem().getText());
@@ -1282,51 +1280,42 @@ public class Tree extends Composite {
 		}
 		return null;
 	}
-	
-	public Region internal_getNativeControl() {
-		return treeView != null ? treeView : treeTableView;
-	}
-	
-	protected Region internal_getEventTarget() {
-		return treeView != null ? treeView : treeTableView;
-	}
-	
+
 	TreeTableView<TreeItem> internal_getTreeTable() {
 		return treeTableView;
 	}
-	
-	public void internal_columnAdded(TreeColumn column) {
-		Util.logNotImplemented();
-		if( treeTableView == null ) {
-			treeTableView = new TreeTableView<TreeItem>();
-			container.getChildren().setAll(treeTableView);
-		}
-	}
-	
-	protected void internal_setLayout(Layout layout) {
-		// Not needed for trees!!!
-	}
-	
+
 	protected javafx.scene.canvas.Canvas internal_initCanvas() {
 		Util.logNotImplemented();
 		return null;
 	}
+
+	boolean internal_isEraseItem() {
+		return eraseItem;
+	}
+
+	boolean internal_isMeasureItem() {
+		return measureItem;
+	}
 	
-	@Override
-	public Region internal_getNativeObject() {
-		return container;
+	boolean internal_isPaintItem() {
+		return paintItem;
 	}
 	
 	void internal_itemAdded(TreeItem item) {
 		rootItem.getChildren().add(item.internal_getNativeObject());
 	}
-	
+
 	void internal_itemAdded(TreeItem item, int index) {
 		rootItem.getChildren().add(index, item.internal_getNativeObject());
 	}
-	
+
 	void internal_itemRemoved(TreeItem item) {
 		rootItem.getChildren().remove(item.internal_getNativeObject());
+	}
+
+	protected void internal_setLayout(Layout layout) {
+		// Not needed for trees!!!
 	}
 	
 	/**

@@ -19,7 +19,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 
@@ -159,16 +158,6 @@ public class Sash extends Control {
 		if (wHint != SWT.DEFAULT) width = wHint;
 		if (hHint != SWT.DEFAULT) height = hHint;
 		return new Point (width, height);
-	}
-
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-		
 	}
 
 	@Override

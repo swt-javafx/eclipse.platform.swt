@@ -14,7 +14,6 @@ import java.util.ArrayList;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
 
@@ -286,15 +285,6 @@ public class ToolBar extends Composite {
 		toolbar.getItems().remove(item.internal_getNativeObject());
 	}
 	
-	@Override
-	public void internal_dispose_GC(DrawableGC gc) {
-	}
-	
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-
 	public void pack() {
 		forceSizeProcessing();
 		setSize((int)internal_getNativeControl().prefWidth(-1), (int)internal_getNativeControl().prefHeight(-1));

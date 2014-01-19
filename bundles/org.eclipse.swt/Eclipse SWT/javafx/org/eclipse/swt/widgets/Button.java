@@ -358,11 +358,6 @@ public class Button extends Control {
 		Util.logNotImplemented();
 	}
 
-	@Override
-	public DrawableGC internal_new_GC() {
-		return new NoOpDrawableGC(this,getFont());
-	}
-
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.
