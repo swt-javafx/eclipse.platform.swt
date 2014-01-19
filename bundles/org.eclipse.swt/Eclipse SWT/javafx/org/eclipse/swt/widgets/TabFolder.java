@@ -13,6 +13,8 @@ package org.eclipse.swt.widgets;
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.scene.control.TabPane;
 
 import org.eclipse.swt.SWT;
@@ -107,12 +109,6 @@ public class TabFolder extends Composite {
 		tabPane.getTabs().add(item.getNativeObject());
 	}
 	
-	@Override
-	protected TabPane createWidget() {
-		tabPane = new TabPane();
-		return tabPane;
-	}
-
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when the user changes the receiver's selection, by sending it one of the
@@ -148,6 +144,24 @@ public class TabFolder extends Composite {
 		TypedListener typedListener = new TypedListener (listener);
 		addListener (SWT.Selection,typedListener);
 		addListener (SWT.DefaultSelection,typedListener);
+	}
+
+	private InvalidationListener createTabChangeListener() {
+		return new InvalidationListener() {
+			@Override
+			public void invalidated(Observable observable) {
+				Event e = new Event();
+				e.index = tabPane.getSelectionModel().getSelectedIndex();
+				e.item = getItem(tabPane.getSelectionModel().getSelectedIndex());
+				internal_sendEvent(SWT.Selection, e, true);
+			}
+		};
+	}
+
+	@Override
+	protected TabPane createWidget() {
+		tabPane = new TabPane();
+		return tabPane;
 	}
 
 	/**
@@ -316,6 +330,12 @@ public class TabFolder extends Composite {
 		return items.indexOf(item);
 	}
 
+	@Override
+	protected void initListeners() {
+		super.initListeners();
+		tabPane.getSelectionModel().selectedIndexProperty().addListener(createTabChangeListener());
+	}
+
 	void internal_addTabItem(TabItem item) {
 		this.items.add(item);
 		tabPane.getTabs().add(item.internal_getNativeObject());
@@ -431,6 +451,7 @@ public class TabFolder extends Composite {
 	 */
 	public void setSelection(int index) {
 		checkWidget ();
+		internal_runNoEvent(() -> tabPane.getSelectionModel().select(index));
 	}
 
 	/**
@@ -457,6 +478,7 @@ public class TabFolder extends Composite {
 	public void setSelection(TabItem item) {
 		checkWidget ();
 		if (item == null) error (SWT.ERROR_NULL_ARGUMENT);
+		setSelection(indexOf(item));
 	}
 
 	/**
@@ -481,6 +503,9 @@ public class TabFolder extends Composite {
 	public void setSelection(TabItem[] items) {
 		checkWidget ();
 		if (items == null) error (SWT.ERROR_NULL_ARGUMENT);
+		for( TabItem i : items ) {
+			setSelection(i);	
+		}
 	}
 
 }

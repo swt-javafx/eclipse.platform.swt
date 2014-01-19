@@ -101,6 +101,7 @@ public class ToolBar extends Composite {
 	@Override
 	protected javafx.scene.control.ToolBar createWidget() {
 		toolbar = new javafx.scene.control.ToolBar();
+		toolbar.getStyleClass().add("swt-toolbar");
 		return toolbar;
 	}
 	

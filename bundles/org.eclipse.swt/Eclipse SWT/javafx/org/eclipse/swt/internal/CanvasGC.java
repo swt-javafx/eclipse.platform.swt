@@ -16,6 +16,7 @@ import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.shape.StrokeLineJoin;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.transform.Affine;
+import javafx.scene.transform.Translate;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
@@ -37,7 +38,6 @@ import com.sun.javafx.scene.text.TextLayout;
 import com.sun.javafx.scene.text.TextLayoutFactory;
 import com.sun.javafx.tk.Toolkit;
 
-@SuppressWarnings("restriction")
 public class CanvasGC implements DrawableGC {
 	private final Canvas canvas;
 	private final WritableImage image;
@@ -561,8 +561,16 @@ public class CanvasGC implements DrawableGC {
 	}
 	
 	@Override
-	public void drawShape(int x, int y, Shape shape) {
-		path(shape.getPathIterator(null),true);
+	public void drawShape(int xDelta, int yDelta, Shape shape) {
+		Affine transform = canvas.getGraphicsContext2D().getTransform();
+		Translate translate = Affine.translate(xDelta, yDelta);
+		
+		canvas.getGraphicsContext2D().setTransform(
+				translate.getMxx(),translate.getMyx(),
+				translate.getMxy(),translate.getMyy(),
+				translate.getTx(),translate.getTy());
+		path(shape.getPathIterator(null), true);
+		canvas.getGraphicsContext2D().setTransform(transform);
 	}
 	
 	@Override

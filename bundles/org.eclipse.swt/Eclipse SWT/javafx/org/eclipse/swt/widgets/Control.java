@@ -1161,8 +1161,8 @@ public abstract class Control extends Widget implements Drawable {
 				public void handle(javafx.scene.input.KeyEvent event) {
 					Control c = Widget.getWidget(event.getTarget());
 					if (c != null) {
-						System.err.println("SENDING");
 						c.sendKeyEvent(event);
+						event.consume();
 					}
 				}
 			};

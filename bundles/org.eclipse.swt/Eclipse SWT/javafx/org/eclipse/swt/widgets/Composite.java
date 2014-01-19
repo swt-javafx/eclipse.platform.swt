@@ -246,6 +246,11 @@ public class Composite extends Scrollable {
 			}
 		};
 		
+		javafx.scene.shape.Rectangle r = new javafx.scene.shape.Rectangle();
+		r.widthProperty().bind(scrollable.widthProperty());
+		r.heightProperty().bind(scrollable.heightProperty());
+		scrollable.setClip(r);
+
 		scrollable.getStyleClass().add(getStyleClassname());
 		controlContainer = internal_createLayoutPane();
 		registerConnection(controlContainer);

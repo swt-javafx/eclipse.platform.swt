@@ -12,12 +12,17 @@ package org.eclipse.swt.widgets;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.HPos;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
@@ -34,6 +39,8 @@ import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
+
+import com.sun.javafx.scene.control.skin.TextAreaSkin;
 
 /**
  * Instances of this class are selectable user interface objects that allow the
@@ -109,6 +116,41 @@ public class Text extends Scrollable {
 	private static EventHandler<KeyEvent> LIMIT_VERIFY_HANDLER;
 	
 	private TextInputControl control;
+
+	private static final class CustomTextAreaSkin extends TextAreaSkin {
+		
+		private ScrollPane scrollPane;
+
+		public CustomTextAreaSkin(TextArea textArea, int style) {
+			super(textArea);
+			
+			// the ScrollPane is created in the super constructor
+			for( Node n : getChildren() ){
+				if( n instanceof ScrollPane ){
+					scrollPane = (ScrollPane) n;
+					break;
+				}
+			}
+			
+			// NEVER is the default in SWT and not AS_NEEDED
+			scrollPane.setVbarPolicy( ( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) ? ScrollBarPolicy.ALWAYS : ScrollBarPolicy.NEVER );
+			scrollPane.setHbarPolicy( ( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) ? ScrollBarPolicy.ALWAYS : ScrollBarPolicy.NEVER );
+		}
+		
+		@Override
+		public void layoutChildren(double x, double y, double w, double h) {
+			// By default simply sizes all managed children to fit within the space provided
+			ObservableList<Node> children = getChildren();
+			
+	        for (int i=0, max=children.size(); i<max; i++) {
+	            Node child = children.get(i);
+	            if (child.isManaged()) {
+	                layoutInArea(child, x, y, w, h, -1, HPos.CENTER, VPos.CENTER);
+	            }
+	        }
+		}
+		
+	}
 
 	/**
 	 * Constructs a new instance of this class given its parent and a style
@@ -394,19 +436,15 @@ public class Text extends Scrollable {
 
 	@Override
 	protected Node createWidget() {
-		if( (style & SWT.MULTI) != 0 || (style & SWT.V_SCROLL) != 0 || (style & SWT.H_SCROLL) != 0 ) {
+		if( (style & SWT.SEARCH) != SWT.SEARCH
+				&& ((style & SWT.MULTI) == SWT.MULTI
+					|| (style & SWT.V_SCROLL) == SWT.V_SCROLL || (style & SWT.H_SCROLL) == SWT.H_SCROLL) ) {
 			control = new TextArea("");
+			control.setSkin(new CustomTextAreaSkin((TextArea)control, style));
+			
 			if( (style & SWT.CENTER) == SWT.CENTER ) {
 				Util.logNotImplemented();
 			} else if( (style & SWT.RIGHT) == SWT.RIGHT ) {
-				Util.logNotImplemented();
-			}
-			
-			if( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) {
-				Util.logNotImplemented();
-			}
-			
-			if( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) {
 				Util.logNotImplemented();
 			}
 			

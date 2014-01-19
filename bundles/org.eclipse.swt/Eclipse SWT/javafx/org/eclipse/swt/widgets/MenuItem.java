@@ -12,6 +12,7 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.event.ActionEvent;
@@ -497,14 +498,19 @@ public class MenuItem extends Item {
 	private static EventHandler<ActionEvent> getSelectionHandler() {
 		if( SELECTION_HANDLER == null ) {
 			SELECTION_HANDLER = new EventHandler<ActionEvent>() {
-				
 				@Override
 				public void handle(ActionEvent event) {
-					org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-					MenuItem item = Widget.getWidget(event.getSource());
-					if( item != null ) {
-						item.internal_sendEvent(SWT.Selection, evt, true);
-					}
+					// TODO Work around for JavaFX bug https://javafx-jira.kenai.com/browse/RT-35401 
+					Platform.runLater(new Runnable() {
+						@Override
+						public void run() {
+							org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+							MenuItem item = Widget.getWidget(event.getSource());
+							if( item != null ) {
+								item.internal_sendEvent(SWT.Selection, evt, true);
+							}
+						}
+					});
 				}
 			};
 		}
