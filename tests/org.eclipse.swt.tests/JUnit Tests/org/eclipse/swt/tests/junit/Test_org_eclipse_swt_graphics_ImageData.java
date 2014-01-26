@@ -11,35 +11,31 @@
 package org.eclipse.swt.tests.junit;
 
 
+import static org.eclipse.swt.tests.junit.SwtTestCase.assertSWTProblem;
 import static org.junit.Assert.assertArrayEquals;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.widgets.*;
+import junit.framework.TestCase;
 
-import junit.framework.*;
-import junit.textui.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.graphics.PaletteData;
+import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.widgets.Display;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.graphics.ImageData
  *
  * @see org.eclipse.swt.graphics.ImageData
  */
-public class Test_org_eclipse_swt_graphics_ImageData extends SwtTestCase {
-
-public Test_org_eclipse_swt_graphics_ImageData(String name) {
-	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
-
+public class Test_org_eclipse_swt_graphics_ImageData extends TestCase {
+	
 @Override
 protected void setUp() {
-	super.setUp();
 	imageData = new ImageData(IMAGE_DIMENSION, IMAGE_DIMENSION, 32, new PaletteData(0xFF0000, 0xFF00, 0xFF));
 }
 
@@ -194,14 +190,14 @@ public void test_clone() {
 		ImageData data2 = (ImageData) data1.clone();
 		// imageData does not implement an equals(Object) method
 		assertEquals(":a:", data1.alpha, data2.alpha);
-		assertEquals(":b:", data1.alphaData, data2.alphaData);
+		assertArrayEquals(":b:", data1.alphaData, data2.alphaData);
 		assertEquals(":c:", data1.bytesPerLine, data2.bytesPerLine);
-		assertEquals(":d:", data1.data, data2.data);
+		assertArrayEquals(":d:", data1.data, data2.data);
 		assertEquals(":e:", data1.delayTime, data2.delayTime);
 		assertEquals(":f:", data1.depth, data2.depth);
 		assertEquals(":g:", data1.disposalMethod, data2.disposalMethod);
 		assertEquals(":h:", data1.height, data2.height);
-		assertEquals(":i:", data1.maskData, data2.maskData);
+		assertArrayEquals(":i:", data1.maskData, data2.maskData);
 		assertEquals(":j:", data1.maskPad, data2.maskPad);
 		assertEquals(":k:", data1.palette, data2.palette);
 		assertEquals(":l:", data1.scanlinePad, data2.scanlinePad);
@@ -231,25 +227,25 @@ public void test_getAlphaII() {
 		imageData.getAlpha(-1, 1);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlpha(IMAGE_DIMENSION, 1);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlpha(0, -1);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlpha(0, IMAGE_DIMENSION);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 }
 
@@ -293,37 +289,37 @@ public void test_getAlphasIII$BI() {
 		imageData.getAlphas(0, 1, GET_WIDTH, (byte[]) null, OFFSET);
 		fail("No exception thrown for alphas == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for alphas == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for alphas == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlphas(-1, 1, GET_WIDTH, alphaData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlphas(IMAGE_DIMENSION, 1, GET_WIDTH, alphaData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlphas(0, -1, GET_WIDTH, alphaData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlphas(0, IMAGE_DIMENSION, GET_WIDTH, alphaData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getAlphas(0, 1, -1, alphaData, OFFSET);
 		fail("No exception thrown for getWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}	
 }
 
@@ -340,25 +336,25 @@ public void test_getPixelII() {
 		imageData.getPixel(-1, 1);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixel(IMAGE_DIMENSION, 1);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixel(0, -1);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixel(0, IMAGE_DIMENSION);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	int width = 3;
 	int height = 3;
@@ -470,44 +466,44 @@ public void test_getPixelsIII$BI() {
 		imageData.getPixels(0, 1, GET_WIDTH, (byte[]) null, OFFSET);
 		fail("No exception thrown for pixels == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(-1, 1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(IMAGE_DIMENSION, 1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, -1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, IMAGE_DIMENSION, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, 1, -1, pixelData, OFFSET);
 		fail("No exception thrown for getWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	imageData = new ImageData(IMAGE_DIMENSION, IMAGE_DIMENSION, 32, new PaletteData(0xFF0000, 0xFF00, 0xFF));	
 	try {
 		imageData.getPixels(0, 1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for invalid depth");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for invalid depth", SWT.ERROR_UNSUPPORTED_DEPTH, e);
+		assertSWTProblem("Incorrect exception thrown for invalid depth", SWT.ERROR_UNSUPPORTED_DEPTH, e);
 	}
 }
 
@@ -667,37 +663,37 @@ public void test_getPixelsIII$II() {
 		imageData.getPixels(0, 1, GET_WIDTH, (int[]) null, OFFSET);
 		fail("No exception thrown for pixels == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(-1, 1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(IMAGE_DIMENSION, 1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, -1, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, IMAGE_DIMENSION, GET_WIDTH, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.getPixels(0, 1, -1, pixelData, OFFSET);
 		fail("No exception thrown for getWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for getWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 }
 
@@ -712,7 +708,7 @@ public void test_getTransparencyMask() {
 //	Bug 71472 - transparency mask should be null	
 //	assertNull(":a:", imageData.getTransparencyMask());
 
-	InputStream stream = getClass().getResourceAsStream(transparentImageFilenames[0]);
+	InputStream stream = getClass().getResourceAsStream(SwtTestCase.transparentImageFilenames[0]);
 	Image image = new Image(Display.getDefault(), stream);
 	try {
 		stream.close();
@@ -733,7 +729,7 @@ public void test_getTransparencyMask() {
 public void test_getTransparencyType() {
 	assertEquals(":a:", SWT.TRANSPARENCY_NONE, imageData.getTransparencyType());
 
-	InputStream stream = getClass().getResourceAsStream(transparentImageFilenames[0]);
+	InputStream stream = getClass().getResourceAsStream(SwtTestCase.transparentImageFilenames[0]);
 	Image image = new Image(Display.getDefault(), stream);
 	try {
 		stream.close();
@@ -742,7 +738,7 @@ public void test_getTransparencyType() {
 	assertFalse(":b:", SWT.TRANSPARENCY_NONE == imageData.getTransparencyType());
 	image.dispose();
 	
-	stream = getClass().getResourceAsStream(imageFilenames[0] + '.' + imageFormats[imageFormats.length-1]);
+	stream = getClass().getResourceAsStream(SwtTestCase.imageFilenames[0] + '.' + SwtTestCase.imageFormats[SwtTestCase.imageFormats.length-1]);
 	image = new Image(Display.getDefault(), stream);
 	try {
 		stream.close();
@@ -750,16 +746,6 @@ public void test_getTransparencyType() {
 	imageData = image.getImageData();
 	assertEquals(":c:", SWT.TRANSPARENCY_NONE, imageData.getTransparencyType());
 	image.dispose();
-}
-
-public void test_internal_newIIILorg_eclipse_swt_graphics_PaletteDataI$BI$B$BIIIIIII() {
-	// do not test internal API
-	// javadoc states:
-	// <b>IMPORTANT:</b> This method is <em>not</em> part of the public
-	// API for <code>ImageData</code>. It is marked public only so that it
-	// can be shared within the packages provided by SWT. It is subject
-	// to change without notice, and should never be called from
-	// application code.
 }
 
 public void test_scaledToII() {
@@ -774,7 +760,7 @@ public void test_scaledToII() {
 	byte[] scaledPixelData = new byte[imageDimension];
 	scaledImageData.getPixels(0, imageDimension - 1, scaledPixelData.length, scaledPixelData, 0);	
 	byte[] expectedPixelData = new byte[] {0x1, 0x1, 0x1, 0x1, 0, 0, 0x1, 0};
-	assertEquals(":a:", expectedPixelData, scaledPixelData);
+	assertArrayEquals(":a:", expectedPixelData, scaledPixelData);
 
 	scaledImageData = imageData.scaledTo(imageDimension * 10, imageDimension);
 	scaledPixelData = new byte[imageDimension * 10];
@@ -786,7 +772,7 @@ public void test_scaledToII() {
 	scaledPixelData = new byte[imageDimension];
 	scaledImageData.getPixels(0, 0, scaledPixelData.length, scaledPixelData, 0);	
 	expectedPixelData = new byte[] {0, 0x1, 0, 0, 0x1, 0x1, 0x1, 0x1};
-	assertEquals(":d:", expectedPixelData, scaledPixelData);
+	assertArrayEquals(":d:", expectedPixelData, scaledPixelData);
 }
 
 public void test_setAlphaIII() {
@@ -801,25 +787,25 @@ public void test_setAlphaIII() {
 		imageData.setAlpha(-1, 1, value);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlpha(IMAGE_DIMENSION, 1, value);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlpha(0, -1, value);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlpha(0, IMAGE_DIMENSION, value);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 }
 
@@ -851,37 +837,37 @@ public void test_setAlphasIII$BI() {
 		imageData.setAlphas(0, 1, IMAGE_DIMENSION, (byte[]) null, OFFSET);
 		fail("No exception thrown for alphas == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for alphas == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for alphas == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlphas(-1, 1, IMAGE_DIMENSION, alphaData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlphas(IMAGE_DIMENSION, 1, IMAGE_DIMENSION, alphaData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlphas(0, -1, IMAGE_DIMENSION, alphaData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlphas(0, IMAGE_DIMENSION, IMAGE_DIMENSION, alphaData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setAlphas(0, 1, -1, alphaData, OFFSET);
 		fail("No exception thrown for putWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}	
 }
 
@@ -897,25 +883,25 @@ public void test_setPixelIII() {
 		imageData.setPixel(-1, 1, value);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixel(IMAGE_DIMENSION, 1, value);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixel(0, -1, value);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixel(0, IMAGE_DIMENSION, value);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 }
 
@@ -986,44 +972,44 @@ public void test_setPixelsIII$BI() {
 		imageData.setPixels(0, 1, IMAGE_DIMENSION, (byte[]) null, OFFSET);
 		fail("No exception thrown for pixels == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(-1, 1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(IMAGE_DIMENSION, 1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, -1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, IMAGE_DIMENSION, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, 1, -1, pixelData, OFFSET);
 		fail("No exception thrown for putWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	imageData = new ImageData(IMAGE_DIMENSION, IMAGE_DIMENSION, 32, new PaletteData(0xFF0000, 0xFF00, 0xFF));	
 	try {
 		imageData.setPixels(0, 1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for invalid depth");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for invalid depth", SWT.ERROR_UNSUPPORTED_DEPTH, e);
+		assertSWTProblem("Incorrect exception thrown for invalid depth", SWT.ERROR_UNSUPPORTED_DEPTH, e);
 	}
 }
 
@@ -1133,120 +1119,41 @@ public void test_setPixelsIII$II() {
 		imageData.setPixels(0, 1, IMAGE_DIMENSION, (int[]) null, OFFSET);
 		fail("No exception thrown for pixels == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for pixels == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(-1, 1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(IMAGE_DIMENSION, 1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for x out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for x out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, -1, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, IMAGE_DIMENSION, IMAGE_DIMENSION, pixelData, OFFSET);
 		fail("No exception thrown for y out of bounds");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for y out of bounds", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 	try {
 		imageData.setPixels(0, 1, -1, pixelData, OFFSET);
 		fail("No exception thrown for putWidth < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for putWidth < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
-}
-
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_graphics_ImageData(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_ConstructorIIILorg_eclipse_swt_graphics_PaletteData");
-	methodNames.addElement("test_ConstructorIIILorg_eclipse_swt_graphics_PaletteDataI$B");
-	methodNames.addElement("test_ConstructorLjava_io_InputStream");
-	methodNames.addElement("test_ConstructorLjava_lang_String");
-	methodNames.addElement("test_clone");
-	methodNames.addElement("test_getAlphaII");
-	methodNames.addElement("test_getAlphasIII$BI");
-	methodNames.addElement("test_getPixelII");
-	methodNames.addElement("test_getPixelsIII$BI");
-	methodNames.addElement("test_getPixelsIII$II");
-	methodNames.addElement("test_getRGBs");
-	methodNames.addElement("test_getTransparencyMask");
-	methodNames.addElement("test_getTransparencyType");
-	methodNames.addElement("test_internal_newIIILorg_eclipse_swt_graphics_PaletteDataI$BI$B$BIIIIIII");
-	methodNames.addElement("test_scaledToII");
-	methodNames.addElement("test_setAlphaIII");
-	methodNames.addElement("test_setAlphasIII$BI");
-	methodNames.addElement("test_setPixelIII");
-	methodNames.addElement("test_setPixelsIII$BI");
-	methodNames.addElement("test_setPixelsIII$II");
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_ConstructorIIILorg_eclipse_swt_graphics_PaletteData")) test_ConstructorIIILorg_eclipse_swt_graphics_PaletteData();
-	else if (getName().equals("test_ConstructorIIILorg_eclipse_swt_graphics_PaletteDataI$B")) test_ConstructorIIILorg_eclipse_swt_graphics_PaletteDataI$B();
-	else if (getName().equals("test_ConstructorLjava_io_InputStream")) test_ConstructorLjava_io_InputStream();
-	else if (getName().equals("test_ConstructorLjava_lang_String")) test_ConstructorLjava_lang_String();
-	else if (getName().equals("test_clone")) test_clone();
-	else if (getName().equals("test_getAlphaII")) test_getAlphaII();
-	else if (getName().equals("test_getAlphasIII$BI")) test_getAlphasIII$BI();
-	else if (getName().equals("test_getPixelII")) test_getPixelII();
-	else if (getName().equals("test_getPixelsIII$BI")) test_getPixelsIII$BI();
-	else if (getName().equals("test_getPixelsIII$II")) test_getPixelsIII$II();
-	else if (getName().equals("test_getRGBs")) test_getRGBs();
-	else if (getName().equals("test_getTransparencyMask")) test_getTransparencyMask();
-	else if (getName().equals("test_getTransparencyType")) test_getTransparencyType();
-	else if (getName().equals("test_internal_newIIILorg_eclipse_swt_graphics_PaletteDataI$BI$B$BIIIIIII")) test_internal_newIIILorg_eclipse_swt_graphics_PaletteDataI$BI$B$BIIIIIII();
-	else if (getName().equals("test_scaledToII")) test_scaledToII();
-	else if (getName().equals("test_setAlphaIII")) test_setAlphaIII();
-	else if (getName().equals("test_setAlphasIII$BI")) test_setAlphasIII$BI();
-	else if (getName().equals("test_setPixelIII")) test_setPixelIII();
-	else if (getName().equals("test_setPixelsIII$BI")) test_setPixelsIII$BI();
-	else if (getName().equals("test_setPixelsIII$II")) test_setPixelsIII$II();
 }
 /* custom */
 ImageData imageData;
 final int IMAGE_DIMENSION = 10;
-
-void assertEquals(String message, byte expected[], byte actual[]) {
-	if (expected == null && actual == null)
-		return;
-	boolean equal = false;
-	if (expected != null && actual != null && expected.length == actual.length) {
-		if (expected.length == 0)
-			return;
-		equal = true;
-		for (int i = 0; i < expected.length; i++) {
-			if (expected[i] != actual[i]) {
-				equal = false;
-			}
-		}
-	}
-	if (!equal) {
-		String formatted= "";
-		if (message != null)
-			formatted= message+" ";
-		fail(formatted+"expected:<"+expected+"> but was:<"+actual+">");
-	}
-}
 
 }

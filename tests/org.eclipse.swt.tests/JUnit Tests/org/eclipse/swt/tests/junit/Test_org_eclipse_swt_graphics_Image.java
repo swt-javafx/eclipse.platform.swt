@@ -11,34 +11,37 @@
 package org.eclipse.swt.tests.junit;
 
 
-import java.io.*;
-import java.net.*;
+import static org.eclipse.swt.tests.junit.SwtTestCase.assertSWTProblem;
 
-import junit.framework.*;
-import junit.textui.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.widgets.*;
+import junit.framework.TestCase;
+
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.graphics.PaletteData;
+import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.Compatibility;
+import org.eclipse.swt.widgets.Display;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.graphics.Image
  *
  * @see org.eclipse.swt.graphics.Image
  */
-public class Test_org_eclipse_swt_graphics_Image extends SwtTestCase {
-
-public Test_org_eclipse_swt_graphics_Image(String name) {
-	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
+public class Test_org_eclipse_swt_graphics_Image extends TestCase {
 
 @Override
 protected void setUp() {
-	super.setUp();
 	display = Display.getDefault();
 }
 
@@ -49,7 +52,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceII() {
 		image.dispose();
 		fail("No exception thrown for width <= 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for width <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for width <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	try {
@@ -57,7 +60,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceII() {
 		image.dispose();
 		fail("No exception thrown for width <= 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for width <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for width <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	try {
@@ -65,7 +68,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceII() {
 		image.dispose();
 		fail("No exception thrown for height <= 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for height <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for height <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	try {
@@ -73,7 +76,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceII() {
 		image.dispose();
 		fail("No exception thrown for height <= 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for height <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for height <= 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	image = new Image(null, 10, 10);
@@ -82,10 +85,6 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceII() {
 	image = new Image(display, 10, 10);
 	image.dispose();
 		
-}
-
-public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageI() {
-	warnUnimpl("Test test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageI not written");
 }
 
 public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_Rectangle() {
@@ -97,7 +96,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for rectangle == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for rectangle == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for rectangle == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 
 	bounds = new Rectangle(0, 0, -1, 10);
@@ -106,7 +105,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for width < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for width < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for width < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	bounds = new Rectangle(0, 0, 0, 10);
@@ -115,7 +114,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for width == 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for width == 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for width == 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	bounds = new Rectangle(0, 0, 10, -1);
@@ -124,7 +123,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for height < 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for height < 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for height < 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	bounds = new Rectangle(0, 0, 10, 0);
@@ -133,7 +132,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for height == 0");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for height == 0", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for height == 0", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	// valid images
@@ -158,7 +157,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for ImageData == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for ImageData == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for ImageData == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 
 //	Platform-specific test.  
@@ -203,7 +202,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for ImageData source == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for ImageData source == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for ImageData source == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 
 	data = new ImageData(10, 10, 1, new PaletteData(new RGB[] {new RGB(0, 0, 0)}));
@@ -213,7 +212,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for ImageData mask == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for ImageData mask == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for ImageData mask == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 
 	data = new ImageData(10, 10, 1, new PaletteData(new RGB[] {new RGB(0, 0, 0)}));
@@ -223,7 +222,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for ImageData source width != ImageData mask width");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for ImageData source width != ImageData mask width", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for ImageData source width != ImageData mask width", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	data = new ImageData(10, 1, 1, new PaletteData(new RGB[] {new RGB(0, 0, 0)}));
@@ -233,7 +232,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_gra
 		image.dispose();
 		fail("No exception thrown for ImageData source height != ImageData mask height");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for ImageData source height != ImageData mask height", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for ImageData source height != ImageData mask height", SWT.ERROR_INVALID_ARGUMENT, e);
 	}
 
 	data = new ImageData(10, 10, 8, new PaletteData(new RGB[] {new RGB(0, 0, 0)}));
@@ -272,7 +271,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream
 			image.dispose();
 			fail("No exception thrown for InputStream == null");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Incorrect exception thrown for InputStream == null", SWT.ERROR_NULL_ARGUMENT, e);
+			assertSWTProblem("Incorrect exception thrown for InputStream == null", SWT.ERROR_NULL_ARGUMENT, e);
 		}
 		
 		stream = SwtTestCase.class.getResourceAsStream("empty.txt");
@@ -284,7 +283,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream
 			} catch (IOException e) {}
 			fail("No exception thrown for invalid InputStream");
 		} catch (SWTException e) {
-			assertEquals("Incorrect exception thrown for invalid InputStream", SWT.ERROR_UNSUPPORTED_FORMAT, e);
+			assertSWTProblem("Incorrect exception thrown for invalid InputStream", SWT.ERROR_UNSUPPORTED_FORMAT, e);
 		}
 
 		int numFormats = SwtTestCase.imageFormats.length;
@@ -320,7 +319,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream
 			} catch (IOException e) {}
 			fail("No exception thrown for invalid InputStream");
 		} catch (SWTException e) {
-			assertEquals("Incorrect exception thrown for invalid image InputStream", SWT.ERROR_INVALID_IMAGE, e);
+			assertSWTProblem("Incorrect exception thrown for invalid image InputStream", SWT.ERROR_INVALID_IMAGE, e);
 		}		
 
 		// create valid images
@@ -355,7 +354,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String() 
 		image.dispose();
 		fail("No exception thrown for file name == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for file name == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for file name == null", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 	try {
 		String pathName = "nonexistent.txt";
@@ -363,7 +362,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String() 
 		image.dispose();
 		fail("No exception thrown for non-existent file name");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for non-existent file name", SWT.ERROR_IO, e);
+		assertSWTProblem("Incorrect exception thrown for non-existent file name", SWT.ERROR_IO, e);
 	}
 	// j2se and j2me(cdc) can load from a file name but, j2me(cldc) throws an exception
 	if (!isJ2ME()) {
@@ -373,7 +372,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String() 
 			image.dispose();
 			fail("No exception thrown for invalid file name");
 		} catch (SWTException e) {
-			assertEquals("Incorrect exception thrown for invalid file name", SWT.ERROR_UNSUPPORTED_FORMAT, e);
+			assertSWTProblem("Incorrect exception thrown for invalid file name", SWT.ERROR_UNSUPPORTED_FORMAT, e);
 		}
 	
 		int numFormats = SwtTestCase.imageFormats.length;
@@ -403,7 +402,7 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String() 
 			image.dispose();
 			fail("No exception thrown for invalid file name");
 		} catch (SWTException e) {
-			assertEquals("Incorrect exception thrown for invalid image file name", SWT.ERROR_INVALID_IMAGE, e);
+			assertSWTProblem("Incorrect exception thrown for invalid image file name", SWT.ERROR_INVALID_IMAGE, e);
 		}		
 	
 		// create valid images
@@ -421,10 +420,6 @@ public void test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String() 
 			}
 		}
 	}
-}
-
-public void test_dispose() {
-	// tested in isDisposed() method
 }
 
 public void test_equalsLjava_lang_Object() {
@@ -457,7 +452,7 @@ public void test_getBackground() {
 		image.getBackground();
 		fail("No exception thrown for disposed image");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
+		assertSWTProblem("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
 	}
 	// remainder tested in setBackground method
 }
@@ -470,7 +465,7 @@ public void test_getBounds() {
 		image.getBounds();
 		fail("No exception thrown for disposed image");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
+		assertSWTProblem("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
 	}
 		
 	// creates bitmap image
@@ -520,18 +515,6 @@ public void test_hashCode() {
 	}
 }
 
-public void test_internal_new_GCLorg_eclipse_swt_graphics_GCData() {
-	// javadoc states:
-	// <b>IMPORTANT:</b> This method is <em>not</em> part of the public
-	// API for <code>Image</code>
-}
-
-public void test_internal_dispose_GCILorg_eclipse_swt_graphics_GCData() {
-	// javadoc states:
-	// <b>IMPORTANT:</b> This method is <em>not</em> part of the public
-	// API for <code>Image</code>
-}
-
 public void test_isDisposed() {
 	Image image = new Image(display, 10, 10);
 	assertFalse(":a:", image.isDisposed());
@@ -546,7 +529,7 @@ public void test_setBackgroundLorg_eclipse_swt_graphics_Color() {
 		image.setBackground(null);
 		fail("No exception thrown for color == null");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for color == null", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for color == null", SWT.ERROR_NULL_ARGUMENT, e);
 	} finally {
 		image.dispose();
 	}
@@ -558,7 +541,7 @@ public void test_setBackgroundLorg_eclipse_swt_graphics_Color() {
 		image.setBackground(color);
 		fail("No exception thrown for disposed color");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Incorrect exception thrown for disposed color", SWT.ERROR_INVALID_ARGUMENT, e);
+		assertSWTProblem("Incorrect exception thrown for disposed color", SWT.ERROR_INVALID_ARGUMENT, e);
 	} finally {
 		image.dispose();
 	}
@@ -570,7 +553,7 @@ public void test_setBackgroundLorg_eclipse_swt_graphics_Color() {
 		image.setBackground(color);
 		fail("No exception thrown for disposed image");
 	} catch (SWTException e) {
-		assertEquals("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
+		assertSWTProblem("Incorrect exception thrown for disposed image", SWT.ERROR_GRAPHIC_DISPOSED, e);
 	} finally {
 		color.dispose();
 	}
@@ -602,64 +585,6 @@ public void test_toString() {
 	}
 }
 
-public void test_win32_newLorg_eclipse_swt_graphics_DeviceII() {
-	// do not test - Windows only
-}
-
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_graphics_Image(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceII");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageData");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageDataLorg_eclipse_swt_graphics_ImageData");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageI");
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_Rectangle");
-	methodNames.addElement("test_dispose");
-	methodNames.addElement("test_equalsLjava_lang_Object");
-	methodNames.addElement("test_getBackground");
-	methodNames.addElement("test_getBounds");
-	methodNames.addElement("test_getImageData");
-	methodNames.addElement("test_hashCode");
-	methodNames.addElement("test_internal_dispose_GCILorg_eclipse_swt_graphics_GCData");
-	methodNames.addElement("test_internal_new_GCLorg_eclipse_swt_graphics_GCData");
-	methodNames.addElement("test_isDisposed");
-	methodNames.addElement("test_setBackgroundLorg_eclipse_swt_graphics_Color");
-	methodNames.addElement("test_toString");
-	methodNames.addElement("test_win32_newLorg_eclipse_swt_graphics_DeviceII");
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceII")) test_ConstructorLorg_eclipse_swt_graphics_DeviceII();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_io_InputStream();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLjava_lang_String();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageData")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageData();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageDataLorg_eclipse_swt_graphics_ImageData")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageDataLorg_eclipse_swt_graphics_ImageData();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageI")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_ImageI();
-	else if (getName().equals("test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_Rectangle")) test_ConstructorLorg_eclipse_swt_graphics_DeviceLorg_eclipse_swt_graphics_Rectangle();
-	else if (getName().equals("test_dispose")) test_dispose();
-	else if (getName().equals("test_equalsLjava_lang_Object")) test_equalsLjava_lang_Object();
-	else if (getName().equals("test_getBackground")) test_getBackground();
-	else if (getName().equals("test_getBounds")) test_getBounds();
-	else if (getName().equals("test_getImageData")) test_getImageData();
-	else if (getName().equals("test_hashCode")) test_hashCode();
-	else if (getName().equals("test_internal_dispose_GCILorg_eclipse_swt_graphics_GCData")) test_internal_dispose_GCILorg_eclipse_swt_graphics_GCData();
-	else if (getName().equals("test_internal_new_GCLorg_eclipse_swt_graphics_GCData")) test_internal_new_GCLorg_eclipse_swt_graphics_GCData();
-	else if (getName().equals("test_isDisposed")) test_isDisposed();
-	else if (getName().equals("test_setBackgroundLorg_eclipse_swt_graphics_Color")) test_setBackgroundLorg_eclipse_swt_graphics_Color();
-	else if (getName().equals("test_toString")) test_toString();
-	else if (getName().equals("test_win32_newLorg_eclipse_swt_graphics_DeviceII")) test_win32_newLorg_eclipse_swt_graphics_DeviceII();
-}
 /* custom */
 Display display;
 
@@ -720,9 +645,6 @@ String getPath(String fileName) {
 	String urlPath;
 	
 	String pluginPath = System.getProperty("PLUGIN_PATH");
-	if (verbose) {
-		System.out.println("PLUGIN_PATH <"+pluginPath+">");
-	}
 	if (pluginPath == null) {
 		URL url = getClass().getClassLoader().getResource(fileName);
 		if (url == null) {
@@ -737,9 +659,6 @@ String getPath(String fileName) {
 	if (SwtJunit.isWindows && urlPath.indexOf(File.separatorChar) == 0) urlPath = urlPath.substring(1);
 	urlPath = urlPath.replaceAll("%20", " ");	
 	
-	if (verbose) {
-		System.out.println("Resolved file name for " + fileName + " = " + urlPath);
-	}
 	return urlPath;
 }
 RGB getRealRGB(Color color) {
@@ -758,5 +677,15 @@ RGB getRealRGB(Color color) {
 	colorImage.dispose();
 	pixel = imageData.getPixel(0, 0);
 	return palette.getRGB(pixel);
+}
+
+protected boolean isJ2ME() {
+	try {
+		Compatibility.newFileInputStream("");
+	} catch (FileNotFoundException e) {
+		return false;
+	} catch (IOException e) {
+	}
+	return true;
 }
 }

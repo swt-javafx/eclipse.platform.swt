@@ -206,7 +206,7 @@ public class Browser2 {
 			if (!isMozilla) {
 				boolean result = test1(html[i]); 
 				if (verbose) System.out.print(result ? "." : "E");
-				if (!result) fail++; 
+				if (!result) fail++;
 			}
 		}
 		for (int i = 0; i < html.length; i++) {
@@ -214,7 +214,7 @@ public class Browser2 {
 			if (!isMozilla) {
 				boolean result = test2(html[i]); 
 				if (verbose) System.out.print(result ? "." : "E");
-				if (!result) fail++; 
+				if (!result) fail++;
 			}
 		}
 		return fail == 0;

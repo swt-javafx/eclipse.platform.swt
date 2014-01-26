@@ -11,20 +11,21 @@
 package org.eclipse.swt.tests.junit;
 
 
-import junit.framework.*;
-import junit.textui.*;
+import junit.framework.TestCase;
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.custom.*;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.custom.StyledTextContent;
+import org.eclipse.swt.custom.TextChangeListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Shell;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.custom.StyledTextContent
  *
  * @see org.eclipse.swt.custom.StyledTextContent
  */
-public class Test_org_eclipse_swt_custom_StyledTextContent extends SwtTestCase {
+public class Test_org_eclipse_swt_custom_StyledTextContent extends TestCase {
 	int XINSET = 0;
 
 	class ContentImplementation implements StyledTextContent {
@@ -66,26 +67,13 @@ public class Test_org_eclipse_swt_custom_StyledTextContent extends SwtTestCase {
 	Shell shell;
 	StyledText styledText;
 	
-public Test_org_eclipse_swt_custom_StyledTextContent(String name) {
-	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
-
 @Override
 protected void setUp() {
-	super.setUp();
-	if (isBidi()) XINSET = 2;
+	if (SwtTestCase.isBidi()) XINSET = 2;
 	else XINSET = 0;
 	shell = new Shell();
 	styledText = new StyledText(shell, SWT.NULL);
 	styledText.setContent(content);
-}
-
-public void test_addTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener() {
-	// does not make sense to test, not called by StyledText
 }
 
 public void test_getCharCount() {
@@ -118,10 +106,6 @@ public void test_getTextRangeII() {
 	assertTrue(":g:", styledText.getTextRange(0,0).equals(""));
 }
 
-public void test_removeTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener() {
-	// does not make sense to test, not called by StyledText
-}
-
 public void test_replaceTextRangeIILjava_lang_String() {
 	styledText.replaceTextRange(0,0,"test1");
 	assertTrue(":h:", styledText.getText().equals("test1"));
@@ -132,44 +116,4 @@ public void test_setTextLjava_lang_String() {
 	assertTrue(":i:", styledText.getText().equals("test2"));
 }
 
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_custom_StyledTextContent(e.nextElement()));
-	}
-	return suite;
-}
-
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_addTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener");
-	methodNames.addElement("test_getCharCount");
-	methodNames.addElement("test_getLineAtOffsetI");
-	methodNames.addElement("test_getLineCount");
-	methodNames.addElement("test_getLineDelimiter");
-	methodNames.addElement("test_getLineI");
-	methodNames.addElement("test_getOffsetAtLineI");
-	methodNames.addElement("test_getTextRangeII");
-	methodNames.addElement("test_removeTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener");
-	methodNames.addElement("test_replaceTextRangeIILjava_lang_String");
-	methodNames.addElement("test_setTextLjava_lang_String");
-	return methodNames;
-}
-
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_addTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener")) test_addTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener();
-	else if (getName().equals("test_getCharCount")) test_getCharCount();
-	else if (getName().equals("test_getLineAtOffsetI")) test_getLineAtOffsetI();
-	else if (getName().equals("test_getLineCount")) test_getLineCount();
-	else if (getName().equals("test_getLineDelimiter")) test_getLineDelimiter();
-	else if (getName().equals("test_getLineI")) test_getLineI();
-	else if (getName().equals("test_getOffsetAtLineI")) test_getOffsetAtLineI();
-	else if (getName().equals("test_getTextRangeII")) test_getTextRangeII();
-	else if (getName().equals("test_removeTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener")) test_removeTextChangeListenerLorg_eclipse_swt_custom_TextChangeListener();
-	else if (getName().equals("test_replaceTextRangeIILjava_lang_String")) test_replaceTextRangeIILjava_lang_String();
-	else if (getName().equals("test_setTextLjava_lang_String")) test_setTextLjava_lang_String();
-}
 }

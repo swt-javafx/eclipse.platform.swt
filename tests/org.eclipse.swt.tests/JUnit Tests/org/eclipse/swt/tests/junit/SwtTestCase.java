@@ -11,12 +11,11 @@
 package org.eclipse.swt.tests.junit;
 
 
-import java.io.*;
+import junit.framework.TestCase;
 
-import junit.framework.*;
-
-import org.eclipse.swt.*;
-import org.eclipse.swt.internal.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTError;
+import org.eclipse.swt.SWTException;
 
 public class SwtTestCase extends TestCase {
 	/**
@@ -50,9 +49,6 @@ public class SwtTestCase extends TestCase {
 	// variable to keep track of the number of unimplemented methods
 	public static int unimplementedMethods;
 	
-	// variable to keep track of the number of unimplemented API methods
-	public static int unimplementedAPI;
-	
 	// used to specify verbose mode, if true unimplemented warning messages will 
 	// be written to System.out
 	public static boolean verbose = false;
@@ -69,68 +65,8 @@ public class SwtTestCase extends TestCase {
 public SwtTestCase(String name) {
 	super(name);
 }
-static public void assertSame(String message, Object expected[], Object actual[]) {
-	if (expected == null && actual == null) return;
-	boolean same = false;
-	if (expected != null && actual != null && expected.length == actual.length) {
-		if (expected.length == 0) return;
-		same = true;
-		boolean[] matched = new boolean[expected.length];
-		for (int i = 0; i < actual.length; i++) {
-			boolean match = false;
-			for (int j = 0; j < expected.length; j++) {
-				if (!matched[j]) {
-					if ((actual[i] == null && expected [j] == null) ||
-					    (actual[i] != null && actual[i].equals(expected[j]))) {
-						match = true;
-						matched[j] = true;
-						break;
-					}
-				}
-			}
-			if (!match) {
-				same = false;
-				break;
-			}
-		}
-	}
-	if (!same) {
-		failNotEquals(message, expected, actual);
-	}
-}
-static public void assertSame(Object expected[], Object actual[]) {
-	assertSame(null, expected, actual);
-}
-static public void assertSame(String message, int expected[], int actual[]) {
-	if (expected == null && actual == null) return;
-	boolean same = false;
-	if (expected != null && actual != null && expected.length == actual.length) {
-		if (expected.length == 0) return;
-		same = true;
-		boolean[] matched = new boolean[expected.length];
-		for (int i = 0; i < actual.length; i++) {
-			boolean match = false;
-			for (int j = 0; j < expected.length; j++) {
-				if (!matched[j] && actual[i] == expected[j]) {
-					match = true;
-					matched[j] = true;
-					break;
-				}
-			}
-			if (!match) {
-				same = false;
-				break;
-			}
-		}
-	}
-	if (!same) {
-		failNotEquals(message, expected, actual);
-	}
-}
-static public void assertSame(int expected[], int actual[]) {
-	assertSame(null, expected, actual);
-}
-static public void assertEquals(String message, int expectedCode, Throwable actualThrowable) {
+
+public static void assertSWTProblem(String message, int expectedCode, Throwable actualThrowable) {
 	if (actualThrowable instanceof SWTError) {
 		SWTError error = (SWTError) actualThrowable;
 		assertEquals(message, expectedCode, error.code);
@@ -146,40 +82,6 @@ static public void assertEquals(String message, int expectedCode, Throwable actu
 	}
 }
 
-static private void failNotEquals(String message, Object[] expected, Object[] actual) {
-	String formatted= "";
-	if (message != null)
-		formatted= message+" ";
-	formatted += "expected:<";
-	if(expected != null) {
-	    for(int i=0; i<Math.min(expected.length, 5); i++)
-	        formatted += expected[i] +", ";
-	    if(expected.length != 0)
-	        formatted = formatted.substring(0, formatted.length()-2);
-	}
-	if(expected.length > 5)
-	    formatted += "...";
-	formatted += "> but was:<";
-	if(actual != null) {
-	    for(int i=0; i<Math.min(actual.length, 5); i++)
-	        formatted += actual[i] +", ";
-	    if(actual.length != 0)
-	        formatted = formatted.substring(0, formatted.length()-2);
-	}
-	if(actual.length > 5)
-	    formatted += "...";
-	fail(formatted+">");
-}
-
-protected boolean isJ2ME() {
-	try {
-		Compatibility.newFileInputStream("");
-	} catch (FileNotFoundException e) {
-		return false;
-	} catch (IOException e) {
-	}
-	return true;
-}
 protected boolean isReparentablePlatform() {
 	String platform = SWT.getPlatform();
 	for (int i=0; i<reparentablePlatforms.length; i++) {
@@ -188,17 +90,8 @@ protected boolean isReparentablePlatform() {
 	return false;
 }
 
-protected boolean isBidi() {
+public static boolean isBidi() {
 	return true;
-}
-
-@Override
-protected void setUp() {
-	System.out.println("SwtTestCase#setUp(): " + getClass().getName() + "#" + getName());
-}
-
-@Override
-protected void tearDown() {
 }
 
 protected void warnUnimpl(String message) {
@@ -206,11 +99,5 @@ protected void warnUnimpl(String message) {
 		System.out.println(this.getClass() + ": " + message);
 	}
 	unimplementedMethods++;
-}
-protected void warnUnimplAPI(String message) {
-	if (verbose) {
-		System.out.println("API not implemented " + this.getClass() + " " + getName());
-	}
-	unimplementedAPI++;
 }
 }

@@ -10,34 +10,28 @@
  *******************************************************************************/
 package org.eclipse.swt.tests.junit;
 
+import static org.eclipse.swt.tests.junit.SwtTestCase.assertSWTProblem;
+import java.util.Hashtable;
 
-import java.util.*;
+import junit.framework.TestCase;
 
-import junit.framework.*;
-import junit.textui.*;
-
-import org.eclipse.swt.*;
-import org.eclipse.swt.program.*;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.program.Program;
+import org.eclipse.swt.widgets.Display;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.program.Program
  *
  * @see org.eclipse.swt.program.Program
  */
-public class Test_org_eclipse_swt_program_Program extends SwtTestCase {
+public class Test_org_eclipse_swt_program_Program extends TestCase {
 	
 public Test_org_eclipse_swt_program_Program(String name) {
 	super(name);
 }
 
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
-
 @Override
 protected void setUp() {
-	super.setUp();
 	Display.getDefault();
 }
 
@@ -73,7 +67,7 @@ public void test_executeLjava_lang_String() {
 			fail("Failed to throw ERROR_NULL_ARGUMENT");
 		}
 	} catch (IllegalArgumentException e) {
-		assertEquals("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 }
 
@@ -91,7 +85,7 @@ public void test_findProgramLjava_lang_String() {
 		Program.findProgram(null);
 		fail("Failed to throw ERROR_NULL_ARGUMENT");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
 	} catch (Exception e) {
 		fail("Invalid Exception thrown of type "+e.getClass());
 	} catch (Error e) {
@@ -163,10 +157,6 @@ public void test_getPrograms() {
 	}
 }
 
-public void test_hashCode() {
-	// tested in test_getPrograms
-}
-
 public void test_launchLjava_lang_String() {
 
 	// This test is incomplete because a true test of launch would open
@@ -180,7 +170,7 @@ public void test_launchLjava_lang_String() {
 		Program.launch(null);
 		fail("Failed to throw ERROR_NULL_ARGUMENT");
 	} catch (IllegalArgumentException e) {
-		assertEquals("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
+		assertSWTProblem("Failed to throw ERROR_NULL_ARGUMENT", SWT.ERROR_NULL_ARGUMENT, e);
 	}
 }
 
@@ -198,40 +188,4 @@ public void test_toString() {
 	}
 }
 
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_program_Program(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_equalsLjava_lang_Object");
-	methodNames.addElement("test_executeLjava_lang_String");
-	methodNames.addElement("test_getExtensions");
-	methodNames.addElement("test_findProgramLjava_lang_String");
-	methodNames.addElement("test_getImageData");
-	methodNames.addElement("test_getName");
-	methodNames.addElement("test_getPrograms");
-	methodNames.addElement("test_hashCode");
-	methodNames.addElement("test_launchLjava_lang_String");
-	methodNames.addElement("test_toString");
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_equalsLjava_lang_Object")) test_equalsLjava_lang_Object();
-	else if (getName().equals("test_executeLjava_lang_String")) test_executeLjava_lang_String();
-	else if (getName().equals("test_findProgramLjava_lang_String")) test_findProgramLjava_lang_String();
-	else if (getName().equals("test_getExtensions")) test_getExtensions();
-	else if (getName().equals("test_getImageData")) test_getImageData();
-	else if (getName().equals("test_getName")) test_getName();
-	else if (getName().equals("test_getPrograms")) test_getPrograms();
-	else if (getName().equals("test_hashCode")) test_hashCode();
-	else if (getName().equals("test_launchLjava_lang_String")) test_launchLjava_lang_String();
-	else if (getName().equals("test_toString")) test_toString();
-}
 }

@@ -11,11 +11,9 @@
 package org.eclipse.swt.tests.junit;
 
 
-import junit.framework.*;
-import junit.textui.*;
-
-import org.eclipse.swt.events.*;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.TypedEvent;
+import org.eclipse.swt.widgets.Event;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.events.KeyEvent
@@ -23,40 +21,6 @@ import org.eclipse.swt.widgets.*;
  * @see org.eclipse.swt.events.KeyEvent
  */
 public class Test_org_eclipse_swt_events_KeyEvent extends Test_org_eclipse_swt_events_TypedEvent {
-
-public Test_org_eclipse_swt_events_KeyEvent(String name) {
-	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
-
-@Override
-public void test_ConstructorLorg_eclipse_swt_widgets_Event() {
-	warnUnimpl("Test test_ConstructorLorg_eclipse_swt_widgets_Event not written");
-}
-
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_events_KeyEvent(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_widgets_Event");
-	methodNames.addAll(Test_org_eclipse_swt_events_TypedEvent.methodNames()); // add superclass method names
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_ConstructorLorg_eclipse_swt_widgets_Event")) test_ConstructorLorg_eclipse_swt_widgets_Event();
-	else super.runTest();
-}
 
 /* custom */
 @Override

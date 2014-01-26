@@ -33,11 +33,9 @@ public static Test suite() {
 	suite.addTest(Test_org_eclipse_swt_widgets_TableColumn.suite());
 	suite.addTest(Test_org_eclipse_swt_widgets_TreeItem.suite());
 	suite.addTest(Test_org_eclipse_swt_widgets_Caret.suite());
-	suite.addTest(Test_org_eclipse_swt_widgets_Event.suite());
-	suite.addTest(Test_org_eclipse_swt_widgets_TypedListener.suite());
+	suite.addTestSuite(Test_org_eclipse_swt_widgets_Event.class);
 	suite.addTest(Test_org_eclipse_swt_widgets_Menu.suite());
 	//suite.addTest(Test_org_eclipse_swt_widgets_Tracker.suite());
-	suite.addTest(Test_org_eclipse_swt_widgets_Synchronizer.suite());
 	
 	suite.addTest(Test_org_eclipse_swt_widgets_Shell.suite());
 	//suite.addTest(Test_org_eclipse_swt_widgets_Decorations.suite());
@@ -68,35 +66,15 @@ public static Test suite() {
 	suite.addTest(Test_org_eclipse_swt_widgets_DirectoryDialog.suite());
 	suite.addTest(Test_org_eclipse_swt_widgets_FontDialog.suite());
 	suite.addTest(Test_org_eclipse_swt_widgets_MessageBox.suite());
-	suite.addTest(Test_org_eclipse_swt_widgets_Monitor.suite());
+	suite.addTestSuite(Test_org_eclipse_swt_widgets_Monitor.class);
 
 	suite.addTest(Test_org_eclipse_swt_custom_TableTree.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_BidiSegmentEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_LineBackgroundEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_LineStyleEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_SashForm.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_TableEditor.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_AnimatedProgress.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_StyleRange.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_TextChangedEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_StackLayout.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_CTabFolderEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_ExtendedModifyEvent.suite());
+	suite.addTestSuite(Test_org_eclipse_swt_custom_StyleRange.class);
 	suite.addTest(Test_org_eclipse_swt_custom_CCombo.suite());
 	suite.addTest(Test_org_eclipse_swt_custom_TableTreeItem.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_ViewForm.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_CTabFolderAdapter.suite());
 	suite.addTest(Test_org_eclipse_swt_custom_CLabel.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_TableTreeEditor.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_TextChangingEvent.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_ScrolledComposite.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_TreeEditor.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_PopupList.suite());
 	suite.addTest(Test_org_eclipse_swt_custom_CTabItem.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_BusyIndicator.suite());
 	suite.addTest(Test_org_eclipse_swt_custom_StyledText.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_ControlEditor.suite());
-	suite.addTest(Test_org_eclipse_swt_custom_ST.suite());
 	suite.addTest(Test_org_eclipse_swt_custom_CTabFolder.suite());
 
 	return suite;

@@ -46,15 +46,6 @@ public void test_computeTrimIIII() {
 	decorations.computeTrim(0,0,0,0);
 	decorations.computeTrim(0,0,10,20);
 }
-@Override
-public void test_dispose() {
-	warnUnimpl("Test test_dispose not written");
-}
-
-@Override
-public void test_getBounds() {
-	warnUnimpl("Test test_getBounds not written");
-}
 
 @Override
 public void test_getClientArea() {
@@ -79,10 +70,6 @@ public void test_getImage() {
 	}
 }
 
-public void test_getImages() {
-	warnUnimpl("Test test_getImages not written");
-}
-
 @Override
 public void test_getLocation() {
 	decorations.setLocation(10,15);
@@ -90,24 +77,11 @@ public void test_getLocation() {
 	assertTrue(":b:", decorations.getLocation().y == 15);
 }
 
-public void test_getMaximized() {
-	// tested in setMaximized method
-}
-
 public void test_getMenuBar() {
 	assertTrue(":a:", decorations.getMenuBar() == null);
 	Menu bar = new Menu (decorations, SWT.BAR);
 	decorations.setMenuBar (bar);
 	assertTrue(":b:", decorations.getMenuBar() == bar);
-}
-
-public void test_getMinimized() {
-	// tested in setMinimized method
-}
-
-@Override
-public void test_getSize() {
-	// super class test sufficient
 }
 
 public void test_getText() {
@@ -141,10 +115,6 @@ public void test_setImageLorg_eclipse_swt_graphics_Image() {
 	decorations.setImage(null);
 	assertNull(":d:", decorations.getImage());
 	freeImages();
-}
-
-public void test_setImages$Lorg_eclipse_swt_graphics_Image() {
-	warnUnimpl("Test test_setImages$Lorg_eclipse_swt_graphics_Image not written");
 }
 
 public void test_setMaximizedZ() {
@@ -212,21 +182,15 @@ public static java.util.Vector<String> methodNames() {
 	methodNames.addElement("test_ConstructorLorg_eclipse_swt_widgets_CompositeI");
 	methodNames.addElement("test_computeTrimIIII");
 	methodNames.addElement("test_dispose");
-	methodNames.addElement("test_getBounds");
 	methodNames.addElement("test_getClientArea");
 	methodNames.addElement("test_getDefaultButton");
 	methodNames.addElement("test_getImage");
-	methodNames.addElement("test_getImages");
 	methodNames.addElement("test_getLocation");
-	methodNames.addElement("test_getMaximized");
 	methodNames.addElement("test_getMenuBar");
-	methodNames.addElement("test_getMinimized");
-	methodNames.addElement("test_getSize");
 	methodNames.addElement("test_getText");
 	methodNames.addElement("test_isReparentable");
 	methodNames.addElement("test_setDefaultButtonLorg_eclipse_swt_widgets_Button");
 	methodNames.addElement("test_setImageLorg_eclipse_swt_graphics_Image");
-	methodNames.addElement("test_setImages$Lorg_eclipse_swt_graphics_Image");
 	methodNames.addElement("test_setMaximizedZ");
 	methodNames.addElement("test_setMenuBarLorg_eclipse_swt_widgets_Menu");
 	methodNames.addElement("test_setMinimizedZ");
@@ -239,22 +203,15 @@ public static java.util.Vector<String> methodNames() {
 protected void runTest() throws Throwable {
 	if (getName().equals("test_ConstructorLorg_eclipse_swt_widgets_CompositeI")) test_ConstructorLorg_eclipse_swt_widgets_CompositeI();
 	else if (getName().equals("test_computeTrimIIII")) test_computeTrimIIII();
-	else if (getName().equals("test_dispose")) test_dispose();
-	else if (getName().equals("test_getBounds")) test_getBounds();
 	else if (getName().equals("test_getClientArea")) test_getClientArea();
 	else if (getName().equals("test_getDefaultButton")) test_getDefaultButton();
 	else if (getName().equals("test_getImage")) test_getImage();
-	else if (getName().equals("test_getImages")) test_getImages();
 	else if (getName().equals("test_getLocation")) test_getLocation();
-	else if (getName().equals("test_getMaximized")) test_getMaximized();
 	else if (getName().equals("test_getMenuBar")) test_getMenuBar();
-	else if (getName().equals("test_getMinimized")) test_getMinimized();
-	else if (getName().equals("test_getSize")) test_getSize();
 	else if (getName().equals("test_getText")) test_getText();
 	else if (getName().equals("test_isReparentable")) test_isReparentable();
 	else if (getName().equals("test_setDefaultButtonLorg_eclipse_swt_widgets_Button")) test_setDefaultButtonLorg_eclipse_swt_widgets_Button();
 	else if (getName().equals("test_setImageLorg_eclipse_swt_graphics_Image")) test_setImageLorg_eclipse_swt_graphics_Image();
-	else if (getName().equals("test_setImages$Lorg_eclipse_swt_graphics_Image")) test_setImages$Lorg_eclipse_swt_graphics_Image();
 	else if (getName().equals("test_setMaximizedZ")) test_setMaximizedZ();
 	else if (getName().equals("test_setMenuBarLorg_eclipse_swt_widgets_Menu")) test_setMenuBarLorg_eclipse_swt_widgets_Menu();
 	else if (getName().equals("test_setMinimizedZ")) test_setMinimizedZ();

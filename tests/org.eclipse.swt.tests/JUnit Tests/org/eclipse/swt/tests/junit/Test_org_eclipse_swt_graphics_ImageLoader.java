@@ -11,28 +11,23 @@
 package org.eclipse.swt.tests.junit;
 
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-import junit.framework.*;
-import junit.textui.*;
+import junit.framework.TestCase;
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.graphics.*;
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.ImageLoader;
+import org.eclipse.swt.graphics.ImageLoaderEvent;
+import org.eclipse.swt.graphics.ImageLoaderListener;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.graphics.ImageLoader
  *
  * @see org.eclipse.swt.graphics.ImageLoader
  */
-public class Test_org_eclipse_swt_graphics_ImageLoader extends SwtTestCase {
-
-public Test_org_eclipse_swt_graphics_ImageLoader(String name) {
-	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
-}
+public class Test_org_eclipse_swt_graphics_ImageLoader extends TestCase {
 
 public void test_Constructor() {
 	new ImageLoader();
@@ -78,10 +73,6 @@ public void test_addImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderList
 
 	loader.removeImageLoaderListener(loaderListener);
 	assertFalse(":f:", loader.hasListeners());
-}
-
-public void test_hasListeners() {
-	// tested in addImageLoaderListener method
 }
 
 public void test_loadLjava_io_InputStream() {
@@ -133,14 +124,6 @@ public void test_loadLjava_lang_String() {
 	// j2se and j2me(cdc) can load from a filename but, j2me(cldc) throws an exception
 }
 
-public void test_notifyListenersLorg_eclipse_swt_graphics_ImageLoaderEvent() {
-	// tested in addImageLoaderListener method
-}
-
-public void test_removeImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener() {
-	// tested in addImageLoaderListener method
-}
-
 public void test_saveLjava_io_OutputStreamI() {
 	ImageLoader loader = new ImageLoader();
 	ByteArrayOutputStream outStream = null;
@@ -159,8 +142,8 @@ public void test_saveLjava_io_OutputStreamI() {
 		} catch (SWTException e) {
 		}
 		boolean jpgSupported = false;
-		for (int i=0; i<imageFormats.length; i++) {
-			if (imageFormats[i].equals("jpg")) {
+		for (int i=0; i<SwtTestCase.imageFormats.length; i++) {
+			if (SwtTestCase.imageFormats[i].equals("jpg")) {
 				jpgSupported = true;
 				break;
 			}
@@ -174,8 +157,8 @@ public void test_saveLjava_io_OutputStreamI() {
 			try {
 				inStream.close();
 			} catch (IOException e) {}
-			for (int i = 0; i < imageFormats.length; i++) {
-				if (imageFormats[i].equals(filetype)) {
+			for (int i = 0; i < SwtTestCase.imageFormats.length; i++) {
+				if (SwtTestCase.imageFormats[i].equals(filetype)) {
 					// save using the appropriate format
 					loader.save(outStream, i);
 					break;
@@ -201,40 +184,6 @@ public void test_saveLjava_lang_StringI() {
 	// j2se and j2me(cdc) can load from a filename but, j2me(cldc) throws an exception
 }
 
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_graphics_ImageLoader(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_Constructor");
-	methodNames.addElement("test_addImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener");
-	methodNames.addElement("test_hasListeners");
-	methodNames.addElement("test_loadLjava_io_InputStream");
-	methodNames.addElement("test_loadLjava_lang_String");
-	methodNames.addElement("test_notifyListenersLorg_eclipse_swt_graphics_ImageLoaderEvent");
-	methodNames.addElement("test_removeImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener");
-	methodNames.addElement("test_saveLjava_io_OutputStreamI");
-	methodNames.addElement("test_saveLjava_lang_StringI");
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_Constructor")) test_Constructor();
-	else if (getName().equals("test_addImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener")) test_addImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener();
-	else if (getName().equals("test_hasListeners")) test_hasListeners();
-	else if (getName().equals("test_loadLjava_io_InputStream")) test_loadLjava_io_InputStream();
-	else if (getName().equals("test_loadLjava_lang_String")) test_loadLjava_lang_String();
-	else if (getName().equals("test_notifyListenersLorg_eclipse_swt_graphics_ImageLoaderEvent")) test_notifyListenersLorg_eclipse_swt_graphics_ImageLoaderEvent();
-	else if (getName().equals("test_removeImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener")) test_removeImageLoaderListenerLorg_eclipse_swt_graphics_ImageLoaderListener();
-	else if (getName().equals("test_saveLjava_io_OutputStreamI")) test_saveLjava_io_OutputStreamI();
-	else if (getName().equals("test_saveLjava_lang_StringI")) test_saveLjava_lang_StringI();
-}
 /* custom */
 boolean loaderListenerCalled;
 }
