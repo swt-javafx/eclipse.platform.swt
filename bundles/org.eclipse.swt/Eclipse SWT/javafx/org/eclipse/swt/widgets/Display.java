@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -32,6 +33,7 @@ import javafx.scene.Node;
 import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Screen;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import org.eclipse.swt.SWT;
@@ -142,6 +144,8 @@ public class Display extends Device {
 	}
 
 	private static Display DEFAULT;
+	private static String appName;
+	private CountDownLatch startupLatch;
 //	private volatile boolean inSleep;
 //	private Thread wakeThread;
 	private Timer timer;
@@ -189,6 +193,16 @@ public class Display extends Device {
 		CurrentDevice = device;
 	}
 
+	public static class SWTApplication extends Application {
+		@Override
+		public void start(Stage primaryStage) throws Exception {
+			DEFAULT.thread = Thread.currentThread();
+			if (appName != null)
+				setAppName(appName);
+			DEFAULT.startupLatch.countDown();
+		}
+	}
+	
 	/**
 	 * Constructs a new instance of this class.
 	 * <p>
@@ -211,11 +225,26 @@ public class Display extends Device {
 	 * @see Shell
 	 */
 	public Display() {
+		if (DEFAULT != null)
+			throw new UnsupportedOperationException();
 		DEFAULT = this;
-		this.thread = Thread.currentThread();
+
+		startupLatch = new CountDownLatch(1);
+		new Thread("SWT JavaFX Launcher") {
+			public void run() {
+				Application.launch(SWTApplication.class, new String[0]);
+				dispose();
+			};
+		}.start();
+		try {
+			startupLatch.await();
+			startupLatch = null;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 		hoverTimer.getKeyFrames().add(new KeyFrame(Duration.millis(560)));
 		hoverTimer.setOnFinished(new EventHandler<ActionEvent>() {
-			
 			@Override
 			public void handle(ActionEvent event) {
 				if( hoverControl != null ) {
@@ -227,6 +256,7 @@ public class Display extends Device {
 				}
 			}
 		});
+
 		initColors();
 	}
 
@@ -1973,7 +2003,10 @@ public class Display extends Device {
 	 *            the new app name or <code>null</code>
 	 */
 	public static void setAppName(String name) {
-		com.sun.glass.ui.Application.GetApplication().setName(name);
+		if (DEFAULT != null)
+			com.sun.glass.ui.Application.GetApplication().setName(name);
+		else
+			appName = name;
 	}
 
 	/**
