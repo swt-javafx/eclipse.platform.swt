@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 
@@ -469,12 +468,12 @@ public class Display extends Device {
 		disposeList.add(runnable);
 	}
 
-	public Object enterNestedEventLoop(Object key) {
-		return Toolkit.getToolkit().enterNestedEventLoop(key);
+	public void enterNestedEventLoop(Object key) {
+		Toolkit.getToolkit().enterNestedEventLoop(key);
 	}
 	
-	public void exitNestedEventLoop(Object key, Object rval) {
-		Toolkit.getToolkit().exitNestedEventLoop(key, rval);
+	public void exitNestedEventLoop(Object key) {
+		Toolkit.getToolkit().exitNestedEventLoop(key, null);
 	}
 	
 	boolean filterEvent (Event event) {
