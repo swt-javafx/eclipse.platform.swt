@@ -152,9 +152,7 @@ public class Display extends Device {
 	private int state;
 	private List<DisplayTimerTask> currentTasks = new Vector<>();
 	private Color[] widgetColors = new Color[SWT.COLOR_LINK_FOREGROUND + 1];
-	private volatile Vector<String> innerLoops = new Vector<>();
 	
-	private static final int WAKEUP_INITED = 1;
 	private static final int KEYED_DATA = 1 << 1;
 	private Control focusControl;
 	private Timeline hoverTimer = new Timeline();
@@ -471,6 +469,14 @@ public class Display extends Device {
 		disposeList.add(runnable);
 	}
 
+	public Object enterNestedEventLoop(Object key) {
+		return Toolkit.getToolkit().enterNestedEventLoop(key);
+	}
+	
+	public void exitNestedEventLoop(Object key, Object rval) {
+		Toolkit.getToolkit().exitNestedEventLoop(key, rval);
+	}
+	
 	boolean filterEvent (Event event) {
 		if (filterTable != null) filterTable.sendEvent (event);
 		return false;
@@ -1422,28 +1428,6 @@ public class Display extends Device {
 		widgetColors[SWT.COLOR_LINK_FOREGROUND] = new Color(this, 0, 0, 255);
 	}
 
-	private void initWakeupTask() {
-		TimerTask task = new TimerTask() {
-
-			@Override
-			public void run() {
-				if( ! innerLoops.isEmpty() & ! isDisposed() ) {
-					Platform.runLater(new Runnable() {
-						
-						@Override
-						public void run() {
-							if( ! innerLoops.isEmpty() ) {
-								Toolkit.getToolkit().exitNestedEventLoop(innerLoops.remove(0), null);	
-							}
-						}
-					});
-				}
-			}
-			
-		};
-		timer().scheduleAtFixedRate(task, 200, 200);
-	}
-	
 	/**
 	 * Invokes platform specific functionality to dispose a GC handle.
 	 * <p>
@@ -2250,15 +2234,8 @@ public class Display extends Device {
 	 * @see #wake
 	 */
 	public boolean sleep() {
-		innerLoops.add(UUID.randomUUID().toString());
-		if( (state & WAKEUP_INITED) == 0 ) {
-			state |= WAKEUP_INITED;
-			System.err.println("WARNING: Custom even loopspinning in JavaFX is not good. Use SWTUtil to e.g. open a blocking dialog");
-			initWakeupTask();
-		}
-//		System.err.println("Entering: " + innerLoops.get(innerLoops.size()-1));
-		Toolkit.getToolkit().enterNestedEventLoop(innerLoops.get(innerLoops.size()-1));
-		return true;
+		// Not supported on JavaFX
+		throw new UnsupportedOperationException();
 	}
 
 	/**
@@ -2399,6 +2376,7 @@ public class Display extends Device {
 	 */
 	public void wake() {
 		Util.logNotImplemented();
+		new Exception().printStackTrace();
 	}
 
 	void wakeThread() {

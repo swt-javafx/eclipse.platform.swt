@@ -407,7 +407,7 @@ public class CanvasGC implements DrawableGC {
 	
 	@Override
 	public void setClipping(Region region) {
-		setClipping(region != null ? region.internal_getNativeObject().getPathIterator(null) : null);
+		setClipping(region != null ? region.internal_getNativeObject().getPathIterator(null) : (PathIterator)null);
 	}
 	
 	private void setClipping(PathIterator pathIterator) {
