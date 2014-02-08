@@ -10,12 +10,77 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Locale;
+import java.util.Map;
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.internal.*;
-import org.eclipse.swt.internal.cocoa.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTError;
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Cursor;
+import org.eclipse.swt.graphics.Device;
+import org.eclipse.swt.graphics.DeviceData;
+import org.eclipse.swt.graphics.GCData;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.C;
+import org.eclipse.swt.internal.Callback;
+import org.eclipse.swt.internal.LONG;
+import org.eclipse.swt.internal.cocoa.CGPoint;
+import org.eclipse.swt.internal.cocoa.NSApplication;
+import org.eclipse.swt.internal.cocoa.NSArray;
+import org.eclipse.swt.internal.cocoa.NSAutoreleasePool;
+import org.eclipse.swt.internal.cocoa.NSBundle;
+import org.eclipse.swt.internal.cocoa.NSButton;
+import org.eclipse.swt.internal.cocoa.NSColor;
+import org.eclipse.swt.internal.cocoa.NSColorPanel;
+import org.eclipse.swt.internal.cocoa.NSColorSpace;
+import org.eclipse.swt.internal.cocoa.NSComboBox;
+import org.eclipse.swt.internal.cocoa.NSDate;
+import org.eclipse.swt.internal.cocoa.NSDictionary;
+import org.eclipse.swt.internal.cocoa.NSEvent;
+import org.eclipse.swt.internal.cocoa.NSFont;
+import org.eclipse.swt.internal.cocoa.NSGraphicsContext;
+import org.eclipse.swt.internal.cocoa.NSImage;
+import org.eclipse.swt.internal.cocoa.NSImageView;
+import org.eclipse.swt.internal.cocoa.NSLocale;
+import org.eclipse.swt.internal.cocoa.NSMenu;
+import org.eclipse.swt.internal.cocoa.NSMenuItem;
+import org.eclipse.swt.internal.cocoa.NSMutableArray;
+import org.eclipse.swt.internal.cocoa.NSMutableDictionary;
+import org.eclipse.swt.internal.cocoa.NSNotificationCenter;
+import org.eclipse.swt.internal.cocoa.NSNumber;
+import org.eclipse.swt.internal.cocoa.NSObject;
+import org.eclipse.swt.internal.cocoa.NSPanel;
+import org.eclipse.swt.internal.cocoa.NSPoint;
+import org.eclipse.swt.internal.cocoa.NSPopUpButton;
+import org.eclipse.swt.internal.cocoa.NSRange;
+import org.eclipse.swt.internal.cocoa.NSRect;
+import org.eclipse.swt.internal.cocoa.NSResponder;
+import org.eclipse.swt.internal.cocoa.NSRunLoop;
+import org.eclipse.swt.internal.cocoa.NSScreen;
+import org.eclipse.swt.internal.cocoa.NSSearchField;
+import org.eclipse.swt.internal.cocoa.NSSize;
+import org.eclipse.swt.internal.cocoa.NSSlider;
+import org.eclipse.swt.internal.cocoa.NSStepper;
+import org.eclipse.swt.internal.cocoa.NSString;
+import org.eclipse.swt.internal.cocoa.NSTextField;
+import org.eclipse.swt.internal.cocoa.NSTextView;
+import org.eclipse.swt.internal.cocoa.NSThread;
+import org.eclipse.swt.internal.cocoa.NSTimer;
+import org.eclipse.swt.internal.cocoa.NSTouch;
+import org.eclipse.swt.internal.cocoa.NSUserDefaults;
+import org.eclipse.swt.internal.cocoa.NSValue;
+import org.eclipse.swt.internal.cocoa.NSView;
+import org.eclipse.swt.internal.cocoa.NSWindow;
+import org.eclipse.swt.internal.cocoa.OS;
+import org.eclipse.swt.internal.cocoa.SWTApplicationDelegate;
+import org.eclipse.swt.internal.cocoa.SWTWindowDelegate;
+import org.eclipse.swt.internal.cocoa.id;
+import org.eclipse.swt.internal.cocoa.objc_super;
 
 /**
  * Instances of this class are responsible for managing the
@@ -1072,6 +1137,49 @@ public void disposeExec (Runnable runnable) {
 	System.arraycopy (disposeList, 0, newDisposeList, 0, disposeList.length);
 	newDisposeList [disposeList.length] = runnable;
 	disposeList = newDisposeList;
+}
+
+private static class NestedLoopData {
+	final Object key;
+	Object rval;
+	boolean done = false;
+	
+	public NestedLoopData(Object key) {
+		this.key = key;
+	}
+}
+
+private java.util.List<NestedLoopData> nestedLoopDataList = new LinkedList<>();
+
+public Object enterNestedEventLoop(Object key) {
+	checkDevice();
+	NestedLoopData loopData = new NestedLoopData(key);
+	nestedLoopDataList.add(loopData);
+	
+	while (true) {
+		synchronized (loopData) {
+			if (loopData.done) {
+				nestedLoopDataList.remove(loopData);
+				return loopData.rval;
+			}
+		}
+		
+		if (!readAndDispatch()) {
+			sleep();
+		}
+	}
+}
+
+public void exitNestedEventLoop(Object key, Object rval) {
+	for (NestedLoopData loopData : nestedLoopDataList) {
+		if (key.equals(loopData.key)) {
+			synchronized (loopData) {
+				loopData.rval = rval;
+				loopData.done = true;
+				return;
+			}
+		}
+	}
 }
 
 void error (int code) {

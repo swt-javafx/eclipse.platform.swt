@@ -3334,7 +3334,7 @@ public void setClipping(Region region) {
 	NSAutoreleasePool pool = null;
 	if (!NSThread.isMainThread()) pool = (NSAutoreleasePool) new NSAutoreleasePool().alloc().init();
 	try {
-		setClipping(region != null ? region.getPath() : null);
+		setClipping(region != null ? region.getPath() : (NSBezierPath)null);
 	} finally {
 		if (pool != null) pool.release();
 	}
