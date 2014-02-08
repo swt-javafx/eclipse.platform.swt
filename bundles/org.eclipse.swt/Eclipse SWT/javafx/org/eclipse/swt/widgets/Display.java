@@ -468,12 +468,12 @@ public class Display extends Device {
 		disposeList.add(runnable);
 	}
 
-	public void enterNestedEventLoop(Object key) {
-		Toolkit.getToolkit().enterNestedEventLoop(key);
+	public Object enterNestedEventLoop(Object key) {
+		return Toolkit.getToolkit().enterNestedEventLoop(key);
 	}
 	
-	public void exitNestedEventLoop(Object key) {
-		Toolkit.getToolkit().exitNestedEventLoop(key, null);
+	public void exitNestedEventLoop(Object key, Object rval) {
+		Toolkit.getToolkit().exitNestedEventLoop(key, rval);
 	}
 	
 	boolean filterEvent (Event event) {

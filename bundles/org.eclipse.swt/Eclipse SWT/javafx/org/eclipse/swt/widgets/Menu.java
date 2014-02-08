@@ -58,7 +58,7 @@ public class Menu extends Widget {
 	private ContextMenu contextMenu;
 	private java.util.List<MenuItem> items = new ArrayList<>();
 	private javafx.scene.control.Menu menu;
-	private Decorations decoration;
+	private Decorations parent;
 	private Menu parentMenu;
 	private Control control;
 	private static EventHandler<javafx.event.Event> SHOWING_HANDLER;
@@ -101,6 +101,7 @@ public class Menu extends Widget {
 	public Menu(Control parent) {
 		super(parent.getDisplay(),SWT.POP_UP);
 		this.control = parent;
+		this.parent = parent.getShell();
 //		initArm();
 	}
 
@@ -151,7 +152,7 @@ public class Menu extends Widget {
 	 */
 	public Menu(Decorations parent, int style) {
 		super(parent.getDisplay(),style);
-		this.decoration = parent;
+		this.parent = parent;
 //		initArm();
 	}
 
@@ -528,8 +529,7 @@ public class Menu extends Widget {
 	 */
 	public Decorations getParent() {
 		checkWidget();
-		Util.logNotImplemented();
-		return null;
+		return parent;
 	}
 
 	/**
@@ -849,8 +849,8 @@ public class Menu extends Widget {
 		checkWidget();
 		if( parentMenu != null ) {
 			return getVisible() && parentMenu.isVisible();
-		} else if( decoration != null ) {
-			return getVisible() && decoration.isVisible();
+		} else if( parent != null ) {
+			return getVisible() && parent.isVisible();
 		} else if( control != null ) {
 			return getVisible() && control.isVisible();
 		}
@@ -1088,8 +1088,8 @@ public class Menu extends Widget {
 	 */
 	public void setVisible(boolean visible) {
 		if( contextMenu != null ) {
-			contextMenu.show(((Shell)decoration).internal_getWindow());
-			Shell s = (Shell) (control != null ? control.getShell() : decoration);
+			contextMenu.show(((Shell)parent).internal_getWindow());
+			Shell s = (Shell) (control != null ? control.getShell() : parent);
 			contextMenu.show(s.internal_getWindow());
 		}
 	}

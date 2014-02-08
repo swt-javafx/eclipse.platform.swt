@@ -11,6 +11,8 @@
 package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -29,6 +31,7 @@ import javafx.stage.WindowEvent;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
@@ -134,6 +137,7 @@ public class Shell extends Decorations {
 	private BorderPane nativeObject;
 	private Shell parentShell;
 	private org.eclipse.swt.graphics.Region region;
+	private List<ShellListener> shellListeners = new LinkedList<ShellListener>();
 	
 	/**
 	 * Constructs a new instance of this class. This is equivalent to calling
@@ -412,7 +416,7 @@ public class Shell extends Decorations {
 	 * @see #removeShellListener
 	 */
 	public void addShellListener(ShellListener listener) {
-		Util.logNotImplemented();
+		shellListeners.add(listener);
 	}
 
 	/**
@@ -465,8 +469,8 @@ public class Shell extends Decorations {
 		if( (getStyle() & SWT.NO_FOCUS) == SWT.NO_FOCUS ) {
 			System.err.println("NO FOCUS NOT IMPLEMENTED");
 		}
+
 		stage.setOnShowing(new EventHandler<WindowEvent>() {
-			
 			@Override
 			public void handle(WindowEvent event) {
 				if( stage.widthProperty().getValue().equals(Double.NaN) && stage.heightProperty().getValue().equals(Double.NaN) ) {
@@ -475,8 +479,21 @@ public class Shell extends Decorations {
 				}
 			}
 		});
-		stage.addEventHandler(WindowEvent.WINDOW_CLOSE_REQUEST, new EventHandler<WindowEvent>() {
 
+		stage.addEventHandler(WindowEvent.WINDOW_SHOWN, new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				Event evt = new Event();
+				evt.widget = Shell.this;
+				internal_sendEvent(SWT.Activate, evt, true);
+				ShellEvent shellEvent = new ShellEvent(evt);
+				for (ShellListener listener : shellListeners) {
+					listener.shellActivated(shellEvent);
+				}
+			}
+		});
+
+		stage.addEventHandler(WindowEvent.WINDOW_CLOSE_REQUEST, new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
 				if( isListening(SWT.Close) ) {
@@ -488,8 +505,8 @@ public class Shell extends Decorations {
 				}
 			}
 		});
+
 		stage.focusedProperty().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
 				if( s.getFocusOwner() != null ) {
@@ -502,8 +519,8 @@ public class Shell extends Decorations {
 				}
 			}
 		});
+
 		s.focusOwnerProperty().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
 				if( stage.isFocused() ) {
@@ -858,7 +875,7 @@ public class Shell extends Decorations {
 	 * @see #addShellListener
 	 */
 	public void removeShellListener(ShellListener listener) {
-		Util.logNotImplemented();
+		shellListeners.remove(listener);
 	}
 
 	/**

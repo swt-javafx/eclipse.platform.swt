@@ -277,7 +277,7 @@ public class ToolBar extends Composite {
 	}
 
 	void internal_itemAdded(ToolItem item, int index) {
-		items.add(item);
+		items.add(index, item);
 		toolbar.getItems().add(index, item.internal_getNativeObject());
 	}
 

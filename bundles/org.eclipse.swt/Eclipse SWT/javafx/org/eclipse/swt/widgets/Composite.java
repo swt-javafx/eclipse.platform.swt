@@ -151,14 +151,14 @@ public class Composite extends Scrollable {
 	@Override
 	public void addPaintListener(PaintListener listener) {
 		super.addPaintListener(listener);
-		internal_initCanvas();
+//TODO		internal_initCanvas();
 	}
 	
 	@Override
 	public void addListener(int eventType, Listener listener) {
 		super.addListener(eventType, listener);
 		if( eventType == SWT.Paint ) {
-			internal_initCanvas();
+//TODO			internal_initCanvas();
 		} else if( eventType == SWT.KeyDown || eventType == SWT.KeyUp ) {
 			internal_enableFocusTraversable();
 		}

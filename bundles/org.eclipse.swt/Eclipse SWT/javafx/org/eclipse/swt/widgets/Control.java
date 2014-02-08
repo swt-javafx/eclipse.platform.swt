@@ -2999,8 +2999,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean setParent(Composite parent) {
-		this.parent.internal_detachControl(this);
-		parent.internal_attachControl(this);
+		this.parent.internal_controlRemoved(this);
+		parent.internal_controlAdded(this);
 		this.parent = parent;
 		return true;
 	}
