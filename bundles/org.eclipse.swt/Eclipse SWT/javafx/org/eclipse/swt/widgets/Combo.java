@@ -70,9 +70,7 @@ import org.eclipse.swt.internal.Util;
  */
 public class Combo extends Composite {
 
-	private ComboBox<String> control;
 	private ObservableList<String> items;
-	private static EventHandler<KeyEvent> DEFAULT_SELECTION_HANDLER;
 	
 	/**
 	 * the operating system limit for the number of characters
@@ -306,7 +304,7 @@ public class Combo extends Composite {
 	 */
 	public void clearSelection() {
 		checkWidget ();
-		control.getSelectionModel().clearSelection();
+		getNativeCombo().getSelectionModel().clearSelection();
 	}
 
 	/**
@@ -330,12 +328,12 @@ public class Combo extends Composite {
 	}
 
 	@Override
-	protected ComboBox<String> createWidget() {
-		control = new ComboBox<String>();
+	void createWidget() {
+		ComboBox<String> control = new ComboBox<String>();
 		control.setEditable((style & SWT.READ_ONLY) != SWT.READ_ONLY);
 		items = FXCollections.observableArrayList();
 		control.setItems(items);
-		return control;
+		nativeControl = control;
 	}
 	
 	/**
@@ -377,7 +375,7 @@ public class Combo extends Composite {
 	 */
 	public void deselect(int index) {
 		checkWidget();
-		control.getSelectionModel().clearSelection(index);
+		getNativeCombo().getSelectionModel().clearSelection(index);
 	}
 
 	/**
@@ -398,7 +396,7 @@ public class Combo extends Composite {
 	 * @see #clearSelection
 	 */
 	public void deselectAll() {
-		control.getSelectionModel().clearSelection();
+		getNativeCombo().getSelectionModel().clearSelection();
 	}
 
 	/**
@@ -445,22 +443,6 @@ public class Combo extends Composite {
 		return 0;
 	}
 
-	private static EventHandler<KeyEvent> getDefaultSelecionHandler() {
-		if(DEFAULT_SELECTION_HANDLER==null){
-			DEFAULT_SELECTION_HANDLER = new EventHandler<KeyEvent>() {
-				
-				@Override
-				public void handle(KeyEvent event) {
-					if(event.getCharacter().contains("\r") || event.getCharacter().contains("\n")) {
-						Event evt = new Event();
-						Widget.getWidget(event.getSource()).internal_sendEvent(SWT.DefaultSelection, evt, true);
-					}
-				}
-			};
-		}
-		return DEFAULT_SELECTION_HANDLER;
-	}
-	
 	/**
 	 * Returns the item at the given, zero-relative index in the receiver's
 	 * list. Throws an exception if the index is out of range.
@@ -569,7 +551,12 @@ public class Combo extends Composite {
 	 */
 	public boolean getListVisible() {
 		checkWidget();
-		return control.isShowing();
+		return getNativeCombo().isShowing();
+	}
+
+	@SuppressWarnings("unchecked")
+	private ComboBox<String> getNativeCombo() {
+		return (ComboBox<String>)nativeControl;
 	}
 
 	/**
@@ -594,6 +581,7 @@ public class Combo extends Composite {
 	 *                </ul>
 	 */
 	public Point getSelection() {
+		ComboBox<String> control = getNativeCombo();
 		if( (style & SWT.READ_ONLY) == SWT.READ_ONLY ) {
 			return new Point(0, control.getSelectionModel().getSelectedItem() == null ? 0 : control.getSelectionModel().getSelectedItem().length());
 		} else {
@@ -618,7 +606,7 @@ public class Combo extends Composite {
 	 */
 	public int getSelectionIndex() {
 		checkWidget();
-		return control.getSelectionModel().getSelectedIndex();
+		return getNativeCombo().getSelectionModel().getSelectedIndex();
 	}
 
 	/**
@@ -637,7 +625,7 @@ public class Combo extends Composite {
 	 */
 	public String getText() {
 		checkWidget();
-		return Util.notNull(control.getValue());
+		return Util.notNull(getNativeCombo().getValue());
 	}
 
 	/**
@@ -702,7 +690,7 @@ public class Combo extends Composite {
 	 */
 	public int getVisibleItemCount() {
 		checkWidget();
-		return control.getVisibleRowCount();
+		return getNativeCombo().getVisibleRowCount();
 	}
 
 	/**
@@ -761,65 +749,9 @@ public class Combo extends Composite {
 	}
 
 	@Override
-	protected void initListeners() {
-		super.initListeners();
-		control.getSelectionModel().selectedIndexProperty().addListener(new InvalidationListener() {
-			
-			@Override
-			public void invalidated(Observable observable) {
-				Event evt = new Event();
-				internal_sendEvent(SWT.Selection, evt, true); 
-			}
-		});
-		if( control.isEditable() ) {
-			registerConnection(control.getEditor());
-			control.getEditor().addEventHandler(KeyEvent.KEY_TYPED, getDefaultSelecionHandler());
-		}
-	}
-	
-	@Override
-	protected void internal_attachControl(Control c) {
-		throw new UnsupportedOperationException("Combo does not support children");
-	}
-	
-	protected void internal_attachControl(int idx, Control c) {
-		throw new UnsupportedOperationException("Combo does not support children");
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
-		throw new UnsupportedOperationException("Combo does not support children");
-	}
-	
-	@Override
 	protected void internal_doLayout() {
 	}
 
-	@Override
-	public ComboBox<String> internal_getNativeObject() {
-		return control;
-	}
-	
-	@Override
-	protected double internal_getHeight() {
-		return control.getHeight();
-	}
-	
-	@Override
-	protected double internal_getPrefHeight() {
-		return control.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
-	}
-	
-	@Override
-	protected double internal_getPrefWidth() {
-		return control.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
-	}
-	
-	@Override
-	protected double internal_getWidth() {
-		return control.getWidth();
-	}
-	
 	@Override
 	protected void internal_setLayout(Layout layout) {
 		// No children supported
@@ -848,6 +780,31 @@ public class Combo extends Composite {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	void registerHandle() {
+		super.registerHandle();
+		@SuppressWarnings("unchecked")
+		ComboBox<String> control = (ComboBox<String>) nativeControl;
+		control.getSelectionModel().selectedIndexProperty().addListener(new InvalidationListener() {
+			@Override
+			public void invalidated(Observable observable) {
+				Event evt = new Event();
+				sendEvent(SWT.Selection, evt, true); 
+			}
+		});
+		if (control.isEditable()) {
+			control.getEditor().addEventHandler(KeyEvent.KEY_TYPED, new EventHandler<KeyEvent>() {
+				@Override
+				public void handle(KeyEvent event) {
+					if(event.getCharacter().contains("\r") || event.getCharacter().contains("\n")) {
+						Event evt = new Event();
+						sendEvent(SWT.DefaultSelection, evt, true);
+					}
+				}
+			});
+		}
+	}
+	
 	/**
 	 * Removes the item from the receiver's list at the given zero-relative
 	 * index.
@@ -970,7 +927,7 @@ public class Combo extends Composite {
 	public void removeModifyListener(ModifyListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Modify, listener);
+		removeListener(SWT.Modify, listener);
 	}
 
 	/**
@@ -998,8 +955,8 @@ public class Combo extends Composite {
 	public void removeSelectionListener(SelectionListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Selection, listener);
-		unregisterListener(SWT.DefaultSelection,listener);	
+		removeListener(SWT.Selection, listener);
+		removeListener(SWT.DefaultSelection,listener);	
 	}
 
 	/**
@@ -1029,7 +986,7 @@ public class Combo extends Composite {
 	public void removeVerifyListener(VerifyListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Verify, listener);
+		removeListener(SWT.Verify, listener);
 	}
 
 	/**
@@ -1048,9 +1005,10 @@ public class Combo extends Composite {
 	 *                thread that created the receiver</li>
 	 *                </ul>
 	 */
+	@SuppressWarnings("unchecked")
 	public void select(int index) {
 		checkWidget ();
-		internal_runNoEvent(() -> control.getSelectionModel().select(index));
+		internal_runNoEvent(() -> ((ComboBox<String>) nativeControl).getSelectionModel().select(index));
 	}
 
 	/**
@@ -1131,6 +1089,8 @@ public class Combo extends Composite {
 	 */
 	public void setListVisible(boolean visible) {
 		checkWidget ();
+		@SuppressWarnings("unchecked")
+		ComboBox<String> control = (ComboBox<String>)nativeControl;
 		if( visible ) {
 			control.show();	
 		} else {
@@ -1192,7 +1152,7 @@ public class Combo extends Composite {
 	 */
 	public void setText(String string) {
 		checkWidget ();
-		control.setValue(string);
+		getNativeCombo().setValue(string);
 	}
 
 	/**
@@ -1249,7 +1209,7 @@ public class Combo extends Composite {
 	 */
 	public void setVisibleItemCount(int count) {
 		checkWidget ();
-		control.setVisibleRowCount(count);
+		getNativeCombo().setVisibleRowCount(count);
 	}
 	
 }

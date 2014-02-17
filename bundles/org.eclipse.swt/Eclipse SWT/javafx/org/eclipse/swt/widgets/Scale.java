@@ -116,9 +116,9 @@ public class Scale extends Control {
 	}
 
 	@Override
-	protected javafx.scene.control.Slider createWidget() {
+	void createHandle() {
 		nativeWidget = new javafx.scene.control.Slider();
-		return nativeWidget;
+		nativeControl = nativeWidget;
 	}
 
 	/**
@@ -207,11 +207,6 @@ public class Scale extends Control {
 	 */
 	public int getSelection() {
 		return (int) nativeWidget.getValue();
-	}
-
-	@Override
-	public javafx.scene.control.Slider internal_getNativeObject() {
-		return nativeWidget;
 	}
 
 	/**

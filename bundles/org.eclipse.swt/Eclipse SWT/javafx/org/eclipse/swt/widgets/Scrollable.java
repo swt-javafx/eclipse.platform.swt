@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Rectangle;
@@ -132,10 +130,7 @@ public abstract class Scrollable extends Control {
 	 * 
 	 * @see #computeTrim
 	 */
-	public Rectangle getClientArea() {
-		Region c = internal_getClientControl();
-		return new Rectangle(0, 0, (int)c.getWidth(), (int)c.getHeight());
-	}
+	public abstract Rectangle getClientArea();
 
 	/**
 	 * Returns the receiver's horizontal scroll bar if it has one, and null if
@@ -201,8 +196,4 @@ public abstract class Scrollable extends Control {
 		return null;
 	}
 
-	protected Region internal_getClientControl() {
-		return internal_getNativeControl();
-	}
-	
 }

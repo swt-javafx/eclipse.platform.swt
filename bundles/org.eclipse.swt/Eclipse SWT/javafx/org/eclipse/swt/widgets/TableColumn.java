@@ -73,7 +73,7 @@ import org.eclipse.swt.widgets.TableItem.Registration;
  */
 public class TableColumn extends Item {
 
-	private javafx.scene.control.TableColumn<TableItem, CellItem> column;
+	javafx.scene.control.TableColumn<TableItem, CellItem> nativeColumn;
 	private int index;
 	private Table parent;
 	private boolean moveable;
@@ -246,7 +246,7 @@ public class TableColumn extends Item {
 				
 				if( editor != null ) {
 					HBox h = new HBox();
-					h.getChildren().setAll(imageView, editor.internal_getNativeObject());
+					h.getChildren().setAll(imageView, editor.nativeControl);
 					setGraphic(h);
 				} else {
 					if( parent.internal_isPaintItem() ) {
@@ -267,7 +267,7 @@ public class TableColumn extends Item {
 				}
 			} else {
 				if( editor != null ) {
-					setGraphic(editor.internal_getNativeObject());
+					setGraphic(editor.nativeControl);
 				} else {
 					if( parent.internal_isPaintItem() ) {
 						if( ownerDrawCanvas == null ) {
@@ -314,7 +314,7 @@ public class TableColumn extends Item {
 			event.item = currentItem.item;
 			event.gc = new GC(this);
 			ownerDrawCanvas.getGraphicsContext2D().clearRect(0,0,ownerDrawCanvas.getWidth(),ownerDrawCanvas.getHeight());
-			parent.internal_sendEvent(SWT.PaintItem, event, true);
+			parent.sendEvent(SWT.PaintItem, event, true);
 			event.gc.dispose();
 		}
 		
@@ -322,7 +322,7 @@ public class TableColumn extends Item {
 			Event event = new Event();
 			event.item = currentItem.item;
 			event.gc = new GC(this);
-			parent.internal_sendEvent(SWT.MeasureItem, event, true);
+			parent.sendEvent(SWT.MeasureItem, event, true);
 			ownerDrawCanvas.setWidth(event.width);
 			ownerDrawCanvas.setHeight(event.height);
 			event.gc.dispose();
@@ -370,7 +370,7 @@ public class TableColumn extends Item {
 		
 		public Rectangle getBounds() {
 			Bounds bounds = getBoundsInParent();
-			Point2D coords = parent.internal_getNativeObject().sceneToLocal(localToScene(0, 0));
+			Point2D coords = parent.nativeControl.sceneToLocal(localToScene(0, 0));
 			Rectangle r = new Rectangle((int)coords.getX(), (int)coords.getY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 			return r;
 		}
@@ -401,11 +401,11 @@ public class TableColumn extends Item {
 			if( event.getClickCount() == 2 && cell.currentItem != null ) {
 				Event evt = new Event();
 				evt.item = cell.currentItem.item;
-				internal_sendEvent(SWT.DefaultSelection, evt, true);
+				sendEvent(SWT.DefaultSelection, evt, true);
 			} else {
 				Event evt = new Event();
 				evt.item = cell.currentItem.item;
-				internal_sendEvent(SWT.Selection, evt, true);
+				sendEvent(SWT.Selection, evt, true);
 			}
 		}
 	}
@@ -453,7 +453,7 @@ public class TableColumn extends Item {
 		this.parent = parent;
 		// before we call the add because we'll maybe get called immediately
 		index = parent.getColumnCount();
-		parent.internal_columnAdded(this);
+		createWidget();
 	}
 
 	/**
@@ -507,7 +507,7 @@ public class TableColumn extends Item {
 		this.parent = parent;
 		// before we call the add because we'll maybe get called immediately
 		this.index = index;
-		parent.internal_columnAdded(this, index);
+		createWidget();
 	}
 
 	/**
@@ -571,15 +571,15 @@ public class TableColumn extends Item {
 	}
 
 	@Override
-	protected javafx.scene.control.TableColumn<TableItem, CellItem> createWidget() {
-		column = new javafx.scene.control.TableColumn<TableItem, CellItem>();
-		column.setCellValueFactory(new Callback<CellDataFeatures<TableItem,CellItem>, ObservableValue<CellItem>>() {
+	void createHandle() {
+		nativeColumn = new javafx.scene.control.TableColumn<TableItem, CellItem>();
+		nativeColumn.setCellValueFactory(new Callback<CellDataFeatures<TableItem,CellItem>, ObservableValue<CellItem>>() {
 			@Override
 			public ObservableValue<CellItem> call(CellDataFeatures<TableItem, CellItem> param) {
 				return new SimpleObjectProperty<TableColumn.CellItem>(new CellItem(index,param.getValue())); 
 			}
 		});
-		column.setCellFactory(new Callback<javafx.scene.control.TableColumn<TableItem, CellItem>, TableCell<TableItem,CellItem>>() {
+		nativeColumn.setCellFactory(new Callback<javafx.scene.control.TableColumn<TableItem, CellItem>, TableCell<TableItem,CellItem>>() {
 			@Override
 			public TableCell<TableItem, CellItem> call(
 					javafx.scene.control.TableColumn<TableItem, CellItem> param) {
@@ -588,7 +588,6 @@ public class TableColumn extends Item {
 				return i;
 			}
 		});
-		return column;
 	}
 	
 	/**
@@ -678,13 +677,13 @@ public class TableColumn extends Item {
 	 */
 	public boolean getResizable() {
 		checkWidget();
-		return column.isResizable();
+		return nativeColumn.isResizable();
 	}
 
 	@Override
 	public String getText() {
 		checkWidget();
-		return notNullString(column.getText());
+		return notNullString(nativeColumn.getText());
 	}
 
 	/**
@@ -722,14 +721,9 @@ public class TableColumn extends Item {
 	 */
 	public int getWidth() {
 		checkWidget();
-		return (int) column.getWidth();
+		return (int) nativeColumn.getWidth();
 	}
 
-	@Override
-	public javafx.scene.control.TableColumn<TableItem, CellItem> internal_getNativeObject() {
-		return column;
-	}
-	
 	/**
 	 * Causes the receiver to be resized to its preferred size. For a composite,
 	 * this involves computing the preferred size from its layout, if there is
@@ -748,6 +742,12 @@ public class TableColumn extends Item {
 		Util.logNotImplemented();
 	}
 
+	@Override
+	void registerHandle() {
+		super.registerHandle();
+		parent.internal_columnAdded(this);
+	}
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is moved or resized.
@@ -829,9 +829,9 @@ public class TableColumn extends Item {
 	public void setImage(Image image) {
 		super.setImage(image);
 		if( image == null ) {
-			column.setGraphic(null);
+			nativeColumn.setGraphic(null);
 		} else {
-			column.setGraphic(new ImageView(image.internal_getImage()));			
+			nativeColumn.setGraphic(new ImageView(image.internal_getImage()));			
 		}
 	}
 	
@@ -881,13 +881,13 @@ public class TableColumn extends Item {
 	 *                </ul>
 	 */
 	public void setResizable(boolean resizable) {
-		column.setResizable(resizable);
+		nativeColumn.setResizable(resizable);
 	}
 
 	@Override
 	public void setText(String string) {
 		checkWidget();
-		column.setText(string);
+		nativeColumn.setText(string);
 	}
 	
 	/**
@@ -934,7 +934,7 @@ public class TableColumn extends Item {
 	 *                </ul>
 	 */
 	public void setWidth(int width) {
-		column.setPrefWidth(width);
+		nativeColumn.setPrefWidth(width);
 	}
 
 }

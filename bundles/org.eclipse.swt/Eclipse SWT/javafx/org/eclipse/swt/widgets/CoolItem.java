@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
@@ -515,9 +513,8 @@ public class CoolItem extends Item {
 		Point p = fixPoint(width, height);
 		prefWidth = p.x;
 		prefHeight = p.y;
-		if( control != null ) {
-			Region r = (Region)control.internal_getNativeObject();
-			r.setPrefSize(prefWidth, prefHeight);
+		if (control != null) {
+			control.nativeControl.setPrefSize(prefWidth, prefHeight);
 		}
 	}
 

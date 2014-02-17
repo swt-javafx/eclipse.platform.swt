@@ -12,10 +12,8 @@ package org.eclipse.swt.widgets;
 
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.Separator;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -112,8 +110,8 @@ public class Label extends Control {
 	public Point computeSize(int wHint, int hHint, boolean flushCache) {
 		checkWidget ();
 		forceSizeProcessing();
-		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
-		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int width = (int) nativeControl.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) nativeControl.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
 
 		if (wHint != SWT.DEFAULT)
 			width = wHint;
@@ -125,15 +123,15 @@ public class Label extends Control {
 	}
 
 	@Override
-	protected Node createWidget() {
+	void createHandle() {
 		if( (style & SWT.SEPARATOR) != 0 ) {
 			separator = new Separator();
 			separator.setOrientation((style & SWT.VERTICAL) == SWT.VERTICAL ? Orientation.VERTICAL : Orientation.HORIZONTAL);
-			return separator;
+			nativeControl = separator;
 		} else {
 			control = new javafx.scene.control.Label();
 			control.setWrapText((style & SWT.WRAP) == SWT.WRAP);
-			return control;
+			nativeControl = control;
 		}
 	}
 	
@@ -205,11 +203,6 @@ public class Label extends Control {
 		checkWidget ();
 		if ((style & SWT.SEPARATOR) != 0) return "";
 		return notNullString(control.getText());
-	}
-
-	@Override
-	public Region internal_getNativeObject() {
-		return control == null ? separator : control;
 	}
 
 	/**

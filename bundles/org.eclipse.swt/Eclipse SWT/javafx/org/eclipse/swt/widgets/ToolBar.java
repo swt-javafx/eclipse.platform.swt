@@ -96,13 +96,21 @@ public class ToolBar extends Composite {
 	 */
 	public ToolBar(Composite parent, int style) {
 		super(parent, style);
+		creationStack = Thread.currentThread().getStackTrace();
+		if ((style & SWT.VERTICAL) != 0) {
+			this.style |= SWT.VERTICAL; 
+		} else {
+			this.style |= SWT.HORIZONTAL;
+		}
 	}
 
+	private StackTraceElement[] creationStack;
+	
 	@Override
-	protected javafx.scene.control.ToolBar createWidget() {
+	void createHandle() {
 		toolbar = new javafx.scene.control.ToolBar();
 		toolbar.getStyleClass().add("swt-toolbar");
-		return toolbar;
+		nativeControl = toolbar;
 	}
 	
 	/**
@@ -154,7 +162,7 @@ public class ToolBar extends Composite {
 	 */
 	public ToolItem getItem(Point point) {
 		for( ToolItem i : items ) {
-			if( i.internal_getNativeObject().getBoundsInParent().contains(point.x, point.y) ) {
+			if( i.nativeControl.getBoundsInParent().contains(point.x, point.y) ) {
 				return i;
 			}
 		}
@@ -254,41 +262,36 @@ public class ToolBar extends Composite {
 		return true;
 	}
 	
-	@Override
-	public javafx.scene.control.ToolBar internal_getNativeObject() {
-		return toolbar;
-	}
-	
-	@Override
-	protected void internal_attachControl(Control c) {
-	}
-	
-	@Override
-	protected void internal_attachControl(int idx, Control c) {
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
-	}
-
 	void internal_itemAdded(ToolItem item) {
 		items.add(item);
-		toolbar.getItems().add(item.internal_getNativeObject());
+		toolbar.getItems().add(item.nativeControl);
 	}
 
 	void internal_itemAdded(ToolItem item, int index) {
 		items.add(index, item);
-		toolbar.getItems().add(index, item.internal_getNativeObject());
+		toolbar.getItems().add(index, item.nativeControl);
 	}
 
 	void internal_itemRemoved(ToolItem item) {
 		items.remove(item);
-		toolbar.getItems().remove(item.internal_getNativeObject());
+		toolbar.getItems().remove(item.nativeControl);
 	}
 	
 	public void pack() {
 		forceSizeProcessing();
-		setSize((int)internal_getNativeControl().prefWidth(-1), (int)internal_getNativeControl().prefHeight(-1));
+		setSize((int)nativeControl.prefWidth(-1), (int)nativeControl.prefHeight(-1));
 	}
 	
+	@Override
+	void releaseChildren(boolean destroy) {
+		super.releaseChildren(destroy);
+		for (ToolItem item : items)
+			item.release(destroy);
+	}
+
+	@Override
+	public void setLayoutData(Object layoutData) {
+		// TODO Auto-generated method stub
+		super.setLayoutData(layoutData);
+	}
 }

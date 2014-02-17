@@ -86,7 +86,7 @@ public class CoolBar extends Composite {
 			l.setStroke(javafx.scene.paint.Color.LIGHTGRAY);
 			r.getChildren().add(l);
 			r.setCursor(javafx.scene.Cursor.HAND);
-			Region region = (Region) control.internal_getNativeObject();
+			Region region = control.nativeControl;
 			getChildren().addAll(r, region);
 			l.endYProperty().bind(region.heightProperty().subtract(6));
 		}
@@ -150,9 +150,8 @@ public class CoolBar extends Composite {
 	}
 
 	@Override
-	protected Pane createWidget() {
+	void createHandle() {
 		pane = new FlowPane(0,2);
-		return pane;
 	}
 
 	@Override
@@ -288,29 +287,24 @@ public class CoolBar extends Composite {
 	}
 
 	@Override
-	protected void internal_attachControl(Control c) {
-		pane.getChildren().add(new CoolBarItem(c));
+	void addChild(Control child) {
+		pane.getChildren().add(new CoolBarItem(child));
 //		c.internal_getNativeObject().setManaged(false);
 //		c.internal_getNativeObject().setVisible(false);
-	}
-	
-	@Override
-	protected void internal_attachControl(int idx, Control c) {
-		pane.getChildren().add(idx, new CoolBarItem(c));
-//		c.internal_getNativeObject().setManaged(false);
-//		c.internal_getNativeObject().setVisible(false);
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
-		pane.getChildren().remove(c.internal_getNativeObject());
-	}
-	
-	@Override
-	public Pane internal_getNativeObject() {
-		return pane;
 	}
 
+	@Override
+	void addChild(int index, Control child) {
+		pane.getChildren().add(index, new CoolBarItem(child));
+//		c.internal_getNativeObject().setManaged(false);
+//		c.internal_getNativeObject().setVisible(false);
+	}
+	
+	@Override
+	void removeChild(Control child) {
+		pane.getChildren().remove(child.nativeControl);
+	}
+	
 	void internal_registerItem(CoolItem item) {
 		items.add(item);
 //		pane.getChildren().add(item.getChevronNode());

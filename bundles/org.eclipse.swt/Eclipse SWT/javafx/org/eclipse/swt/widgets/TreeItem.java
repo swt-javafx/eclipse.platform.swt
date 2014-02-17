@@ -49,7 +49,7 @@ import org.eclipse.swt.widgets.Tree.SWTTreeRow;
  */
 public class TreeItem extends Item {
 
-	private javafx.scene.control.TreeItem<TreeItem> nativeObject;
+	javafx.scene.control.TreeItem<TreeItem> nativeObject;
 	
 	private Tree tree;
 	private TreeItem parentItem;
@@ -362,18 +362,16 @@ public class TreeItem extends Item {
 	}
 
 	@Override
-	protected javafx.scene.control.TreeItem<TreeItem> createWidget() {
-		nativeObject = new javafx.scene.control.TreeItem<>(this);
+	void createHandle() {
+		nativeObject = new javafx.scene.control.TreeItem<TreeItem>(this);
 		nativeObject.expandedProperty().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
 				Event evt = new Event();
 				evt.item = TreeItem.this;
-				getTree().internal_sendEvent(nativeObject.isExpanded() ? SWT.Expand : SWT.Collapse, evt, true);
+				getTree().sendEvent(nativeObject.isExpanded() ? SWT.Expand : SWT.Collapse, evt, true);
 			}
 		});
-		return nativeObject;
 	}
 	
 	@Override
@@ -893,11 +891,6 @@ public class TreeItem extends Item {
 		}
 		
 		return -1;
-	}
-
-	@Override
-	public javafx.scene.control.TreeItem<TreeItem> internal_getNativeObject() {
-		return nativeObject;
 	}
 
 	private void internal_itemRemoved(TreeItem item) {

@@ -40,7 +40,7 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class TabItem extends Item {
 
-	private Tab tab;
+	Tab nativeTab;
 	private Control control;
 	private TabFolder parent;
 	
@@ -132,10 +132,9 @@ public class TabItem extends Item {
 	}
 
 	@Override
-	protected Tab createWidget() {
-		this.tab = new Tab();
-		this.tab.setClosable((style & SWT.CLOSE) == SWT.CLOSE );
-		return tab;
+	void createHandle() {
+		nativeTab = new Tab();
+		nativeTab.setClosable((style & SWT.CLOSE) == SWT.CLOSE );
 	}
 
 	/**
@@ -181,11 +180,11 @@ public class TabItem extends Item {
 	@Override
 	public String getText() {
 		checkWidget();
-		return notNullString(tab.getText());
+		return notNullString(nativeTab.getText());
 	}
 
 	public Tab getNativeObject() {
-		return tab;
+		return nativeTab;
 	}
 
 	/**
@@ -220,18 +219,13 @@ public class TabItem extends Item {
 	 */
 	public String getToolTipText() {
 		String rv = null;
-		Tooltip t = tab.getTooltip();
+		Tooltip t = nativeTab.getTooltip();
 		if( t != null ) {
 			rv = t.getText();
 		}
 		return rv;
 	}
 
-	@Override
-	public Tab internal_getNativeObject() {
-		return tab;
-	}
-	
 	/**
 	 * Sets the control that is used to fill the client area of the tab folder
 	 * when the user selects the tab item.
@@ -255,7 +249,7 @@ public class TabItem extends Item {
 	 */
 	public void setControl(Control control) {
 		this.control = control;
-		tab.setContent(control.internal_getNativeObject());
+		nativeTab.setContent(control.nativeControl);
 	}
 
 	@Override
@@ -263,9 +257,9 @@ public class TabItem extends Item {
 		super.setImage(image);
 		
 		if( image != null ) {
-			tab.setGraphic(new ImageView(image.internal_getImage()));	
+			nativeTab.setGraphic(new ImageView(image.internal_getImage()));	
 		} else {
-			tab.setGraphic(null);
+			nativeTab.setGraphic(null);
 		}
 	}
 	
@@ -301,7 +295,7 @@ public class TabItem extends Item {
 	public void setText(String string) {
 		checkWidget();
 		if (string == null) error (SWT.ERROR_NULL_ARGUMENT);
-		tab.setText(string);
+		nativeTab.setText(string);
 	}
 
 	/**
@@ -329,11 +323,11 @@ public class TabItem extends Item {
 	 */
 	public void setToolTipText(String string) {
 		if( string == null || string.isEmpty() ) {
-			tab.setTooltip(null);
+			nativeTab.setTooltip(null);
 		} else {
-			Tooltip t = tab.getTooltip();
+			Tooltip t = nativeTab.getTooltip();
 			if( t == null ) {
-				tab.setTooltip(new Tooltip(string));
+				nativeTab.setTooltip(new Tooltip(string));
 			} else {
 				t.setText(string);
 			}

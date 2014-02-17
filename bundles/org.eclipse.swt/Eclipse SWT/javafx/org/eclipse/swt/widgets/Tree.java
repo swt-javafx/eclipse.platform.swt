@@ -147,21 +147,6 @@ public class Tree extends Composite {
 		int swt_getItemHeight();
 	}
 	
-	@Override
-	protected void internal_attachControl(Control c) {
-		Util.logNotImplemented();
-	}
-	
-	@Override
-	protected void internal_attachControl(int idx, Control c) {
-		Util.logNotImplemented();
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
-		Util.logNotImplemented();
-	}
-	
 	class TreeCellImpl extends TreeCell<TreeItem> implements SWTTreeRow, Drawable {
 		private ImageView imageView;
 		private TreeItem currentItem;
@@ -212,7 +197,7 @@ public class Tree extends Composite {
 							Event evt = new Event();
 							evt.item = currentItem;
 							evt.detail = SWT.CHECK;
-							internal_sendEvent(SWT.Selection, evt, true);
+							sendEvent(SWT.Selection, evt, true);
 						}
 					});
 				}
@@ -231,7 +216,7 @@ public class Tree extends Composite {
 								
 				if( editor != null ) {
 					HBox h = new HBox();
-					h.getChildren().setAll(checkbox, imageView, editor.internal_getNativeObject());
+					h.getChildren().setAll(checkbox, imageView, editor.nativeControl);
 					setGraphic(h);
 				} else {
 					if( checkbox != null ) {
@@ -261,9 +246,9 @@ public class Tree extends Composite {
 						if( graphicItemsContainer == null ) {
 							graphicItemsContainer = new HBox();
 						}
-						graphicItemsContainer.getChildren().setAll(checkbox, editor.internal_getNativeObject());
+						graphicItemsContainer.getChildren().setAll(checkbox, editor.nativeControl);
 					} else {
-						setGraphic(editor.internal_getNativeObject());	
+						setGraphic(editor.nativeControl);
 					}
 				} else {
 					if( checkbox != null ) {
@@ -312,7 +297,7 @@ public class Tree extends Composite {
 			event.item = currentItem;
 			event.gc = new GC(this);
 			ownerDrawCanvas.getGraphicsContext2D().clearRect(0,0,ownerDrawCanvas.getWidth(),ownerDrawCanvas.getHeight());
-			internal_sendEvent(SWT.PaintItem, event, true);
+			sendEvent(SWT.PaintItem, event, true);
 			event.gc.dispose();
 		}
 		
@@ -320,7 +305,7 @@ public class Tree extends Composite {
 			Event event = new Event();
 			event.item = currentItem;
 			event.gc = new GC(this);
-			internal_sendEvent(SWT.MeasureItem, event, true);
+			sendEvent(SWT.MeasureItem, event, true);
 			ownerDrawCanvas.setWidth(event.width);
 			ownerDrawCanvas.setHeight(event.height);
 			event.gc.dispose();
@@ -352,7 +337,7 @@ public class Tree extends Composite {
 		@Override
 		public Rectangle swt_getBounds() {
 			Bounds bounds = getBoundsInParent();
-			Point2D coords = internal_getNativeObject().sceneToLocal(localToScene(0, 0));
+			Point2D coords = nativeControl.sceneToLocal(localToScene(0, 0));
 			
 			return new Rectangle((int)coords.getX(), (int)coords.getY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 		}
@@ -579,11 +564,10 @@ public class Tree extends Composite {
 	}
 
 	@Override
-	protected Region createWidget() {
+	void createHandle() {
 		rootItem = new javafx.scene.control.TreeItem<TreeItem>();
 		container = new AnchorPane();
 		treeView = new TreeView<>(rootItem);
-		registerConnection(treeView);
 		treeView.setShowRoot(false);
 		treeView.setCellFactory(new Callback<TreeView<TreeItem>, TreeCell<TreeItem>>() {
 			
@@ -598,13 +582,13 @@ public class Tree extends Composite {
 			@Override
 			public void invalidated(Observable observable) {
 				if( treeView.getSelectionModel().getSelectedItems().isEmpty() ) {
-					internal_sendEvent(SWT.Selection, new Event(), true);
+					sendEvent(SWT.Selection, new Event(), true);
 				} else {
 					javafx.scene.control.TreeItem<TreeItem> treeItem = treeView.getSelectionModel().getSelectedItems().get(treeView.getSelectionModel().getSelectedItems().size()-1);
 					Event evt = new Event();
 					evt.item = treeItem.getValue();
 					evt.index =  treeView.getRow(treeItem);
-					internal_sendEvent(SWT.Selection, evt, true);
+					sendEvent(SWT.Selection, evt, true);
 				}
 			}
 		});
@@ -613,7 +597,22 @@ public class Tree extends Composite {
 		AnchorPane.setLeftAnchor(treeView, 0.0);
 		AnchorPane.setRightAnchor(treeView, 0.0);
 		container.getChildren().add(treeView);
-		return container;
+		nativeControl = container;
+	}
+	
+	@Override
+	public Point computeSize(int wHint, int hHint, boolean changed) {
+		forceSizeProcessing();
+		int width;
+		int height;
+		
+		width = (int) Math.ceil(internal_getPrefWidth());
+		height = (int) Math.ceil(internal_getPrefHeight());
+		
+		if (wHint != SWT.DEFAULT) width = wHint;
+		if (hHint != SWT.DEFAULT) height = hHint;
+				
+		return new Point(width, height);
 	}
 	
 	/**
@@ -782,7 +781,7 @@ public class Tree extends Composite {
 		
 		int i = 0;
 		for( javafx.scene.control.TreeTableColumn<TreeItem,?> c : treeTableView.getColumns() ) {
-			rv[i++] = columns.indexOf(Widget.getWidget(c)); 
+			rv[i++] = columns.indexOf(c.getUserData());
 		}
 		
 		return rv;		
@@ -1266,11 +1265,6 @@ public class Tree extends Composite {
 		return treeView != null ? treeView : treeTableView;
 	}
 
-	@Override
-	public Region internal_getNativeObject() {
-		return container;
-	}
-
 	public SWTTreeRow internal_getTreeRow(TreeItem item) {
 		for( SWTTreeRow c : currentCells.keySet() ) {
 			System.err.println(c.swt_getTreeItem().getText());
@@ -1303,15 +1297,15 @@ public class Tree extends Composite {
 	}
 	
 	void internal_itemAdded(TreeItem item) {
-		rootItem.getChildren().add(item.internal_getNativeObject());
+		rootItem.getChildren().add(item.nativeObject);
 	}
 
 	void internal_itemAdded(TreeItem item, int index) {
-		rootItem.getChildren().add(index, item.internal_getNativeObject());
+		rootItem.getChildren().add(index, item.nativeObject);
 	}
 
 	void internal_itemRemoved(TreeItem item) {
-		rootItem.getChildren().remove(item.internal_getNativeObject());
+		rootItem.getChildren().remove(item.nativeObject);
 	}
 
 	protected void internal_setLayout(Layout layout) {
@@ -1419,9 +1413,9 @@ public class Tree extends Composite {
 			@Override
 			public void run() {
 				if( treeView != null ) {
-					treeView.getSelectionModel().select(item.internal_getNativeObject());
+					treeView.getSelectionModel().select(item.nativeObject);
 				} else {
-					treeTableView.getSelectionModel().select(item.internal_getNativeObject());
+					treeTableView.getSelectionModel().select(item.nativeObject);
 				}
 			}
 		});
@@ -1620,11 +1614,11 @@ public class Tree extends Composite {
 			@Override
 			public void run() {
 				if( treeView != null ) {
-					treeView.getSelectionModel().select(item.internal_getNativeObject());
-					treeView.scrollTo(treeView.getRow(item.internal_getNativeObject()));
+					treeView.getSelectionModel().select(item.nativeObject);
+					treeView.scrollTo(treeView.getRow(item.nativeObject));
 				} else {
-					treeTableView.getSelectionModel().select(item.internal_getNativeObject());
-					treeTableView.scrollTo(treeTableView.getRow(item.internal_getNativeObject()));
+					treeTableView.getSelectionModel().select(item.nativeObject);
+					treeTableView.scrollTo(treeTableView.getRow(item.nativeObject));
 				}
 			}
 		});
@@ -1665,7 +1659,7 @@ public class Tree extends Composite {
 			public void run() {
 				java.util.List<javafx.scene.control.TreeItem<TreeItem>> l = new ArrayList<>(items.length);
 				for( TreeItem i : items ) {
-					l.add(i.internal_getNativeObject());
+					l.add(i.nativeObject);
 				}
 				
 				if( treeView != null ) {
@@ -1797,7 +1791,7 @@ public class Tree extends Composite {
 	 * @since 3.1
 	 */
 	public void showColumn(TreeColumn column) {
-		treeTableView.scrollToColumn(column.internal_getNativeObject());
+		treeTableView.scrollToColumn(column.nativeColumn);
 	}
 
 	/**

@@ -14,7 +14,6 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.image.ImageView;
@@ -49,7 +48,7 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Caret extends Widget {
 
-	private javafx.scene.control.Label nativeControl;
+	javafx.scene.control.Label nativeControl;
 	
 	private int x = 0;
 	private int y = 0;
@@ -107,7 +106,7 @@ public class Caret extends Widget {
 	}
 
 	@Override
-	protected Object createWidget() {
+	void createHandle() {
 		nativeControl = new Label();
 		nativeControl.setManaged(false);
 		nativeControl.setVisible(false);
@@ -131,8 +130,6 @@ public class Caret extends Widget {
                              }
                          }),
             new KeyFrame(Duration.seconds(1)));
-		
-		return nativeControl;
 	}
 
 	/**
@@ -275,11 +272,6 @@ public class Caret extends Widget {
 		return isVisible;
 	}
 
-	@Override
-	public Node internal_getNativeObject() {
-		return nativeControl;
-	}
-	
 	void internal_hide() {
 		nativeControl.setVisible(false);
 		blinkTimeline.stop();
@@ -309,7 +301,7 @@ public class Caret extends Widget {
 	 * @see #getVisible
 	 */
 	public boolean isVisible() {
-		return isVisible && parent.isVisible() && parent.internal_getNativeObject().isFocused();
+		return isVisible && parent.isVisible() && parent.nativeControl.isFocused();
 	}
 
 	/**

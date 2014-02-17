@@ -38,6 +38,7 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.internal.Util;
 
 import com.sun.javafx.scene.control.skin.TextAreaSkin;
@@ -111,9 +112,6 @@ public class Text extends Scrollable {
 	private boolean doubleClick;
 	private int tabs  = 8;
 	private int textLimit = LIMIT;
-	
-	private static EventHandler<ActionEvent> DEFAULT_SELECTION_HANDLER;
-	private static EventHandler<KeyEvent> LIMIT_VERIFY_HANDLER;
 	
 	private TextInputControl control;
 
@@ -203,10 +201,15 @@ public class Text extends Scrollable {
 	@Override
 	public void addListener(int eventType, Listener listener) {
 		super.addListener(eventType, listener);
-		if( eventType == SWT.DefaultSelection ) {
-			if( control instanceof TextField && ((TextField)control).getOnAction() == null ) {
+		if (eventType == SWT.DefaultSelection) {
+			if (control instanceof TextField && ((TextField)control).getOnAction() == null) {
 				//TODO This consumes the event (e.g. when there's a default button it is NOT called)
-				((TextField)control).setOnAction(getDefaultSelectionHandler());
+				((TextField)control).setOnAction(new EventHandler<ActionEvent>() {
+					@Override
+					public void handle(ActionEvent event) {
+						sendEvent(SWT.DefaultSelection, new Event(), true);
+					}
+				});
 			}
 		}
 	}
@@ -238,7 +241,7 @@ public class Text extends Scrollable {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
-		registerListener (SWT.Modify, typedListener);
+		_addListener(SWT.Modify, typedListener);
 	}
 
 	/**
@@ -282,7 +285,7 @@ public class Text extends Scrollable {
 	public void addSegmentListener(SegmentListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		registerListener (SWT.Segments, new TypedListener (listener));
+		_addListener(SWT.Segments, new TypedListener (listener));
 	}
 
 	/**
@@ -325,8 +328,8 @@ public class Text extends Scrollable {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
-		registerListener (SWT.Selection,typedListener);
-		registerListener (SWT.DefaultSelection,typedListener);
+		_addListener(SWT.Selection, typedListener);
+		_addListener(SWT.DefaultSelection, typedListener);
 	}
 
 	/**
@@ -356,7 +359,7 @@ public class Text extends Scrollable {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
-		registerListener (SWT.Verify, typedListener);
+		_addListener(SWT.Verify, typedListener);
 	}
 
 	/**
@@ -406,8 +409,8 @@ public class Text extends Scrollable {
 	public Point computeSize(int wHint, int hHint, boolean flushCache) {
 		checkWidget ();
 		forceSizeProcessing();
-		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
-		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int width = (int) control.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) control.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
 		
 		if (wHint != SWT.DEFAULT) width = wHint;
 		if (hHint != SWT.DEFAULT) height = hHint;
@@ -435,7 +438,7 @@ public class Text extends Scrollable {
 	}
 
 	@Override
-	protected Node createWidget() {
+	void createHandle() {
 		if( (style & SWT.SEARCH) != SWT.SEARCH
 				&& ((style & SWT.MULTI) == SWT.MULTI
 					|| (style & SWT.V_SCROLL) == SWT.V_SCROLL || (style & SWT.H_SCROLL) == SWT.H_SCROLL) ) {
@@ -471,7 +474,8 @@ public class Text extends Scrollable {
 		if( (getStyle() & SWT.READ_ONLY) != 0 ) {
 			control.setEditable(false);
 		}
-		return control;
+
+		nativeControl = control;
 	}
 	
 	/**
@@ -590,6 +594,12 @@ public class Text extends Scrollable {
 	}
 
 	@Override
+	public Rectangle getClientArea() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	protected Font getDefaultFont() {
 		if( control.getFont() != null ) {
 			return new Font(getDisplay(), control.getFont(), true);	
@@ -597,19 +607,6 @@ public class Text extends Scrollable {
 		return super.getDefaultFont();
 	}
 
-	private static EventHandler<ActionEvent> getDefaultSelectionHandler() {
-		if( DEFAULT_SELECTION_HANDLER == null ) {
-			DEFAULT_SELECTION_HANDLER = new EventHandler<ActionEvent>() {
-				
-				@Override
-				public void handle(ActionEvent event) {
-					Widget.getWidget(event.getSource()).internal_sendEvent(SWT.DefaultSelection, new Event(), true);
-				}
-			};
-		}
-		return DEFAULT_SELECTION_HANDLER;
-	}
-	
 	/**
 	 * Returns the double click enabled flag.
 	 * <p>
@@ -674,32 +671,6 @@ public class Text extends Scrollable {
 		return control.isEditable();
 	}
 
-	private static EventHandler<KeyEvent> getLimitVerifyHandler() {
-		if( LIMIT_VERIFY_HANDLER == null ) {
-			LIMIT_VERIFY_HANDLER = new EventHandler<KeyEvent>() {
-
-				@Override
-				public void handle(KeyEvent event) {
-					Text t = Widget.getWidget(event.getSource());
-					if( LIMIT != t.textLimit ) {
-						if( t.getText().length()+1 > t.textLimit ) {
-							event.consume();
-							return;
-						}
-					}
-					//TODO We need to deal with CTRL+V!!!
-					Event evt = new Event();
-					evt.text = event.getCharacter();
-					t.internal_sendEvent(SWT.Verify, evt, true);
-					if( ! evt.doit ) {
-						event.consume();
-					}
-				}
-			};
-		}
-		return LIMIT_VERIFY_HANDLER;
-	}
-	
 	/**
 	 * Returns the number of lines.
 	 * 
@@ -1037,24 +1008,36 @@ public class Text extends Scrollable {
 		}
 	}
 
-	protected void initListeners() {
-		control.addEventFilter(KeyEvent.KEY_TYPED, getLimitVerifyHandler());
+	@Override
+	void registerHandle() {
+		control.addEventFilter(KeyEvent.KEY_TYPED, new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if (LIMIT != textLimit) {
+					if (getText().length() + 1 > textLimit) {
+						event.consume();
+						return;
+					}
+				}
+				//TODO We need to deal with CTRL+V!!!
+				Event evt = new Event();
+				evt.text = event.getCharacter();
+				sendEvent(SWT.Verify, evt, true);
+				if (!evt.doit) {
+					event.consume();
+				}
+			}
+		});
 		control.textProperty().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
 				enforceLimit();
 				if( textLimit == LIMIT || control.getText().length() <= textLimit ) {
 					Event evt = new Event();
-					internal_sendEvent(SWT.Modify, evt, true);
+					sendEvent(SWT.Modify, evt, true);
 				}
 			}
 		});
-	}
-	
-	@Override
-	public TextInputControl internal_getNativeObject() {
-		return control;
 	}
 	
 	/**
@@ -1131,7 +1114,7 @@ public class Text extends Scrollable {
 	public void removeModifyListener(ModifyListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Modify, listener);
+		_removeListener(SWT.Modify, new TypedListener(listener));
 	}
 
 	/**
@@ -1162,7 +1145,7 @@ public class Text extends Scrollable {
 	public void removeSegmentListener(SegmentListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener (SWT.Segments, listener);
+		_removeListener(SWT.Segments, new TypedListener(listener));
 	}
 
 	/**
@@ -1190,8 +1173,8 @@ public class Text extends Scrollable {
 	public void removeSelectionListener(SelectionListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener (SWT.Selection, listener);
-		unregisterListener (SWT.DefaultSelection,listener);	
+		_removeListener(SWT.Selection, new TypedListener(listener));
+		_removeListener(SWT.DefaultSelection, new TypedListener(listener));	
 	}
 
 	/**
@@ -1219,7 +1202,7 @@ public class Text extends Scrollable {
 	public void removeVerifyListener(VerifyListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener (SWT.Verify, listener);	
+		_removeListener(SWT.Verify, new TypedListener(listener));	
 	}
 
 	/**

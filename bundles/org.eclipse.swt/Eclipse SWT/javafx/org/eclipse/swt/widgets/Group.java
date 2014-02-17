@@ -89,12 +89,12 @@ public class Group extends Composite {
 	}
 	
 	@Override
-	protected TitledPane createWidget() {
+	void createHandle() {
 		pane = new TitledPane();
 		pane.setCollapsible(false);
 		layoutPane = new FXLayoutPane(this);
 		pane.setContent(layoutPane);
-		return pane;
+		nativeControl = pane;
 	}
 	
 	@Override
@@ -130,13 +130,13 @@ public class Group extends Composite {
 	}
 
 	@Override
-	protected void internal_attachControl(Control c) {
-		layoutPane.getChildren().add(c.internal_getNativeObject());
+	void addChild(Control child) {
+		layoutPane.getChildren().add(child.nativeControl);
 	}
-	
+
 	@Override
-	protected void internal_detachControl(Control c) {
-		layoutPane.getChildren().remove(c.internal_getNativeObject());
+	void removeChild(Control child) {
+		layoutPane.getChildren().remove(child.nativeControl);
 	}
 	
 	@Override
@@ -154,11 +154,6 @@ public class Group extends Composite {
 		return pane.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
 	}
 	
-	@Override
-	public TitledPane internal_getNativeObject() {
-		return pane;
-	}
-
 	@Override
 	protected double internal_getWidth() {
 		return pane.getWidth();

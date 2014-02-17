@@ -191,15 +191,15 @@ public class Slider extends Control {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
-		registerListener (SWT.Selection,typedListener);
-		registerListener (SWT.DefaultSelection,typedListener);
+		_addListener (SWT.Selection,typedListener);
+		_addListener (SWT.DefaultSelection,typedListener);
 	}
 
 	@Override
 	public Point computeSize(int wHint, int hHint, boolean flushCache) {
 		forceSizeProcessing();
-		int width = (int) internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
-		int height = (int) internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int width = (int) nativeControl.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE);
+		int height = (int) nativeControl.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE);
 
 		if (wHint != SWT.DEFAULT)
 			width = wHint;
@@ -211,7 +211,7 @@ public class Slider extends Control {
 	}
 
 	@Override
-	protected javafx.scene.control.Slider createWidget() {
+	void createHandle() {
 		slider = new javafx.scene.control.Slider(0, 100, 0) {
 			@Override
 			protected Skin<?> createDefaultSkin() {
@@ -229,7 +229,7 @@ public class Slider extends Control {
 		if( (style & SWT.BORDER) == SWT.BORDER ) {
 			Util.logNotImplemented();
 		}
-		return slider;
+		nativeControl = slider;
 	}
 	
 	/**
@@ -343,9 +343,10 @@ public class Slider extends Control {
 	}
 
 	@Override
-	protected void initListeners() {
+	void registerHandle() {
+		super.registerHandle();
+		
 		slider.valueProperty().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable arg0) {
 				if( noEvent ) {
@@ -354,16 +355,11 @@ public class Slider extends Control {
 				
 				Event event = new Event();
 				event.detail = eventType;
-				internal_sendEvent(SWT.Selection, event, true);
+				sendEvent(SWT.Selection, event, true);
 			}
 		});
 	}
-
-	@Override
-	public javafx.scene.control.Slider internal_getNativeObject() {
-		return slider;
-	}
-
+	
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the user changes the receiver's value.
@@ -389,8 +385,8 @@ public class Slider extends Control {
 	public void removeSelectionListener(SelectionListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Selection, listener);
-		unregisterListener(SWT.DefaultSelection,listener);
+		_removeListener(SWT.Selection, new TypedListener(listener));
+		_removeListener(SWT.DefaultSelection, new TypedListener(listener));
 	}
 
 	private static boolean replaceBehavior(Slider swtSlider, javafx.scene.control.Slider slider, Skin<?> skin) {

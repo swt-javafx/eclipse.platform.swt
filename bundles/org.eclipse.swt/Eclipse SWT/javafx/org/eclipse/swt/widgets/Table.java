@@ -40,13 +40,11 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
-import org.eclipse.swt.custom.TableCursor;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Drawable;
@@ -127,8 +125,6 @@ import com.sun.javafx.scene.control.skin.VirtualFlow;
 public class Table extends Composite {
 
 	private AnchorPane container; 
-	private TableView<TableItem> tableView; 
-	private ListView<TableItem> listView;
 	private ObservableList<TableItem> list;
 	
 	private java.util.List<TableColumn> columns = new ArrayList<TableColumn>();
@@ -161,7 +157,7 @@ public class Table extends Composite {
 					item.state |= Widget.DATA_SET;
 					Event evt = new Event();
 					evt.item = item;
-					internal_sendEvent(SWT.SetData, evt, true);
+					sendEvent(SWT.SetData, evt, true);
 				}
 			}
 			super.updateItem(item, empty);
@@ -204,7 +200,7 @@ public class Table extends Composite {
 		@Override
 		public Rectangle getBounds() {
 			Bounds bounds = getBoundsInParent();
-			Point2D coords = internal_getNativeObject().sceneToLocal(localToScene(0, 0));
+			Point2D coords = nativeControl.sceneToLocal(localToScene(0, 0));
 			
 			return new Rectangle((int)coords.getX(), (int)coords.getY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 		}
@@ -233,7 +229,7 @@ public class Table extends Composite {
 		@Override
 		public Rectangle getBounds(int index) {
 			Bounds bounds = getBoundsInParent();
-			Point2D coords = internal_getNativeObject().sceneToLocal(localToScene(0, 0));
+			Point2D coords = nativeControl.sceneToLocal(localToScene(0, 0));
 			
 			return new Rectangle((int)coords.getX(), (int)coords.getY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 		}
@@ -241,7 +237,7 @@ public class Table extends Composite {
 		@Override
 		public Rectangle getBounds() {
 			Bounds bounds = getBoundsInParent();
-			Point2D coords = internal_getNativeObject().sceneToLocal(localToScene(0, 0));
+			Point2D coords = nativeControl.sceneToLocal(localToScene(0, 0));
 			
 			return new Rectangle((int)coords.getX(), (int)coords.getY(), (int)bounds.getWidth(), (int)bounds.getHeight());
 		}
@@ -253,7 +249,7 @@ public class Table extends Composite {
 					item.state |= Widget.DATA_SET;
 					Event evt = new Event();
 					evt.item = item;
-					internal_sendEvent(SWT.SetData, evt, true);
+					sendEvent(SWT.SetData, evt, true);
 				}
 			}
 			
@@ -276,14 +272,14 @@ public class Table extends Composite {
 				}
 				updateText();
 				updateImage();
-				if( Table.this.listView != null ) {
-					Table.this.currentRows.put(this, Boolean.TRUE);	
+				if (getListView() != null) {
+					currentRows.put(this, Boolean.TRUE);	
 				}
 			} else {
 				setText(null);
 				setGraphic(null);
-				if( Table.this.listView != null ) {
-					Table.this.currentRows.remove(this);	
+				if (getListView() != null) {
+					currentRows.remove(this);	
 				}
 			}
 			
@@ -312,7 +308,7 @@ public class Table extends Composite {
 							Event evt = new Event();
 							evt.item = currentItem;
 							evt.detail = SWT.CHECK;
-							internal_sendEvent(SWT.Selection, evt, true);
+							sendEvent(SWT.Selection, evt, true);
 						}
 					});
 				}
@@ -331,7 +327,7 @@ public class Table extends Composite {
 								
 				if( editor != null ) {
 					HBox h = new HBox();
-					h.getChildren().setAll(checkbox, imageView, editor.internal_getNativeObject());
+					h.getChildren().setAll(checkbox, imageView, editor.nativeControl);
 					setGraphic(h);
 				} else {
 					if( checkbox != null ) {
@@ -360,9 +356,9 @@ public class Table extends Composite {
 						if( graphicItemsContainer == null ) {
 							graphicItemsContainer = new HBox();
 						}
-						graphicItemsContainer.getChildren().setAll(checkbox, editor.internal_getNativeObject());
+						graphicItemsContainer.getChildren().setAll(checkbox, editor.nativeControl);
 					} else {
-						setGraphic(editor.internal_getNativeObject());	
+						setGraphic(editor.nativeControl);	
 					}
 				} else {
 					if( checkbox != null ) {
@@ -411,7 +407,7 @@ public class Table extends Composite {
 			event.item = currentItem;
 			event.gc = new GC(this);
 			ownerDrawCanvas.getGraphicsContext2D().clearRect(0,0,ownerDrawCanvas.getWidth(),ownerDrawCanvas.getHeight());
-			internal_sendEvent(SWT.PaintItem, event, true);
+			sendEvent(SWT.PaintItem, event, true);
 			event.gc.dispose();
 		}
 		
@@ -419,7 +415,7 @@ public class Table extends Composite {
 			Event event = new Event();
 			event.item = currentItem;
 			event.gc = new GC(this);
-			internal_sendEvent(SWT.MeasureItem, event, true);
+			sendEvent(SWT.MeasureItem, event, true);
 			ownerDrawCanvas.setWidth(event.width);
 			ownerDrawCanvas.setHeight(event.height);
 			event.gc.dispose();
@@ -492,7 +488,7 @@ public class Table extends Composite {
 			if( event.getClickCount() == 2 && cell.currentItem != null ) {
 				Event evt = new Event();
 				evt.item = cell.currentItem;
-				internal_sendEvent(SWT.DefaultSelection, evt, true);
+				sendEvent(SWT.DefaultSelection, evt, true);
 			}
 		}
 	}
@@ -620,8 +616,8 @@ public class Table extends Composite {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener (listener);
-		registerListener (SWT.Selection,typedListener);
-		registerListener (SWT.DefaultSelection,typedListener);
+		_addListener(SWT.Selection, typedListener);
+		_addListener(SWT.DefaultSelection, typedListener);
 	}
 
 	/**
@@ -762,18 +758,19 @@ public class Table extends Composite {
 	}
 
 	@Override
-	protected AnchorPane createWidget() {
+	void createHandle() {
 		this.list = FXCollections.observableArrayList();
 		this.container = new AnchorPane();
 		
 		//TODO We could be smarter and init with no control
-		this.listView = new ListView<TableItem>(list) {
+		ListView<TableItem> listView = new ListView<TableItem>(list) {
 			@Override
 			protected Skin<?> createDefaultSkin() {
 				return new CustomListViewSkin(this);
 			}
 		};
-		this.listView.setCellFactory(new Callback<ListView<TableItem>, ListCell<TableItem>>() {
+		nativeControl = listView;
+		listView.setCellFactory(new Callback<ListView<TableItem>, ListCell<TableItem>>() {
 			
 			@Override
 			public ListCell<TableItem> call(ListView<TableItem> param) {
@@ -782,33 +779,30 @@ public class Table extends Composite {
 				return c;
 			}
 		});
-		this.listView.getSelectionModel().setSelectionMode((style & SWT.MULTI) == SWT.MULTI ? SelectionMode.MULTIPLE : SelectionMode.SINGLE);
+		listView.getSelectionModel().setSelectionMode((style & SWT.MULTI) == SWT.MULTI ? SelectionMode.MULTIPLE : SelectionMode.SINGLE);
 		
 		selectionListener = new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
-				MultipleSelectionModel<TableItem> model = listView != null ? listView.getSelectionModel() : tableView.getSelectionModel();
+				MultipleSelectionModel<TableItem> model = getListView() != null ? getListView().getSelectionModel() : getTableView().getSelectionModel();
 				
 				if( model.isEmpty() ) {
-					internal_sendEvent(SWT.Selection, new Event(), true);
+					sendEvent(SWT.Selection, new Event(), true);
 				} else {
 					Event evt = new Event();
 					TableItem tableItem = model.getSelectedItems().get(model.getSelectedItems().size()-1);
 					evt.item = tableItem;
 					evt.index = list.indexOf(list);
-					internal_sendEvent(SWT.Selection, evt, true);
+					sendEvent(SWT.Selection, evt, true);
 				}
 			}
 		};
-		this.listView.getSelectionModel().getSelectedItems().addListener(selectionListener);
-		registerConnection(listView);
+		listView.getSelectionModel().getSelectedItems().addListener(selectionListener);
 		AnchorPane.setTopAnchor(listView, 0.0);
 		AnchorPane.setBottomAnchor(listView, 0.0);
 		AnchorPane.setLeftAnchor(listView, 0.0);
 		AnchorPane.setRightAnchor(listView, 0.0);
 		this.container.getChildren().add(listView);
-		return this.container;
 	}
 	
 	/**
@@ -1003,8 +997,8 @@ public class Table extends Composite {
 		int[] rv = new int[columns.size()];
 		
 		int i = 0;
-		for( javafx.scene.control.TableColumn<TableItem,?> c : tableView.getColumns() ) {
-			rv[i++] = columns.indexOf(Widget.getWidget(c)); 
+		for( javafx.scene.control.TableColumn<TableItem,?> c : getTableView().getColumns() ) {
+			rv[i++] = columns.indexOf(c.getUserData());
 		}
 		
 		return rv;
@@ -1045,13 +1039,13 @@ public class Table extends Composite {
 
 	private VirtualFlow<?> getFlow() {
 		VirtualFlow<?> flow = null;
-		if( listView != null ) {
-			if( listView.getSkin() != null ) {
-				flow = ((CustomListViewSkin)listView.getSkin()).swt_getFlow();	
+		if (getListView() != null) {
+			if (getListView().getSkin() != null) {
+				flow = ((CustomListViewSkin)getListView().getSkin()).swt_getFlow();	
 			}
 		} else {
-			if( tableView.getSkin() != null ) {
-				flow = ((CustomTableViewSkin)tableView.getSkin()).swt_getFlow();	
+			if (getTableView().getSkin() != null ) {
+				flow = ((CustomTableViewSkin)getTableView().getSkin()).swt_getFlow();	
 			}
 		}
 		
@@ -1059,7 +1053,7 @@ public class Table extends Composite {
 	}
 	
 	private FocusModel<TableItem> getFocusModel() {
-		return listView != null ? listView.getFocusModel() : tableView.getFocusModel();
+		return getListView() != null ? getListView().getFocusModel() : getTableView().getFocusModel();
 	}
 	
 	/**
@@ -1132,10 +1126,10 @@ public class Table extends Composite {
 		
 		VirtualFlow<?> flow;
 		forceSizeProcessing();
-		if( listView != null ) {
-			flow = ((CustomListViewSkin)listView.getSkin()).swt_getFlow();
+		if( getListView() != null ) {
+			flow = ((CustomListViewSkin)getListView().getSkin()).swt_getFlow();
 		} else {
-			flow = ((CustomTableViewSkin)tableView.getSkin()).swt_getFlow();
+			flow = ((CustomTableViewSkin)getTableView().getSkin()).swt_getFlow();
 		}
 		
 		try {
@@ -1307,6 +1301,11 @@ public class Table extends Composite {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
+	ListView<TableItem> getListView() {
+		return nativeControl instanceof ListView ? (ListView<TableItem>) nativeControl : null;
+	}
+
 	/**
 	 * Returns an array of <code>TableItem</code>s that are currently selected
 	 * in the receiver. The order of the items is unspecified. An empty array
@@ -1399,7 +1398,7 @@ public class Table extends Composite {
 	}
 
 	private MultipleSelectionModel<TableItem> getSelectionModel() {
-		return listView != null ? listView.getSelectionModel() : tableView.getSelectionModel();
+		return getListView() != null ? getListView().getSelectionModel() : getTableView().getSelectionModel();
 	}
 	
 	/**
@@ -1448,6 +1447,11 @@ public class Table extends Composite {
 		return 0;
 	}
 
+	@SuppressWarnings("unchecked")
+	TableView<TableItem> getTableView() {
+		return nativeControl instanceof TableView ? (TableView<TableItem>) nativeControl : null;
+	}
+
 	/**
 	 * Returns the zero-relative index of the item which is currently at the top
 	 * of the receiver. This index can change when items are scrolled or new
@@ -1465,11 +1469,11 @@ public class Table extends Composite {
 	 */
 	public int getTopIndex() {
 		IndexedCell<TableItem> cell;
-		if( tableView != null ) {
-			CustomTableViewSkin skin = (CustomTableViewSkin) tableView.getSkin();
+		if( getTableView() != null ) {
+			CustomTableViewSkin skin = (CustomTableViewSkin) getTableView().getSkin();
 			cell = skin.swt_getFlow().getFirstVisibleCell();
 		} else {
-			CustomListViewSkin skin = (CustomListViewSkin) listView.getSkin();
+			CustomListViewSkin skin = (CustomListViewSkin) getListView().getSkin();
 			cell = skin.swt_getFlow().getFirstVisibleCell();
 		}
 		if( cell != null ) {
@@ -1485,10 +1489,10 @@ public class Table extends Composite {
 		}
 		
 		VirtualFlow<?> flow;
-		if( listView != null ) {
-			flow = ((CustomListViewSkin)listView.getSkin()).swt_getFlow();
+		if( getListView() != null ) {
+			flow = ((CustomListViewSkin)getListView().getSkin()).swt_getFlow();
 		} else {
-			flow = ((CustomTableViewSkin)tableView.getSkin()).swt_getFlow();
+			flow = ((CustomTableViewSkin)getTableView().getSkin()).swt_getFlow();
 		}
 		
 		try {
@@ -1555,25 +1559,22 @@ public class Table extends Composite {
 	}
 
 	private void initTableView() {
-		if( tableView == null ) {
+		if( getTableView() == null ) {
 			currentRows.clear();
-			uninitListeners();
-			unregisterConnection(listView);
-			ListView<TableItem> listView = this.listView;
+			ListView<TableItem> listView = getListView();
 			ContextMenu contextMenu = listView.getContextMenu();
-			this.listView = null;
 			
 			listView.getSelectionModel().getSelectedItems().removeListener(selectionListener);
 			listView.setItems(null);
 			listView.setContextMenu(null);
 			
-			tableView = new TableView<TableItem>(list) {
+			TableView<TableItem> tableView = new TableView<TableItem>(list) {
 				@Override
 				protected Skin<?> createDefaultSkin() {
 					return new CustomTableViewSkin(this);
 				}
 			};
-			registerConnection(tableView);
+			nativeControl = tableView;
 			tableView.setRowFactory(new Callback<TableView<TableItem>, TableRow<TableItem>>() {
 				
 				@Override
@@ -1588,39 +1589,7 @@ public class Table extends Composite {
 			AnchorPane.setLeftAnchor(tableView, 0.0);
 			AnchorPane.setRightAnchor(tableView, 0.0);
 			container.getChildren().setAll(tableView);
-			initListeners();
 		}
-	}
-	
-	@Override
-	protected Region internal_getEventTarget() {
-		return internal_getNativeControl();
-	}
-	
-	@Override
-	public AnchorPane internal_getNativeObject() {
-		return container;
-	}
-	
-	@Override
-	public Region internal_getNativeControl() {
-		return tableView != null ? tableView : listView;
-	}
-	
-	@Override
-	protected void internal_attachControl(Control c) {
-		if( c instanceof TableCursor ) { 
-			c.internal_getNativeObject().setManaged(false);
-			container.getChildren().add(c.internal_getNativeObject());
-		}
-	}
-	
-	@Override
-	protected void internal_attachControl(int idx, Control c) {
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
 	}
 	
 	@Override
@@ -1659,13 +1628,13 @@ public class Table extends Composite {
 	public void internal_columnAdded(TableColumn column) {
 		columns.add(column);
 		initTableView();
-		tableView.getColumns().add(column.internal_getNativeObject());
+		getTableView().getColumns().add(column.nativeColumn);
 	}
 	
 	public void internal_columnAdded(TableColumn column, int index) {
 		columns.add(index,column);
 		initTableView();
-		tableView.getColumns().add(index, column.internal_getNativeObject());
+		getTableView().getColumns().add(index, column.nativeColumn);
 	}
 	
 	public SWTTableRow internal_getTableRow(TableItem item) {
@@ -2251,7 +2220,7 @@ public class Table extends Composite {
 			public void run() {
 				getSelectionModel().clearSelection();
 				getSelectionModel().select(item);
-				getFocusModel().focus(tableView.getSelectionModel().getSelectedIndex());
+				getFocusModel().focus(getTableView().getSelectionModel().getSelectedIndex());
 			}
 		});
 	}
@@ -2365,10 +2334,10 @@ public class Table extends Composite {
 	 *                </ul>
 	 */
 	public void setTopIndex(int index) {
-		if( tableView != null ) {
-			tableView.scrollTo(index);
+		if( getTableView() != null ) {
+			getTableView().scrollTo(index);
 		} else {
-			listView.scrollTo(index);
+			getListView().scrollTo(index);
 		}
 	}
 
@@ -2397,8 +2366,8 @@ public class Table extends Composite {
 	 * @since 3.0
 	 */
 	public void showColumn(TableColumn column) {
-		if( tableView != null ) {
-			tableView.scrollToColumn(column.internal_getNativeObject());
+		if (getTableView() != null) {
+			getTableView().scrollToColumn(column.nativeColumn);
 		}
 	}
 
@@ -2453,10 +2422,10 @@ public class Table extends Composite {
 			}
 		}
 		
-		if( tableView != null ) {
-			tableView.scrollTo(item);
+		if (getTableView() != null) {
+			getTableView().scrollTo(item);
 		} else {
-			listView.scrollTo(item);
+			getListView().scrollTo(item);
 		}
 	}
 

@@ -249,7 +249,7 @@ public class Display extends Device {
 					Point p = hoverControl.toControl(getCursorLocation());
 					evt.x = p.x;
 					evt.y = p.y;
-					hoverControl.internal_sendEvent(SWT.MouseHover, evt, true);
+					hoverControl.sendEvent(SWT.MouseHover, evt, true);
 				}
 			}
 		});
@@ -667,7 +667,7 @@ public class Display extends Device {
 	 */
 	public Shell getActiveShell() {
 		for( Shell s : shells ) {
-			if( s.internal_getWindow().isFocused() ) {
+			if( s.stage.isFocused() ) {
 				return s;
 			}
 		}
@@ -757,16 +757,13 @@ public class Display extends Device {
 	 *                </ul>
 	 */
 	public Control getCursorControl() {
-		for( Widget w : Widget.NATIVE_WIDGET_MAP.values() ) {
-			if( w instanceof Shell ) {
-				Shell s = (Shell) w;
-				if( s.internal_getWindow().isFocused() ) {
-					Point p = getCursorLocation();
-					if( s.getBounds().contains(p.x, p.y) ) {
-						return findControl(s, p.x, p.y);
-					}
-					return null;
+		for (Shell s : shells) {
+			if( s.stage.isFocused() ) {
+				Point p = getCursorLocation();
+				if( s.getBounds().contains(p.x, p.y) ) {
+					return findControl(s, p.x, p.y);
 				}
+				return null;
 			}
 		}
 		return null;
@@ -1579,13 +1576,13 @@ public class Display extends Device {
 		}
 		
 		if( from == null ) {
-			Point2D localToScreen = to.internal_getNativeObject().screenToLocal(x, y);
+			Point2D localToScreen = to.nativeControl.screenToLocal(x, y);
 			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
 		}
 		
 		// TabFolder elements not yet attached to the control through
 		// the TabItem
-		Node node = from.internal_getNativeObject();
+		Node node = from.nativeControl;
 		if( node.getScene() == null ) {
 			Control c = from.getParent();
 			do {
@@ -1596,8 +1593,8 @@ public class Display extends Device {
 			
 			if( c instanceof TabFolder ) {
 				System.err.println("Warning: TabFolder child calculation before attached to TabFolder");
-				if( c.internal_getNativeObject() instanceof TabPane ) {
-					TabPane p = (TabPane) c.internal_getNativeObject();
+				if( c.nativeControl instanceof TabPane ) {
+					TabPane p = (TabPane) c.nativeControl;
 //					TabPaneSkin s = (TabPaneSkin) p.getSkin();
 //					s.getChildren();
 //					FIXME This is not 100% correct
@@ -1610,7 +1607,7 @@ public class Display extends Device {
 		if( to == null ) {
 			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
 		} else {
-			Point2D sceneToLocal = to.internal_getNativeObject().screenToLocal(localToScreen);
+			Point2D sceneToLocal = to.nativeControl.screenToLocal(localToScreen);
 			return new Point((int)sceneToLocal.getX(), (int)sceneToLocal.getY());
 		}
 	}
@@ -2171,10 +2168,10 @@ public class Display extends Device {
 			this.focusControl = focusControl;
 			
 			if( oldFocusControl != null ) {
-				oldFocusControl.internal_sendEvent(SWT.FocusOut, new Event(), true);
+				oldFocusControl.sendEvent(SWT.FocusOut, new Event(), true);
 			}
 			if( this.focusControl != null ) {
-				this.focusControl.internal_sendEvent(SWT.FocusIn, new Event(), true);
+				this.focusControl.sendEvent(SWT.FocusIn, new Event(), true);
 			}
 		}
 	}

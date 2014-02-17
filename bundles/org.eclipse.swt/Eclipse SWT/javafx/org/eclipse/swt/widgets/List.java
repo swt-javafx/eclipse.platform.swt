@@ -30,6 +30,7 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.internal.Util;
 
 import com.sun.javafx.scene.control.skin.ListViewSkin;
@@ -77,7 +78,7 @@ public class List extends Scrollable {
 		public void handle(MouseEvent event) {
 			if( event.getClickCount() > 1 && ! cell.isEmpty() ) {
 				Event evt = new Event();
-				internal_sendEvent(SWT.DefaultSelection, evt, true);
+				sendEvent(SWT.DefaultSelection, evt, true);
 			}
 		}
 	}
@@ -258,7 +259,7 @@ public class List extends Scrollable {
 	}
 
 	@Override
-	protected ListView<String> createWidget() {
+	void createHandle() {
 		control = new ListView<String>() {
 			@Override
 			protected Skin<?> createDefaultSkin() {
@@ -279,12 +280,12 @@ public class List extends Scrollable {
 			@Override
 			public void invalidated(Observable observable) {
 				Event evt = new Event();
-				internal_sendEvent(SWT.Selection, evt, true);
+				sendEvent(SWT.Selection, evt, true);
 			}
 		});
 		items = FXCollections.observableArrayList();
 		control.setItems(items);
-		return control;
+		nativeControl = control;
 	}
 
 	/**
@@ -378,6 +379,12 @@ public class List extends Scrollable {
 	public void deselectAll() {
 		checkWidget ();
 		control.getSelectionModel().clearSelection();
+	}
+
+	@Override
+	public Rectangle getClientArea() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -659,11 +666,6 @@ public class List extends Scrollable {
 	public int indexOf(String string, int start) {
 		checkWidget ();
 		return items.subList(start, items.size()-1).indexOf(string);
-	}
-
-	@Override
-	public ListView<String> internal_getNativeObject() {
-		return control;
 	}
 
 	/**

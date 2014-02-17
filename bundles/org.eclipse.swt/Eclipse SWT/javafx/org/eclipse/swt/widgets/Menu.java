@@ -54,17 +54,14 @@ import org.eclipse.swt.internal.Util;
  */
 public class Menu extends Widget {
 
-	private MenuBar bar;
-	private ContextMenu contextMenu;
+	MenuBar bar;
+	ContextMenu contextMenu;
+	javafx.scene.control.Menu menu;
 	private java.util.List<MenuItem> items = new ArrayList<>();
-	private javafx.scene.control.Menu menu;
 	private Decorations parent;
 	private Menu parentMenu;
 	private Control control;
-	private static EventHandler<javafx.event.Event> SHOWING_HANDLER;
-	private static EventHandler<javafx.event.Event> CONTEXT_MENU_SHOWING_HANDLER;
 	private ToggleGroup group;
-	private static ChangeListener<Toggle> TOGGLE_CHANGE_LISTENER;
 	private MenuItem parentItem;
 	private static final String DUMMY = "DUMMY";
 	
@@ -99,10 +96,7 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Control parent) {
-		super(parent.getDisplay(),SWT.POP_UP);
-		this.control = parent;
-		this.parent = parent.getShell();
-//		initArm();
+		this (parent.menuShell (), SWT.POP_UP);
 	}
 
 	/**
@@ -151,8 +145,9 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Decorations parent, int style) {
-		super(parent.getDisplay(),style);
+		super (parent, checkStyle (style));
 		this.parent = parent;
+		createWidget ();
 //		initArm();
 	}
 
@@ -186,9 +181,8 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(Menu parentMenu) {
-		super(parentMenu.getDisplay(), SWT.DROP_DOWN);
+		this (parentMenu.parent, SWT.DROP_DOWN);
 		this.parentMenu = parentMenu;
-//		initArm();
 	}
 
 	/**
@@ -221,9 +215,7 @@ public class Menu extends Widget {
 	 * @see Widget#getStyle
 	 */
 	public Menu(MenuItem parentItem) {
-		super(parentItem.getDisplay(),SWT.DROP_DOWN);
-		parentItem.setMenu(this);
-		Util.logNotImplemented();
+		this (parentItem.parent);
 	}
 
 	private void addDummyItem() {
@@ -303,78 +295,75 @@ public class Menu extends Widget {
 		addListener (SWT.Show,typedListener);
 	}
 
-	void checkParent (Widget parent) {
-		// TODO allow null parent for now
-		if (parent != null) {
-			if (parent.isDisposed()) error (SWT.ERROR_INVALID_ARGUMENT);
-			parent.checkWidget();
-		}
+	static int checkStyle (int style) {
+		return checkBits (style, SWT.POP_UP, SWT.BAR, SWT.DROP_DOWN, 0, 0, 0);
 	}
 
-	@Override
-	protected Object createWidget() {
+	void createHandle() {
 		if( (style & SWT.BAR) == SWT.BAR ) {
 			bar = new MenuBar();
-			return bar;
 		} else if( (style & SWT.POP_UP) == SWT.POP_UP ) {
+			EventHandler<javafx.event.Event> contextMenuShowingHandler = new EventHandler<javafx.event.Event>() {
+				@Override
+				public void handle(javafx.event.Event event) {
+					boolean show = event.getEventType() == javafx.scene.control.Menu.ON_SHOWING || event.getEventType() == WindowEvent.WINDOW_SHOWING;
+					if( show ) {
+						removeDummyItem();
+					} else {
+						addDummyItem();
+					}
+					sendEvent( show ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
+				}
+			};
 			contextMenu = new ContextMenu();
 			javafx.scene.control.MenuItem m = new javafx.scene.control.MenuItem("Dummy");
 			m.setUserData(DUMMY);
 			contextMenu.getItems().add(m);
-			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getContextMenuShowingHandler());
-			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getContextMenuShowingHandler());
-			contextMenu.addEventHandler(WindowEvent.WINDOW_SHOWING, getContextMenuShowingHandler());
-			contextMenu.addEventHandler(WindowEvent.WINDOW_HIDDEN, getContextMenuShowingHandler());
-			return contextMenu;
+			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, contextMenuShowingHandler);
+			contextMenu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, contextMenuShowingHandler);
+			contextMenu.addEventHandler(WindowEvent.WINDOW_SHOWING, contextMenuShowingHandler);
+			contextMenu.addEventHandler(WindowEvent.WINDOW_HIDDEN, contextMenuShowingHandler);
 		} else if( (style & SWT.DROP_DOWN) == SWT.DROP_DOWN ) {
+			EventHandler<javafx.event.Event> menuShowingHandler = new EventHandler<javafx.event.Event>() {
+				@Override
+				public void handle(javafx.event.Event event) {
+					if (event.getEventType() == javafx.scene.control.Menu.ON_SHOWING) {
+						removeDummyItem();
+					} else {
+						addDummyItem();
+					}
+					sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
+				}
+			};
 			menu = new javafx.scene.control.Menu();
 			javafx.scene.control.MenuItem m = new javafx.scene.control.MenuItem("Dummy");
 			m.setUserData(DUMMY);
 			menu.getItems().add(m);
-			menu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, getMenuShowingHandler());
-			menu.addEventHandler(javafx.scene.control.Menu.ON_HIDDEN, getMenuShowingHandler());
+			menu.addEventHandler(javafx.scene.control.Menu.ON_SHOWING, menuShowingHandler);
+			menu.addEventHandler(javafx.scene.control.Menu.ON_HIDDEN, menuShowingHandler);
 		}
-		
-		return null;
 	}
 	
-	private static EventHandler<javafx.event.Event> getContextMenuShowingHandler() {
-		if( CONTEXT_MENU_SHOWING_HANDLER == null ) {
-			CONTEXT_MENU_SHOWING_HANDLER = new EventHandler<javafx.event.Event>() {
-				@Override
-				public void handle(javafx.event.Event event) {
-					Menu c = Widget.getWidget(event.getSource());
-					boolean show = event.getEventType() == javafx.scene.control.Menu.ON_SHOWING || event.getEventType() == WindowEvent.WINDOW_SHOWING;
-					if( show ) {
-						c.removeDummyItem();
-					} else {
-						c.addDummyItem();
-					}
-					c.internal_sendEvent( show ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
-				}
-			};
-		}
-		return CONTEXT_MENU_SHOWING_HANDLER;
+	void createWidget () {
+		/*
+		* Bug in IBM JVM 1.3.1.  For some reason, when the following code is called
+		* from this method, the JVM issues this error:
+		*
+		* JVM Exception 0x2 (subcode 0x0) occurred in thread "main" (TID:0x9F19D8)
+		* 
+		* In addition, on Windows XP, a dialog appears with following error message,
+		* indicating that the problem may be in the JIT:
+		* 
+		* AppName: java.exe	 AppVer: 0.0.0.0	 ModName: jitc.dll
+		* ModVer: 0.0.0.0	 Offset: 000b6912
+		* 
+		* The fix is to move the code to the caller of this method.
+		*/
+		checkOrientation (parent);
+		createHandle ();
+//		parent.addMenu (this);
 	}
-	
-	private static EventHandler<javafx.event.Event> getMenuShowingHandler() {
-		if( SHOWING_HANDLER == null ) {
-			SHOWING_HANDLER = new EventHandler<javafx.event.Event>() {
-				@Override
-				public void handle(javafx.event.Event event) {
-					Menu c = Widget.getWidget(event.getSource());
-					if( event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ) {
-						c.removeDummyItem();
-					} else {
-						c.addDummyItem();
-					}
-					c.internal_sendEvent(event.getEventType() == javafx.scene.control.Menu.ON_SHOWING ? SWT.Show : SWT.Hide, new org.eclipse.swt.widgets.Event(), true);
-				}
-			};
-		}
-		return SHOWING_HANDLER;
-	}
-	
+
 	/**
 	 * Returns the default menu item or null if none has been previously set.
 	 * 
@@ -570,28 +559,6 @@ public class Menu extends Widget {
 		return parentMenu;
 	}
 
-	private static ChangeListener<Toggle> getSelectedChangeListener() {
-		if( TOGGLE_CHANGE_LISTENER == null ) {
-			TOGGLE_CHANGE_LISTENER = new ChangeListener<Toggle>() {
-				@Override
-				public void changed(ObservableValue<? extends Toggle> observable,
-						Toggle oldValue, Toggle newValue) {
-					if( oldValue != null ) {
-						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-//						evt.item = Widget.getWidget(oldValue); 
-						Widget.getWidget(oldValue).internal_sendEvent(SWT.Selection, evt, true);
-					}
-					if( newValue != null ) {
-						org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
-//						evt.item = Widget.getWidget(newValue);
-						Widget.getWidget(newValue).internal_sendEvent(SWT.Selection, evt, true);
-					}
-				}
-			};
-		}
-		return TOGGLE_CHANGE_LISTENER;
-	}
-
 	/**
 	 * Returns the receiver's shell. For all controls other than shells, this
 	 * simply returns the control's nearest ancestor shell. Shells return
@@ -681,81 +648,97 @@ public class Menu extends Widget {
 		if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
 			if( group == null ) {
 				group = new ToggleGroup();
-				group.selectedToggleProperty().addListener(getSelectedChangeListener());
+				group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+					@Override
+					public void changed(ObservableValue<? extends Toggle> observable,
+							Toggle oldValue, Toggle newValue) {
+						if( oldValue != null ) {
+							org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+//							evt.item = Widget.getWidget(oldValue); 
+//							Display.getCurrent().getWidget(oldValue).sendEvent(SWT.Selection, evt, true);
+						}
+						if( newValue != null ) {
+							org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+//							evt.item = Widget.getWidget(newValue);
+//							Display.getCurrent().getWidget(newValue).sendEvent(SWT.Selection, evt, true);
+						}
+					}
+				});
 			}
-			group.getToggles().add((Toggle) item.internal_getNativeObject());
+			group.getToggles().add((Toggle) item.nativeItem);
 		}
 		if( menu != null ) {
-			menu.getItems().add(item.internal_getNativeObject());
+			menu.getItems().add(item.nativeItem);
 		} else if( contextMenu != null ) {
-			contextMenu.getItems().add(item.internal_getNativeObject());
+			contextMenu.getItems().add(item.nativeItem);
 		} else {
-			bar.getMenus().add((javafx.scene.control.Menu) item.internal_getNativeObject());
+			bar.getMenus().add((javafx.scene.control.Menu) item.nativeItem);
  		}
 	}
 	
 	void internal_addItem(MenuItem item,int index) {
 		removeDummyItem();
 		items.add(index,item);
-		if( item.internal_getNativeObject() != null ) {
+		if (item.nativeItem != null) {
 			if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
 				if( group == null ) {
 					group = new ToggleGroup();
-					group.selectedToggleProperty().addListener(getSelectedChangeListener());
+					group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+						@Override
+						public void changed(ObservableValue<? extends Toggle> observable,
+								Toggle oldValue, Toggle newValue) {
+							if( oldValue != null ) {
+								org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+//								evt.item = Widget.getWidget(oldValue); 
+//								Display.getCurrent().getWidget(oldValue).sendEvent(SWT.Selection, evt, true);
+							}
+							if( newValue != null ) {
+								org.eclipse.swt.widgets.Event evt = new org.eclipse.swt.widgets.Event();
+//								evt.item = Widget.getWidget(newValue);
+//								Display.getCurrent().getWidget(newValue).sendEvent(SWT.Selection, evt, true);
+							}
+						}
+					});
 				}
-				group.getToggles().add((Toggle) item.internal_getNativeObject());
+				group.getToggles().add((Toggle) item.nativeItem);
 			}
 			if( menu != null ) {
-				menu.getItems().add(index,item.internal_getNativeObject());
+				menu.getItems().add(index,item.nativeItem);
 			} else if( contextMenu != null ) {
-				contextMenu.getItems().add(index,item.internal_getNativeObject());
+				contextMenu.getItems().add(index, item.nativeItem);
 			} else {
-				bar.getMenus().add(index,(javafx.scene.control.Menu) item.internal_getNativeObject());
+				bar.getMenus().add(index,(javafx.scene.control.Menu) item.nativeItem);
 			}
 		}
 	}
 	
-	@Override
-	public Object internal_getNativeObject() {
-		if( bar != null ) {
-			return bar;
-		} else if( menu != null ) {
-			return menu;
-		} else if( contextMenu != null ) {
-			return contextMenu;
-		}
-		return null;
-	}
-
 	void internal_menuAttached(MenuItem menuItem, Menu menu) {
 		int idx = items.indexOf(menuItem);
 		if( bar != null ) {
 			bar.getMenus().remove(idx);
-			bar.getMenus().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+			bar.getMenus().add(idx,(javafx.scene.control.Menu) menu.menu);
 		} else if( this.menu != null ) {
 			this.menu.getItems().remove(idx);
-			this.menu.getItems().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+			this.menu.getItems().add(idx,(javafx.scene.control.Menu) menu.menu);
 		} else if( this.contextMenu != null ) {
 			this.contextMenu.getItems().remove(idx);
-			this.contextMenu.getItems().add(idx,(javafx.scene.control.Menu) menu.internal_getNativeObject());
+			this.contextMenu.getItems().add(idx,(javafx.scene.control.Menu) menu.menu);
 		}
 	}
 
 	void internal_removeItem(MenuItem item) {
 		items.remove(item);
-		if( item.internal_getNativeObject() != null ) {
-			if( (item.getStyle() & SWT.RADIO) == SWT.RADIO ) {
-				if( group != null ) {
-					group.getToggles().remove(item.internal_getNativeObject());
-				}
+		if ((item.getStyle() & SWT.RADIO) != 0) {
+			if (group != null) {
+				group.getToggles().remove(item.nativeItem);
 			}
-			if( menu != null ) {
-				menu.getItems().remove(item.internal_getNativeObject());	
-			} else if( contextMenu != null ) {
-				contextMenu.getItems().remove(item.internal_getNativeObject());
-			} else {
-				bar.getMenus().remove(item.internal_getNativeObject());
-			}
+		}
+		if (menu != null) {
+			menu.getItems().remove(item.nativeItem);
+		} else if( contextMenu != null ) {
+			contextMenu.getItems().remove(item.nativeItem);
+		} else {
+			bar.getMenus().remove(item.nativeItem);
 		}
 		addDummyItem();
 	}
@@ -1088,9 +1071,9 @@ public class Menu extends Widget {
 	 */
 	public void setVisible(boolean visible) {
 		if( contextMenu != null ) {
-			contextMenu.show(((Shell)parent).internal_getWindow());
+			contextMenu.show(((Shell)parent).stage);
 			Shell s = (Shell) (control != null ? control.getShell() : parent);
-			contextMenu.show(s.internal_getWindow());
+			contextMenu.show(s.stage);
 		}
 	}
 

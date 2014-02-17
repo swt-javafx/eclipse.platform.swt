@@ -12,7 +12,6 @@ package org.eclipse.swt.widgets;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
-import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -45,11 +44,10 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Canvas extends Composite {
 
-	private Caret caret;
-	private Region scrollable;
-	
-	private boolean focusListenerAttached;
 	private javafx.scene.canvas.Canvas nativeCanvas;
+
+	private Caret caret;
+	private boolean focusListenerAttached;
 	private IME ime;
 	
 	Canvas() {
@@ -88,12 +86,6 @@ public class Canvas extends Composite {
 	 */
 	public Canvas(Composite parent, int style) {
 		super(parent, style);
-	}
-
-	@Override
-	protected Region createWidget() {
-		scrollable = super.createWidget();
-		return scrollable;
 	}
 
 	/**
@@ -157,22 +149,6 @@ public class Canvas extends Composite {
 		return caret;
 	}
 
-	private InvalidationListener getFocusChangeListener() {
-		return new InvalidationListener() {
-			
-			@Override
-			public void invalidated(Observable observable) {
-				if( caret != null ) {
-					if( scrollable.isFocused() ) {
-						caret.internal_show();
-					} else {
-						caret.internal_hide();
-					}
-				}
-			}
-		};
-	}
-	
 	/**
 	 * Returns the IME.
 	 * 
@@ -200,7 +176,7 @@ public class Canvas extends Composite {
 				super.layoutChildren();
 				if( caret != null ) {
 					Rectangle r = caret.getBounds();
-					caret.internal_getNativeObject().resizeRelocate(r.x, r.y, r.width, r.height);
+					caret.nativeControl.resizeRelocate(r.x, r.y, r.width, r.height);
 				}
 			}
 		};
@@ -283,21 +259,33 @@ public class Canvas extends Composite {
 	public void setCaret(Caret caret) {
 		if( this.caret != null ) {
 			this.caret.internal_hide();
-			((FXLayoutPane)internal_getNativeControl()).getChildren().remove(this.caret.internal_getNativeObject());
+			controlContainer.getChildren().remove(this.caret.nativeControl);
 		}
 		this.caret = caret;
 		if( this.caret != null ) {
 			if( ! focusListenerAttached ) {
 				focusListenerAttached = true;
-				scrollable.focusedProperty().addListener(getFocusChangeListener());
+				nativeControl.focusedProperty().addListener(new InvalidationListener() {
+					
+					@Override
+					public void invalidated(Observable observable) {
+						if( caret != null ) {
+							if (nativeControl.isFocused()) {
+								caret.internal_show();
+							} else {
+								caret.internal_hide();
+							}
+						}
+					}
+				});
 			}
 			internal_enableFocusTraversable();
-			if( scrollable.isFocused() ) {
+			if (nativeControl.isFocused()) {
 				this.caret.internal_show();	
 			}
-			((FXLayoutPane)internal_getNativeControl()).getChildren().add(this.caret.internal_getNativeObject());
+			controlContainer.getChildren().add(this.caret.nativeControl);
 		}
-		internal_getNativeControl().layout();
+		controlContainer.layout();
 	}
 
 	/**

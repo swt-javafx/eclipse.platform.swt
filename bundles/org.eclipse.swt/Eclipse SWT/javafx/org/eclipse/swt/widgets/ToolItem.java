@@ -59,7 +59,7 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class ToolItem extends Item {
 
-	private Region nativeControl;
+	Region nativeControl;
 	private ToolBar parent;
 	private Tooltip tooltip;
 	private String tooltipText;
@@ -115,7 +115,7 @@ public class ToolItem extends Item {
 	public ToolItem(ToolBar parent, int style) {
 		super(parent, style);
 		this.parent = parent;
-		parent.internal_itemAdded(this);
+		createWidget();
 	}
 
 	/**
@@ -165,7 +165,7 @@ public class ToolItem extends Item {
 	public ToolItem(ToolBar parent, int style, int index) {
 		super(parent, style);
 		this.parent = parent;
-		parent.internal_itemAdded(this, index);
+		createWidget();
 	}
 
 	/**
@@ -216,7 +216,7 @@ public class ToolItem extends Item {
 	}
 
 	@Override
-	protected Node createWidget() {
+	void createHandle() {
 		if( (style & SWT.CHECK) == SWT.CHECK ) {
 			nativeControl = new CheckBox();
 		} else if( (style & SWT.RADIO) == SWT.RADIO ) {
@@ -233,7 +233,7 @@ public class ToolItem extends Item {
 					if( n.getStyleClass().contains("arrow") ) {
 						evt.detail = SWT.ARROW;
 					}
-					internal_sendEvent(SWT.Selection, evt, true);
+					sendEvent(SWT.Selection, evt, true);
 				}
 			});
 			nativeControl = m;
@@ -243,12 +243,11 @@ public class ToolItem extends Item {
 				@Override
 				public void handle(ActionEvent event) {
 					Event evt = new Event();
-					internal_sendEvent(SWT.Selection, evt, true);
+					sendEvent(SWT.Selection, evt, true);
 				}
 			});
 //			nativeControl.setMouseTransparent(true);
 		}
-		return nativeControl;
 	}
 
 	@Override
@@ -461,11 +460,6 @@ public class ToolItem extends Item {
 		return width;
 	}
 
-	@Override
-	public Node internal_getNativeObject() {
-		return nativeControl;
-	}
-	
 	/**
 	 * Returns <code>true</code> if the receiver is enabled and all of the
 	 * receiver's ancestors are enabled, and <code>false</code> otherwise. A
@@ -486,6 +480,11 @@ public class ToolItem extends Item {
 	 */
 	public boolean isEnabled() {
 		return getEnabled() && parent.getEnabled();
+	}
+
+	@Override
+	void registerHandle() {
+		parent.internal_itemAdded(this);
 	}
 
 	/**
@@ -546,7 +545,7 @@ public class ToolItem extends Item {
 			if( control == null ) {
 				((StackPane)nativeControl).getChildren().setAll(new Separator());
 			} else {
-				((StackPane)nativeControl).getChildren().setAll(control.internal_getNativeObject());	
+				((StackPane)nativeControl).getChildren().setAll(control.nativeControl);
 			}
 		}
 	}

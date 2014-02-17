@@ -299,6 +299,11 @@ public class Decorations extends Canvas {
 		return this.text;
 	}
 
+	@Override
+	Decorations menuShell() {
+		return this;
+	}
+	
 	/**
 	 * If the argument is not null, sets the receiver's default button to the
 	 * argument, and if the argument is null, sets the receiver's default button

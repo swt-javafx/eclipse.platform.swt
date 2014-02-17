@@ -48,8 +48,6 @@ import org.eclipse.swt.graphics.Rectangle;
  */
 public class Sash extends Control {
 
-	private Region nativeControl;
-	
 	private final static int INCREMENT = 1;
 	private final static int PAGE_INCREMENT = 9;
 	
@@ -139,13 +137,12 @@ public class Sash extends Control {
 	}
 
 	@Override
-		protected Object createWidget() {
-			nativeControl = new Region();
-	//		nativeControl.setStyle("-fx-background-color: red;");
-	//		nativeControl.setFocusTraversable(true);
-			nativeControl.setCursor((style & SWT.VERTICAL) == SWT.VERTICAL ? Cursor.H_RESIZE : Cursor.V_RESIZE );
-			return nativeControl;
-		}
+	void createHandle() {
+		nativeControl = new Region();
+//		nativeControl.setStyle("-fx-background-color: red;");
+//		nativeControl.setFocusTraversable(true);
+		nativeControl.setCursor((style & SWT.VERTICAL) == SWT.VERTICAL ? Cursor.H_RESIZE : Cursor.V_RESIZE );
+	}
 
 	public Point computeSize (int wHint, int hHint, boolean changed) {
 		checkWidget();
@@ -158,11 +155,6 @@ public class Sash extends Control {
 		if (wHint != SWT.DEFAULT) width = wHint;
 		if (hHint != SWT.DEFAULT) height = hHint;
 		return new Point (width, height);
-	}
-
-	@Override
-	public Region internal_getNativeObject() {
-		return nativeControl;
 	}
 
 	/**
@@ -250,7 +242,7 @@ public class Sash extends Control {
 			evt.y = newY;
 			evt.width = width;
 			evt.height = height;
-			internal_sendEvent(SWT.Selection, evt, true);
+			sendEvent(SWT.Selection, evt, true);
 			if( evt.doit ) {
 				setBounds(evt.x, evt.y, evt.width, evt.height);
 				int cursorX = evt.x;
@@ -282,7 +274,7 @@ public class Sash extends Control {
 			evt.y = b.y;
 			evt.width = b.width;
 			evt.height = b.height;
-			internal_sendEvent(SWT.Selection, evt, true);
+			sendEvent(SWT.Selection, evt, true);
 			if( evt.doit ) {
 				lastX = evt.x;
 				lastY = evt.y;
@@ -307,7 +299,7 @@ public class Sash extends Control {
 			evt.width = (int)b.width;
 			evt.height = (int)b.height;
 			
-			internal_sendEvent(SWT.Selection, evt, true);
+			sendEvent(SWT.Selection, evt, true);
 			if (evt.doit) {
 				lastX = evt.x;
 				lastY = evt.y;
@@ -321,7 +313,7 @@ public class Sash extends Control {
 			evt.y = lastY;
 			evt.width = b.width;
 			evt.height = b.height;
-			internal_sendEvent(SWT.Selection, evt, true);
+			sendEvent(SWT.Selection, evt, true);
 			if( evt.doit ) {
 				setBounds(evt.x, evt.y, evt.width, evt.height);
 			}

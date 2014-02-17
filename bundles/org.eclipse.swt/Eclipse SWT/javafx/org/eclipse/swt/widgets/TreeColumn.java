@@ -46,7 +46,7 @@ import org.eclipse.swt.internal.Util;
  */
 public class TreeColumn extends Item {
 
-	private TreeTableColumn<TreeItem, ColumnItem> column;
+	TreeTableColumn<TreeItem, ColumnItem> nativeColumn;
 	private Tree parent;
 	private int index;
 	private String tooltipText;
@@ -95,6 +95,7 @@ public class TreeColumn extends Item {
 	public TreeColumn(Tree parent, int style) {
 		super(parent, style);
 		index = parent.getColumnCount();
+		createWidget();
 	}
 
 	/**
@@ -145,6 +146,7 @@ public class TreeColumn extends Item {
 	public TreeColumn(Tree parent, int style, int index) {
 		super(parent, style);
 		this.index = index;
+		createWidget();
 	}
 
 	/**
@@ -208,9 +210,8 @@ public class TreeColumn extends Item {
 	}
 
 	@Override
-	protected TreeTableColumn<TreeItem, ColumnItem> createWidget() {
-		column = new TreeTableColumn<>();
-		return column;
+	void createHandle() {
+		nativeColumn = new TreeTableColumn<>();
 	}
 	
 	/**
@@ -292,7 +293,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public boolean getResizable() {
-		return column.isResizable();
+		return nativeColumn.isResizable();
 	}
 
 	/**
@@ -329,14 +330,9 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public int getWidth() {
-		return (int) column.getWidth();
+		return (int) nativeColumn.getWidth();
 	}
 
-	@Override
-	public TreeTableColumn<TreeItem, ColumnItem> internal_getNativeObject() {
-		return column;
-	}
-	
 	/**
 	 * Causes the receiver to be resized to its preferred size. For a composite,
 	 * this involves computing the preferred size from its layout, if there is
@@ -474,7 +470,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public void setResizable(boolean resizable) {
-		column.setResizable(resizable);
+		nativeColumn.setResizable(resizable);
 	}
 
 	/**
@@ -522,7 +518,7 @@ public class TreeColumn extends Item {
 	 *                </ul>
 	 */
 	public void setWidth(int width) {
-		column.setPrefWidth(width);
+		nativeColumn.setPrefWidth(width);
 	}
 
 }

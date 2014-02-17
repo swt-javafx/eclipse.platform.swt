@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import javafx.scene.layout.Region;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Point;
@@ -95,10 +93,10 @@ public class ProgressBar extends Control {
 	}
 	
 	@Override
-	protected Object createWidget() {
+	void createHandle() {
 		bar = new javafx.scene.control.ProgressBar();
 		bar.setProgress(0.0);
-		return bar;
+		nativeControl = bar;
 	}
 	
 	/**
@@ -177,11 +175,6 @@ public class ProgressBar extends Control {
 		return SWT.NORMAL;
 	}
 
-	@Override
-	public Region internal_getNativeObject() {
-		return bar;
-	}
-	
 	/**
 	 * Sets the maximum value that the receiver will allow. This new value will
 	 * be ignored if it is not greater than the receiver's current minimum

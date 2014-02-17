@@ -14,7 +14,6 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
@@ -83,16 +82,14 @@ import org.eclipse.swt.internal.Util;
  */
 public abstract class Control extends Widget implements Drawable {
 
+	public javafx.scene.layout.Region nativeControl;
 	private Object layoutData;
 	Composite parent;
 	private Color foreground;
 	private Color background;
 	private Font font;
 
-	private static EventHandler<javafx.scene.input.MouseEvent> MOUSE_HANDLER;
 	private static Control LAST_ENTER;
-	private static EventHandler<javafx.scene.input.KeyEvent> KEY_HANDLER;
-	private static EventHandler<ContextMenuEvent> CONTEXT_MENU_HANDLER;
 	// private static InvalidationListener FOCUS_LISTENER;
 	// TODO we should make those a stack because if someone e.g. pressed A+S we
 	// miss the A keyup event
@@ -106,7 +103,25 @@ public abstract class Control extends Widget implements Drawable {
 
 	// private static Control CURRENT_FOCUS_CONTROL;
 
-	static class MouseHandler implements EventHandler<javafx.scene.input.MouseEvent> {
+	private EventHandler<ContextMenuEvent> contextMenuHandler = new EventHandler<ContextMenuEvent>() {
+		@Override
+		public void handle(ContextMenuEvent event) {
+			Event evt = new Event();
+			evt.x = (int) event.getScreenX();
+			evt.y = (int) event.getScreenY();
+			sendEvent(SWT.MenuDetect, evt, true);
+		}
+	};
+	
+	private EventHandler<javafx.scene.input.KeyEvent> keyEventHandler = new EventHandler<javafx.scene.input.KeyEvent>() {
+		@Override
+		public void handle(javafx.scene.input.KeyEvent event) {
+			sendKeyEvent(event);
+			event.consume();
+		}
+	};
+
+	private EventHandler<javafx.scene.input.MouseEvent> mouseHandler = new EventHandler<javafx.scene.input.MouseEvent>() {
 		@Override
 		public void handle(javafx.scene.input.MouseEvent event) {
 			int type = SWT.None;
@@ -125,29 +140,22 @@ public abstract class Control extends Widget implements Drawable {
 			}
 
 			if (type != SWT.None) {
-				Object o = Widget.getWidget(event.getSource());
+				if (type == SWT.MouseEnter) {
+					display.setHoverControl(Control.this);
+				} else if (type == SWT.MouseExit) {
+					display.setHoverControl(null);
+				} else if (type == SWT.MouseMove) {
+					display.setHoverControl(Control.this);
+				}
 
-				if (o instanceof Control) {
-					Control c = (Control) o;
-					if (c != null) {
-						if (type == SWT.MouseEnter) {
-							c.getDisplay().setHoverControl(c);
-						} else if (type == SWT.MouseExit) {
-							c.getDisplay().setHoverControl(null);
-						} else if (type == SWT.MouseMove) {
-							c.getDisplay().setHoverControl(c);
-						}
+				sendMouseEvent(type, event);
 
-						c.sendMouseEvent(type, event);
-
-						if (type == SWT.MouseUp && event.getClickCount() > 1) {
-							c.sendMouseEvent(SWT.MouseDoubleClick, event);
-						}
-					}
+				if (type == SWT.MouseUp && event.getClickCount() > 1) {
+					sendMouseEvent(SWT.MouseDoubleClick, event);
 				}
 			}
 		}
-	}
+	};
 
 	/**
 	 * Prevents uninitialized instances from being created outside the package.
@@ -192,9 +200,9 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see Widget#getStyle
 	 */
 	public Control(Composite parent, int style) {
-		super(parent.getDisplay(), style);
+		super (parent, style);
 		this.parent = parent;
-		parent.internal_controlAdded(this);
+		createWidget ();
 	}
 
 	/**
@@ -410,11 +418,11 @@ public abstract class Control extends Widget implements Drawable {
 				@Override
 				public void invalidated(Observable observable) {
 					Event evt = new Event();
-					internal_sendEvent(SWT.Resize, evt, true);
+					sendEvent(SWT.Resize, evt, true);
 				}
 			};
-			internal_getNativeControl().widthProperty().addListener(l);
-			internal_getNativeControl().heightProperty().addListener(l);
+			nativeControl.widthProperty().addListener(l);
+			nativeControl.heightProperty().addListener(l);
 		}
 	}
 	
@@ -675,6 +683,71 @@ public abstract class Control extends Widget implements Drawable {
 		addListener (SWT.Traverse,typedListener);
 	}
 
+	String calculateStyleString() {
+		StringBuffer b = new StringBuffer();
+		if (font != null) {
+			b.append(font.internal_getAsCSSString());
+		}
+		
+		if (foreground != null) {
+			String rgb = "rgb(" + foreground.getRed() + ","
+					+ foreground.getGreen() + "," + foreground.getBlue() + ")";
+			b.append("-fx-text-inner-color: " + rgb
+					+ "; -fx-text-background-color: " + rgb + ";");
+		}
+		
+		if( background != null ) {
+			String rgb = "rgb(" + background.getRed() + ","
+					+ background.getGreen() + "," + background.getBlue() + ")";
+			b.append("-fx-background-color: " + rgb);
+		}
+		
+		return b.toString();
+	}
+
+	void checkBackground () {
+		Shell shell = getShell ();
+		if (this == shell) return;
+		state &= ~PARENT_BACKGROUND;
+		Composite composite = parent;
+		do {
+			int mode = composite.backgroundMode;
+			if (mode != 0) {
+				if (mode == SWT.INHERIT_DEFAULT) {
+					Control control = this;
+					do {
+						if ((control.state & THEME_BACKGROUND) == 0) {
+							return;
+						}
+						control = control.parent;
+					} while (control != composite);
+				}
+				state |= PARENT_BACKGROUND;
+				return;
+			}
+			if (composite == shell) break;
+			composite = composite.parent;
+		} while (true);	
+	}
+
+	void checkBorder () {
+		if (getBorderWidth () == 0) style &= ~SWT.BORDER;
+	}
+
+	void checkBuffered () {
+		style &= ~SWT.DOUBLE_BUFFERED;
+	}
+
+	void checkComposited () {
+		/* Do nothing */
+	}
+
+	void checkMirrored () {
+		if ((style & SWT.RIGHT_TO_LEFT) != 0) {
+			Util.logNotImplemented();
+		}
+	}
+
 	/**
 	 * Returns the preferred size of the receiver.
 	 * <p>
@@ -756,9 +829,10 @@ public abstract class Control extends Widget implements Drawable {
 	public Point computeSize(int wHint, int hHint, boolean changed) {
 		checkWidget();
 		forceSizeProcessing();
-		int width = (int) internal_getNativeObject().prefWidth(
+		// TODO really? the win32 and cocoa port doesn't do this. gtk does I guess
+		int width = (int) nativeControl.prefWidth(
 				javafx.scene.control.Control.USE_COMPUTED_SIZE);
-		int height = (int) internal_getNativeObject().prefHeight(
+		int height = (int) nativeControl.prefHeight(
 				javafx.scene.control.Control.USE_COMPUTED_SIZE);
 		
 		if (width <= 0) {
@@ -779,18 +853,26 @@ public abstract class Control extends Widget implements Drawable {
 		return new Point(width, height);
 	}
 
-	Font defaultFont() {
-		return display.getSystemFont();
+	void createHandle() {
 	}
 
-	@Override
-	public void dispose() {
-		super.dispose();
-
-		// In case it is a shell we might not have a parent
-		if (parent != null) {
-			parent.internal_controlRemoved(this);
+	void createWidget () {
+		state |= DRAG_DETECT;
+		checkOrientation (parent);
+		createHandle ();
+		checkBackground ();
+		checkBuffered ();
+		checkComposited ();
+		registerHandle ();
+		checkMirrored ();
+		checkBorder ();
+		if ((state & PARENT_BACKGROUND) != 0) {
+			Util.logNotImplemented();
 		}
+	}
+
+	Font defaultFont() {
+		return display.getSystemFont();
 	}
 
 	/**
@@ -834,7 +916,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.3
 	 */
 	public boolean dragDetect(Event event) {
-		// TODO
+		Util.logNotImplemented();
 		return false;
 	}
 
@@ -879,11 +961,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.3
 	 */
 	public boolean dragDetect(MouseEvent event) {
-		// TODO
-		return false;
-	}
-
-	boolean drawGripper (GC gc, int x, int y, int width, int height, boolean vertical) {
+		Util.logNotImplemented();
 		return false;
 	}
 
@@ -910,11 +988,11 @@ public abstract class Control extends Widget implements Drawable {
 
 	void forceSizeProcessing() {
 		if ((state & CSS_PROCESSED) != CSS_PROCESSED
-				&& (internal_getNativeObject().getScene() == null
-						|| internal_getNativeObject().getScene().getWindow() == null || !internal_getNativeObject()
-						.getScene().getWindow().isShowing())) {
+				&& (nativeControl.getScene() == null
+						|| nativeControl.getScene().getWindow() == null
+						|| !nativeControl.getScene().getWindow().isShowing())) {
 			state |= CSS_PROCESSED;
-			internal_getNativeObject().impl_processCSS(true);
+			nativeControl.impl_processCSS(true);
 		}
 	}
 	
@@ -942,7 +1020,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 2.0
 	 */
 	public Accessible getAccessible() {
-		// TODO
+		Util.logNotImplemented();
 		return new Accessible(null);
 	}
 
@@ -1003,7 +1081,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public int getBorderWidth() {
-		// TODO
+		Util.logNotImplemented();
 		return 0;
 	}
 
@@ -1026,25 +1104,6 @@ public abstract class Control extends Widget implements Drawable {
 		Point location = getLocation();
 		Point size = getSize();
 		return new Rectangle(location.x, location.y, size.x, size.y);
-	}
-
-	private EventHandler<ContextMenuEvent> getContextMenuHandler() {
-		if (CONTEXT_MENU_HANDLER == null) {
-			CONTEXT_MENU_HANDLER = new EventHandler<ContextMenuEvent>() {
-
-				@Override
-				public void handle(ContextMenuEvent event) {
-					Widget widget = Widget.getWidget(event.getTarget());
-					if (widget instanceof Control) {
-						Event evt = new Event();
-						evt.x = (int) event.getScreenX();
-						evt.y = (int) event.getScreenY();
-						internal_sendEvent(SWT.MenuDetect, evt, true);
-					}
-				}
-			};
-		}
-		return CONTEXT_MENU_HANDLER;
 	}
 
 	/**
@@ -1115,7 +1174,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public boolean getEnabled() {
 		checkWidget();
-		return !internal_getNativeObject().isDisabled();
+		return !nativeControl.isDisabled();
 	}
 
 	/**
@@ -1154,22 +1213,6 @@ public abstract class Control extends Widget implements Drawable {
 				SWT.COLOR_WIDGET_FOREGROUND) : foreground;
 	}
 
-	private static EventHandler<javafx.scene.input.KeyEvent> getKeyEventHandler() {
-		if (KEY_HANDLER == null) {
-			KEY_HANDLER = new EventHandler<javafx.scene.input.KeyEvent>() {
-				@Override
-				public void handle(javafx.scene.input.KeyEvent event) {
-					Control c = Widget.getWidget(event.getTarget());
-					if (c != null) {
-						c.sendKeyEvent(event);
-						event.consume();
-					}
-				}
-			};
-		}
-		return KEY_HANDLER;
-	}
-
 	/**
 	 * Returns layout data which is associated with the receiver.
 	 * 
@@ -1205,8 +1248,8 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public Point getLocation() {
 		checkWidget();
-		return new Point((int) internal_getNativeObject().getLayoutX(),
-				(int) internal_getNativeObject().getLayoutY());
+		return new Point((int) nativeControl.getLayoutX(),
+				(int) nativeControl.getLayoutY());
 	}
 
 	/**
@@ -1283,13 +1326,6 @@ public abstract class Control extends Widget implements Drawable {
 			}
 		}
 		return monitors[index];
-	}
-
-	static EventHandler<javafx.scene.input.MouseEvent> getMouseHandler() {
-		if (MOUSE_HANDLER == null) {
-			MOUSE_HANDLER = new MouseHandler();
-		}
-		return MOUSE_HANDLER;
 	}
 
 	/**
@@ -1491,50 +1527,15 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public boolean getVisible() {
 		checkWidget();
-		return internal_getNativeObject().isVisible();
-	}
-
-	protected String internal_calculateStyleString() {
-		StringBuffer b = new StringBuffer();
-		if (font != null) {
-			b.append(font.internal_getAsCSSString());
-		}
-		
-		if (foreground != null) {
-			String rgb = "rgb(" + foreground.getRed() + ","
-					+ foreground.getGreen() + "," + foreground.getBlue() + ")";
-			b.append("-fx-text-inner-color: " + rgb
-					+ "; -fx-text-background-color: " + rgb + ";");
-		}
-		
-		if( background != null ) {
-			String rgb = "rgb(" + background.getRed() + ","
-					+ background.getGreen() + "," + background.getBlue() + ")";
-			b.append("-fx-background-color: " + rgb);
-		}
-		
-		return b.toString();
-	}
-
-	protected javafx.scene.layout.Region internal_getEventTarget() {
-		return internal_getNativeObject();
+		return nativeControl.isVisible();
 	}
 
 	protected double internal_getHeight() {
-		return internal_getNativeObject().getHeight();
-	}
-
-	public javafx.scene.layout.Region internal_getNativeControl() {
-		return internal_getNativeObject();
-	}
-
-	@Override
-	public javafx.scene.layout.Region internal_getNativeObject() {
-		return (javafx.scene.layout.Region)super.internal_getNativeObject();
+		return nativeControl.getHeight();
 	}
 
 	protected double internal_getWidth() {
-		return internal_getNativeObject().getWidth();
+		return nativeControl.getWidth();
 	}
 
 	boolean internal_mouseAsFilter() {
@@ -1552,36 +1553,7 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	protected final void internal_reapplyStyle() {
-		internal_getNativeObject().setStyle(internal_calculateStyleString());
-	}
-
-	@Override
-	protected void initListeners() {
-		super.initListeners();
-		final javafx.scene.layout.Region n = internal_getEventTarget();
-		if (internal_mouseAsFilter()) {
-			n.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_ENTERED, getMouseHandler());
-			n.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_EXITED, getMouseHandler());
-			n.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, getMouseHandler());
-		} else {
-			n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_ENTERED, getMouseHandler());
-			n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_EXITED, getMouseHandler());
-			n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_MOVED, getMouseHandler());
-		}
-
-		n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, getMouseHandler());
-		n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_RELEASED, getMouseHandler());
-		n.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, getMouseHandler());
-
-		// TODO Better do it on the scene???
-		// n.focusedProperty().addListener(getFocusListener());
-		// TODO Should we do it lazy??
-		n.addEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, getKeyEventHandler());
-		n.addEventHandler(javafx.scene.input.KeyEvent.KEY_TYPED, getKeyEventHandler());
-		n.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, getKeyEventHandler());
-
-		n.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED,
-				getContextMenuHandler());
+		nativeControl.setStyle(calculateStyleString());
 	}
 
 	/**
@@ -1623,7 +1595,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean isFocusControl() {
-		return internal_getEventTarget().isFocused();
+		return nativeControl.isFocused();
 	}
 
 	/**
@@ -1670,6 +1642,10 @@ public abstract class Control extends Widget implements Drawable {
 		// Do nothing
 	}
 	
+	Decorations menuShell () {
+		return parent.menuShell ();
+	}
+
 	/**
 	 * Moves the receiver above the specified control in the drawing order. If
 	 * the argument is null, then the receiver is moved to the top of the
@@ -1696,7 +1672,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see Composite#getChildren
 	 */
 	public void moveAbove(Control control) {
-		parent.internal_controlMoveAbove(this, control);
+		parent.moveChildAbove(this, control);
 	}
 
 	/**
@@ -1725,7 +1701,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see Composite#getChildren
 	 */
 	public void moveBelow(Control control) {
-		parent.internal_controlMoveBelow(this, control);
+		parent.moveChildBelow(this, control);
 	}
 
 	/**
@@ -1746,8 +1722,8 @@ public abstract class Control extends Widget implements Drawable {
 	public void pack() {
 		forceSizeProcessing();
 		// TODO is it min size??
-		setSize((int) internal_getNativeControl().prefWidth(-1),
-				(int) internal_getNativeControl().prefHeight(-1));
+		setSize((int) nativeControl.prefWidth(-1),
+				(int) nativeControl.prefHeight(-1));
 	}
 
 	/**
@@ -1778,8 +1754,8 @@ public abstract class Control extends Widget implements Drawable {
 	public void pack(boolean changed) {
 		forceSizeProcessing();
 		// TODO is it min size??
-		setSize((int) internal_getNativeControl().prefWidth(-1),
-				(int) internal_getNativeControl().prefHeight(-1));	
+		setSize((int) nativeControl.prefWidth(-1),
+				(int) nativeControl.prefHeight(-1));	
 	}
 
 	/**
@@ -1874,6 +1850,59 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void redraw(int x, int y, int width, int height, boolean all) {
 		// TODO
+	}
+
+	@Override
+	void registerHandle() {
+		super.registerHandle();
+		
+		nativeControl.setUserData(this);
+		parent.addChild(this);
+
+		if (internal_mouseAsFilter()) {
+			nativeControl.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_ENTERED, mouseHandler);
+			nativeControl.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_EXITED, mouseHandler);
+			nativeControl.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, mouseHandler);
+		} else {
+			nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_ENTERED, mouseHandler);
+			nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_EXITED, mouseHandler);
+			nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_MOVED, mouseHandler);
+		}
+
+		nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, mouseHandler);
+		nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_RELEASED, mouseHandler);
+		nativeControl.addEventHandler(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, mouseHandler);
+
+		// TODO Better do it on the scene???
+		// n.focusedProperty().addListener(getFocusListener());
+		// TODO Should we do it lazy??
+		nativeControl.addEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, keyEventHandler);
+		nativeControl.addEventHandler(javafx.scene.input.KeyEvent.KEY_TYPED, keyEventHandler);
+		nativeControl.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, keyEventHandler);
+
+		nativeControl.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, contextMenuHandler);
+	}
+
+	void releaseHandle () {
+		super.releaseHandle ();
+		nativeControl = null;
+	}
+
+	void releaseParent () {
+		parent.removeChild(this);
+		parent = null;
+	}
+
+	void releaseWidget () {
+		super.releaseWidget ();
+		if (menu != null && !menu.isDisposed ()) {
+			menu.dispose ();
+		}
+		menu = null;
+		cursor = null;
+		layoutData = null;
+		region = null;
+		font = null;
 	}
 
 	/**
@@ -2317,7 +2346,7 @@ public abstract class Control extends Widget implements Drawable {
 			evt.character = event.getCharacter() != javafx.scene.input.KeyEvent.CHAR_UNDEFINED
 					&& event.getCharacter().length() > 0 ? event.getCharacter()
 					.charAt(0) : (char) lastLetterDown.keyCode;
-			internal_sendEvent(SWT.KeyDown, evt, true);
+			sendEvent(SWT.KeyDown, evt, true);
 			if (!evt.doit) {
 				event.consume();
 				lastTypedDown = null;
@@ -2351,7 +2380,7 @@ public abstract class Control extends Widget implements Drawable {
 
 			if (event.getEventType() == javafx.scene.input.KeyEvent.KEY_RELEASED) {
 				if (lastTypedDown != null) {
-					internal_sendEvent(SWT.KeyUp, lastTypedDown, true);
+					sendEvent(SWT.KeyUp, lastTypedDown, true);
 					lastTypedDown = null;
 					lastLetterDown = null;
 				}
@@ -2386,7 +2415,7 @@ public abstract class Control extends Widget implements Drawable {
 						evt.stateMask |= SWT.COMMAND;
 				}
 
-				internal_sendEvent(type, evt, true);
+				sendEvent(type, evt, true);
 				if (!evt.doit) {
 					event.consume();
 					return;
@@ -2428,7 +2457,7 @@ public abstract class Control extends Widget implements Drawable {
 						break;
 					}
 					if (tEvt.detail != 0) {
-						internal_sendEvent(SWT.Traverse, tEvt, true);
+						sendEvent(SWT.Traverse, tEvt, true);
 						if (!tEvt.doit) {
 							event.consume();
 						}
@@ -2488,7 +2517,7 @@ public abstract class Control extends Widget implements Drawable {
 
 		updateStateMask(evt, event);
 
-		internal_sendEvent(type, evt, true);
+		sendEvent(type, evt, true);
 
 		if (type == SWT.MouseExit) {
 			state &= ~MOUSE_ENTER;
@@ -2496,10 +2525,10 @@ public abstract class Control extends Widget implements Drawable {
 			if (getParent() != null && event.getSceneX() > 0
 					&& event.getSceneY() > 0) {
 				Composite p = getParent();
-				Point2D p2 = getParent().internal_getNativeObject()
+				Point2D p2 = getParent().nativeControl
 						.sceneToLocal(event.getSceneX(), event.getSceneY());
 				while (p != null) {
-					if (p.internal_getNativeObject().contains(p2)) {
+					if (p.nativeControl.contains(p2)) {
 						break;
 					}
 					p = p.getParent();
@@ -2513,7 +2542,7 @@ public abstract class Control extends Widget implements Drawable {
 					e2.stateMask = evt.stateMask;
 					p.state |= MOUSE_ENTER;
 					p.state &= ~MOUSE_EXIT;
-					p.internal_sendEvent(SWT.MouseEnter, e2, true);
+					p.sendEvent(SWT.MouseEnter, e2, true);
 				}
 				LAST_ENTER = p;
 			} else {
@@ -2523,9 +2552,9 @@ public abstract class Control extends Widget implements Drawable {
 			state |= MOUSE_ENTER;
 			state &= ~MOUSE_EXIT;
 			if (LAST_ENTER != null) {
-				Point2D p2 = LAST_ENTER.internal_getNativeObject()
+				Point2D p2 = LAST_ENTER.nativeControl
 						.sceneToLocal(event.getSceneX(), event.getSceneY());
-				if (LAST_ENTER.internal_getNativeObject().contains(p2)) {
+				if (LAST_ENTER.nativeControl.contains(p2)) {
 					Event e2 = new Event();
 					e2.type = SWT.MouseExit;
 					e2.x = (int) p2.getX();
@@ -2533,7 +2562,7 @@ public abstract class Control extends Widget implements Drawable {
 					e2.stateMask = evt.stateMask;
 					LAST_ENTER.state &= ~MOUSE_ENTER;
 					LAST_ENTER.state |= MOUSE_EXIT;
-					LAST_ENTER.internal_sendEvent(SWT.MouseExit, e2, true);
+					LAST_ENTER.sendEvent(SWT.MouseExit, e2, true);
 				}
 			}
 			LAST_ENTER = this;
@@ -2668,7 +2697,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setBounds(int x, int y, int width, int height) {
 		checkWidget();
-		internal_getNativeObject().resizeRelocate(x, y, width, height);
+		nativeControl.resizeRelocate(x, y, width, height);
 	}
 
 	/**
@@ -2719,7 +2748,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setCursor(Cursor cursor) {
 		this.cursor = cursor;
-		internal_getNativeObject().setCursor(
+		nativeControl.setCursor(
 				cursor == null ? null : cursor.internal_getNativeObject());
 	}
 
@@ -2763,7 +2792,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setEnabled(boolean enabled) {
 		checkWidget();
-		internal_getNativeObject().setDisable(!enabled);
+		nativeControl.setDisable(!enabled);
 	}
 
 	/**
@@ -2786,8 +2815,8 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public boolean setFocus() {
 		checkWidget();
-		internal_getNativeControl().requestFocus();
-		return internal_getNativeControl().isFocused();
+		nativeControl.requestFocus();
+		return nativeControl.isFocused();
 	}
 
 	/**
@@ -2908,7 +2937,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setLocation(int x, int y) {
 		checkWidget();
-		internal_getNativeObject().relocate(x, y);
+		nativeControl.relocate(x, y);
 	}
 
 	/**
@@ -2944,11 +2973,9 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setMenu(Menu menu) {
 		this.menu = menu;
-		javafx.scene.layout.Region r = internal_getNativeControl();
-		if (r instanceof javafx.scene.control.Control) {
-			javafx.scene.control.Control c = (javafx.scene.control.Control) r;
-			c.setContextMenu((ContextMenu) (menu == null ? null : menu
-					.internal_getNativeObject()));
+		if (nativeControl instanceof javafx.scene.control.Control) {
+			javafx.scene.control.Control c = (javafx.scene.control.Control) nativeControl;
+			c.setContextMenu(menu == null ? null : menu.contextMenu);
 		}
 	}
 
@@ -2999,8 +3026,8 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public boolean setParent(Composite parent) {
-		this.parent.internal_controlRemoved(this);
-		parent.internal_controlAdded(this);
+		this.parent.removeChild(this);
+		parent.addChild(this);
 		this.parent = parent;
 		return true;
 	}
@@ -3110,7 +3137,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setSize(int width, int height) {
 		checkWidget();
-		internal_getNativeObject().resize(width, height);
+		nativeControl.resize(width, height);
 	}
 
 	/**
@@ -3170,8 +3197,8 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setToolTipText(String string) {
 		this.tooltipText = string;
-		if (internal_getNativeControl() instanceof javafx.scene.control.Control) {
-			javafx.scene.control.Control control = (javafx.scene.control.Control) internal_getNativeControl();
+		if (nativeControl instanceof javafx.scene.control.Control) {
+			javafx.scene.control.Control control = (javafx.scene.control.Control) nativeControl;
 			if (string == null || string.length() == 0) {
 				tooltip = null;
 			} else {
@@ -3232,7 +3259,7 @@ public abstract class Control extends Widget implements Drawable {
 	 */
 	public void setVisible(boolean visible) {
 		checkWidget();
-		internal_getNativeObject().setVisible(visible);
+		nativeControl.setVisible(visible);
 	}
 
 	/**
@@ -3585,26 +3612,6 @@ public abstract class Control extends Widget implements Drawable {
 	public boolean traverse(int traversal, KeyEvent event) {
 		Util.logNotImplemented();
 		return false;
-	}
-
-	@Override
-	protected void uninitListeners() {
-		super.uninitListeners();
-		final javafx.scene.layout.Region n = internal_getEventTarget();
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_ENTERED, getMouseHandler());
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_EXITED, getMouseHandler());
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_MOVED, getMouseHandler());
-
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, getMouseHandler());
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_RELEASED, getMouseHandler());
-		n.removeEventHandler(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, getMouseHandler());
-
-		// TODO Better do it on the scene???
-		// n.focusedProperty().addListener(getFocusListener());
-		// TODO Should we do it lazy??
-		n.removeEventHandler(javafx.scene.input.KeyEvent.KEY_RELEASED, getKeyEventHandler());
-		n.removeEventHandler(javafx.scene.input.KeyEvent.KEY_TYPED, getKeyEventHandler());
-		n.removeEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, getKeyEventHandler());
 	}
 
 	/**

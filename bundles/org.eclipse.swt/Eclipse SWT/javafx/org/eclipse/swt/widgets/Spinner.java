@@ -213,10 +213,10 @@ public class Spinner extends Composite {
 	}
 
 	@Override
-	protected javafx.scene.control.Slider createWidget() {
+	void createHandle() {
 		slider = new javafx.scene.control.Slider(0, 100, 0);
 		slider.setMajorTickUnit(1);
-		return slider;
+		nativeControl = slider;
 	}
 
 	/**
@@ -395,22 +395,18 @@ public class Spinner extends Composite {
 	}
 
 	@Override
-	protected void internal_attachControl(Control c) {
-		throw new UnsupportedOperationException("Combo does not support children");
-	}
-	
-	protected void internal_attachControl(int idx, Control c) {
-		throw new UnsupportedOperationException("Combo does not support children");
-	}
-	
-	@Override
-	protected void internal_detachControl(Control c) {
+	void addChild(Control child) {
 		throw new UnsupportedOperationException("Combo does not support children");
 	}
 
 	@Override
-	public javafx.scene.control.Slider internal_getNativeObject() {
-		return slider;
+	void addChild(int index, Control child) {
+		throw new UnsupportedOperationException("Combo does not support children");
+	}
+
+	@Override
+	void removeChild(Control control) {
+		throw new UnsupportedOperationException("Combo does not support children");
 	}
 
 	@Override

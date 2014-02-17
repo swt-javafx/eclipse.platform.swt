@@ -17,16 +17,13 @@ import java.util.List;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.event.EventHandler;
-import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 
 import org.eclipse.swt.SWT;
@@ -131,12 +128,12 @@ import com.sun.javafx.geom.PathIterator;
  */
 public class Shell extends Decorations {
 
-	private Stage stage;
+	Stage stage;
+	Scene scene;
 	private static final double MIN_WIDTH = 500;
 	private static final double MIN_HEIGHT = 200;
-	private BorderPane nativeObject;
 	private Shell parentShell;
-	private org.eclipse.swt.graphics.Region region;
+	private Region region;
 	private List<ShellListener> shellListeners = new LinkedList<ShellListener>();
 	
 	/**
@@ -441,19 +438,13 @@ public class Shell extends Decorations {
 	}
 
 	@Override
-	protected javafx.scene.layout.Region createWidget() {
-		if( stage != null ) {
-			return nativeObject = new BorderPane();
-		}
-		
-		javafx.scene.layout.Region r = super.createWidget();
-		nativeObject = new BorderPane();
-		nativeObject.setCenter(r);
-		
+	void createHandle() {
+		super.createHandle();
+
 		stage = new Stage();
-		final Scene s = new Scene(internal_getNativeObject());
-		s.getStylesheets().add(getClass().getClassLoader().getResource("org/eclipse/swt/internal/swt.css").toExternalForm());
-		stage.setScene(s);
+		scene = new Scene(nativeControl);
+		scene.getStylesheets().add(getClass().getClassLoader().getResource("org/eclipse/swt/internal/swt.css").toExternalForm());
+		stage.setScene(scene);
 
 		// TODO what to do with SWT.TOOL???
 		if( /* (getStyle() & SWT.TOOL) == SWT.TOOL ||*/ (getStyle() & SWT.NO_TRIM) == SWT.NO_TRIM ) {
@@ -469,7 +460,9 @@ public class Shell extends Decorations {
 		if( (getStyle() & SWT.NO_FOCUS) == SWT.NO_FOCUS ) {
 			System.err.println("NO FOCUS NOT IMPLEMENTED");
 		}
-
+	}
+	
+	void registerHandle() {
 		stage.setOnShowing(new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
@@ -480,12 +473,19 @@ public class Shell extends Decorations {
 			}
 		});
 
+		stage.setOnHidden(new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				dispose();
+			}
+		});
+
 		stage.addEventHandler(WindowEvent.WINDOW_SHOWN, new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
 				Event evt = new Event();
 				evt.widget = Shell.this;
-				internal_sendEvent(SWT.Activate, evt, true);
+				sendEvent(SWT.Activate, evt, true);
 				ShellEvent shellEvent = new ShellEvent(evt);
 				for (ShellListener listener : shellListeners) {
 					listener.shellActivated(shellEvent);
@@ -498,7 +498,7 @@ public class Shell extends Decorations {
 			public void handle(WindowEvent event) {
 				if( isListening(SWT.Close) ) {
 					Event evt = new Event();
-					internal_sendEvent(SWT.Close, evt, true);
+					sendEvent(SWT.Close, evt, true);
 					if( ! evt.doit ) {
 						event.consume();
 					}
@@ -509,26 +509,20 @@ public class Shell extends Decorations {
 		stage.focusedProperty().addListener(new InvalidationListener() {
 			@Override
 			public void invalidated(Observable observable) {
-				if( s.getFocusOwner() != null ) {
-					Object o = Widget.getWidget(s.getFocusOwner());
-					if( o instanceof Control ) {
-						getDisplay().setFocusControl((Control) o);	
-					}
+				if (scene.getFocusOwner() != null) {
+//					getDisplay().setFocusControl((Control) o);	
 				} else {
 					getDisplay().setFocusControl(null);
 				}
 			}
 		});
 
-		s.focusOwnerProperty().addListener(new InvalidationListener() {
+		scene.focusOwnerProperty().addListener(new InvalidationListener() {
 			@Override
 			public void invalidated(Observable observable) {
 				if( stage.isFocused() ) {
-					if( s.getFocusOwner() != null ) {
-						Object o = Widget.getWidget(s.getFocusOwner());
-						if( o instanceof Control ) {
-							getDisplay().setFocusControl((Control) o);	
-						}
+					if( scene.getFocusOwner() != null ) {
+//						getDisplay().setFocusControl((Control) o);	
 					} else {
 						getDisplay().setFocusControl(null);
 					}
@@ -537,9 +531,7 @@ public class Shell extends Decorations {
 		});
 		
 		getDisplay().registerShell(this);
-		
-		return nativeObject;
-	}
+	}		
 	
 	@Override
 	public void dispose() {
@@ -711,15 +703,6 @@ public class Shell extends Decorations {
 	}
 	
 	/**
-	 * Not part of official SWT API, but part of bridge API
-	 * 
-	 * @return JavaFX Stage object this Shell represents
-	 */
-	public Stage getStage() {
-		return stage;
-	}
-	
-	/**
 	 * Returns a ToolBar object representing the tool bar that can be shown in
 	 * the receiver's trim. This will return <code>null</code> if the platform
 	 * does not support tool bars that are not part of the content area of the
@@ -739,7 +722,6 @@ public class Shell extends Decorations {
 	 * @since 3.7
 	 */
 	public ToolBar getToolBar() {
-		// TODO
 		return null;
 	}
 
@@ -778,33 +760,13 @@ public class Shell extends Decorations {
 	}
 	
 	@Override
-	protected void initListeners() {
-		super.initListeners();
-		stage.setOnHidden(new EventHandler<WindowEvent>() {
-			@Override
-			public void handle(WindowEvent event) {
-				dispose();
-			}
-		});
-	}
-
-	@Override
 	protected double internal_getHeight() {
 		return stage.getHeight();
 	}
 	
 	@Override
-	public javafx.scene.layout.Region internal_getNativeObject() {
-		return nativeObject;
-	}
-	
-	@Override
 	protected double internal_getWidth() {
 		return stage.getWidth();
-	}
-	
-	public Window internal_getWindow() {
-		return stage;
 	}
 	
 	@Override
@@ -1035,7 +997,7 @@ public class Shell extends Decorations {
 
 	public void setMenuBar (Menu menu) {
 		if( (menu.style & SWT.BAR) == SWT.BAR ) {
-			nativeObject.setTop((Node)menu.internal_getNativeObject());
+			menu.bar.setUseSystemMenuBar(true);
 		}
 		super.setMenuBar(menu);
 	}

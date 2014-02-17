@@ -12,7 +12,6 @@ package org.eclipse.swt.widgets;
 
 import javafx.event.EventHandler;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
@@ -125,16 +124,16 @@ public class Link extends Control {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
 		TypedListener typedListener = new TypedListener(listener);
-		registerListener(SWT.Selection,typedListener);
-		registerListener(SWT.DefaultSelection,typedListener);
+		_addListener(SWT.Selection, typedListener);
+		_addListener(SWT.DefaultSelection, typedListener);
 	}
 
 	@Override
-	protected Object createWidget() {
+	void createHandle() {
 		p = new StackPane();
 		flow = new TextFlow();
 		p.getChildren().add(flow);
-		return p;
+		nativeControl = p;
 	}
 	
 	/**
@@ -153,11 +152,6 @@ public class Link extends Control {
 	 */
 	public String getText() {
 		return text;
-	}
-
-	@Override
-	public Region internal_getNativeObject() {
-		return p;
 	}
 
 	/**
@@ -185,8 +179,8 @@ public class Link extends Control {
 	public void removeSelectionListener(SelectionListener listener) {
 		checkWidget ();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		unregisterListener(SWT.Selection,listener);
-		unregisterListener(SWT.DefaultSelection,listener);
+		_removeListener(SWT.Selection, new TypedListener(listener));
+		_removeListener(SWT.DefaultSelection, new TypedListener(listener));
 	}
 
 	/**
@@ -249,7 +243,7 @@ public class Link extends Control {
 					@Override
 					public void handle(MouseEvent event) {
 						Event e = new Event();
-						internal_sendEvent(SWT.Selection, e, true);
+						sendEvent(SWT.Selection, e, true);
 					}
 				});
 				flow.getChildren().add(t);

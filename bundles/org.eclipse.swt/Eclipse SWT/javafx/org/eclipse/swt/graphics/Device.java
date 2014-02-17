@@ -217,7 +217,7 @@ public abstract class Device implements Drawable {
 		@Override
 		public void copyArea(Image image, int x, int y) {
 			if( d instanceof Control ) {
-				javafx.scene.layout.Region nativeObject = ((Control) d).internal_getNativeControl();
+				javafx.scene.layout.Region nativeObject = ((Control) d).nativeControl;
 				SnapshotParameters p = new SnapshotParameters();
 				p.setViewport(new Rectangle2D(x, y, image.getBounds().width, image.getBounds().height));
 				nativeObject.snapshot(p, (WritableImage) image.internal_getImage());

@@ -153,15 +153,14 @@ public class TabFolder extends Composite {
 				Event e = new Event();
 				e.index = tabPane.getSelectionModel().getSelectedIndex();
 				e.item = getItem(tabPane.getSelectionModel().getSelectedIndex());
-				internal_sendEvent(SWT.Selection, e, true);
+				sendEvent(SWT.Selection, e, true);
 			}
 		};
 	}
 
 	@Override
-	protected TabPane createWidget() {
+	void createHandle() {
 		tabPane = new TabPane();
-		return tabPane;
 	}
 
 	/**
@@ -331,40 +330,25 @@ public class TabFolder extends Composite {
 	}
 
 	@Override
-	protected void initListeners() {
-		super.initListeners();
+	void registerHandle() {
+		super.registerHandle();
 		tabPane.getSelectionModel().selectedIndexProperty().addListener(createTabChangeListener());
 	}
 
 	void internal_addTabItem(TabItem item) {
 		this.items.add(item);
-		tabPane.getTabs().add(item.internal_getNativeObject());
+		tabPane.getTabs().add(item.nativeTab);
 	}
 
 	void internal_addTabItem(TabItem item, int index) {
 		this.items.add(item);
-		tabPane.getTabs().add(index,item.internal_getNativeObject());
+		tabPane.getTabs().add(index, item.nativeTab);
 	}
 
 	@Override
-	protected void internal_attachControl(Control c) {
-		// Not needed
-	}
-
-	@Override
-	protected void internal_attachControl(int idx, Control c) {
-		// Not needed
-	}
-
-	@Override
-	protected void internal_detachControl(Control c) {
-		// Not needed
-	}
-
-	@Override
-		protected void internal_doLayout() {
+	protected void internal_doLayout() {
 	//		super.internal_doLayout();
-		}
+	}
 
 	@Override
 	protected double internal_getHeight() {
@@ -374,11 +358,6 @@ public class TabFolder extends Composite {
 	@Override
 	protected double internal_getWidth() {
 		return tabPane.getWidth();
-	}
-
-	@Override
-	public TabPane internal_getNativeObject() {
-		return tabPane;
 	}
 
 	@Override

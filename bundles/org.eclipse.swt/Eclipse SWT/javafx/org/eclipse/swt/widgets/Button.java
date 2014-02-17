@@ -16,15 +16,15 @@ import javafx.geometry.Pos;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Region;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Device.NoOpDrawableGC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.internal.Util;
@@ -64,8 +64,6 @@ import org.eclipse.swt.internal.Util;
  */
 public class Button extends Control {
 
-	private javafx.scene.control.ButtonBase control;
-	
 	private Image image;
 	
 	/**
@@ -163,8 +161,8 @@ public class Button extends Control {
 	@Override
 	public Point computeSize(int wHint, int hHint, boolean changed) {
 		forceSizeProcessing();
-		int width = (int) Math.ceil(internal_getNativeObject().prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE));
-		int height = (int) Math.ceil(internal_getNativeObject().prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE));
+		int width = (int) Math.ceil(nativeControl.prefWidth(javafx.scene.control.Control.USE_COMPUTED_SIZE));
+		int height = (int) Math.ceil(nativeControl.prefHeight(javafx.scene.control.Control.USE_COMPUTED_SIZE));
 		
 		if (wHint != SWT.DEFAULT) width = wHint;
 		if (hHint != SWT.DEFAULT) height = hHint;
@@ -174,7 +172,8 @@ public class Button extends Control {
 	}
 	
 	@Override
-	protected ButtonBase createWidget() {
+	void createWidget() {
+		ButtonBase control;
 		if( (style & SWT.RADIO) != 0 ) {
 			control = new RadioButton();
 		} else if( (style & SWT.CHECK) != 0 ) {
@@ -192,9 +191,17 @@ public class Button extends Control {
 		if( (style & SWT.WRAP) != 0 ) {
 			control.setWrapText(true);
 		}
-		return control;
+		nativeControl = control;
 	}
-	
+
+	@Override
+	void releaseParent() {
+		super.releaseParent();
+		if ((style & SWT.RADIO) != 0 && (parent.style & SWT.NO_RADIO_GROUP) == 0) {
+			parent.group.getToggles().remove((Toggle) nativeControl);
+		}
+	}
+
 	/**
 	 * Returns a value which describes the position of the text or image in the
 	 * receiver. The value will be one of <code>LEFT</code>, <code>RIGHT</code>
@@ -246,8 +253,8 @@ public class Button extends Control {
 	 */
 	public boolean getGrayed() {
 		checkWidget ();
-		if( control instanceof CheckBox ) {
-			return ((CheckBox) control).isIndeterminate();
+		if (nativeControl instanceof CheckBox) {
+			return ((CheckBox) nativeControl).isIndeterminate();
 		}
 		return false;
 	}
@@ -290,10 +297,10 @@ public class Button extends Control {
 	 */
 	public boolean getSelection() {
 		checkWidget ();
-		if( control instanceof RadioButton ) {
-			return ((RadioButton) control).isSelected();
-		} else if( control instanceof CheckBox ) {
-			return ((CheckBox) control).isSelected();
+		if (nativeControl instanceof RadioButton) {
+			return ((RadioButton) nativeControl).isSelected();
+		} else if (nativeControl instanceof CheckBox) {
+			return ((CheckBox) nativeControl).isSelected();
 		}
 		return false;
 	}
@@ -314,13 +321,25 @@ public class Button extends Control {
 	 */
 	public String getText() {
 		checkWidget ();
-		return notNullString(control.getText());
+		return notNullString(((ButtonBase) nativeControl).getText());
 	}
 
-	protected void initListeners() {
-		super.initListeners();
-		control.addEventHandler(ActionEvent.ACTION, new EventHandler<ActionEvent>() {
+	void internal_setDefault(boolean defaultButton) {
+		if (nativeControl instanceof javafx.scene.control.Button) {
+			((javafx.scene.control.Button) nativeControl).setDefaultButton(defaultButton);
+		}
+	}
 
+	@Override
+	void registerHandle() {
+		super.registerHandle();
+		if ((style & SWT.RADIO) != 0 && (parent.style & SWT.NO_RADIO_GROUP) == 0) {
+			if (parent.group == null)
+				parent.group = new ToggleGroup();
+			parent.group.getToggles().add((Toggle) nativeControl);
+		}
+		
+		nativeControl.addEventHandler(ActionEvent.ACTION, new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				Event evt = new Event();
@@ -332,27 +351,11 @@ public class Button extends Control {
 //				if (event.getButton() == MouseButton.MIDDLE) evt.stateMask |= SWT.BUTTON2;
 //				if (event.getButton() == MouseButton.SECONDARY) evt.stateMask |= SWT.BUTTON3;
 //				
-				internal_sendEvent(SWT.Selection, evt, true);
+				sendEvent(SWT.Selection, evt, true);
 			}
 		});
 	}
-
-	@Override
-	public javafx.scene.control.ButtonBase internal_getNativeObject() {
-		return control;
-	}
 	
-	@Override
-	public Region internal_getNativeControl() {
-		return control;
-	}
-	
-	void internal_setDefault(boolean defaultButton) {
-		if( control instanceof javafx.scene.control.Button ) {
-			((javafx.scene.control.Button) control).setDefaultButton(defaultButton);
-		}
-	}
-
 	/**
 	 * Removes the listener from the collection of listeners who will be
 	 * notified when the control is selected by the user.
@@ -427,7 +430,7 @@ public class Button extends Control {
 			break;
 		}
 		
-		control.setAlignment(jAlignment);
+		((ButtonBase) nativeControl).setAlignment(jAlignment);
 	}
 
 	/**
@@ -448,8 +451,8 @@ public class Button extends Control {
 	 * @since 3.4
 	 */
 	public void setGrayed(boolean grayed) {
-		if( control instanceof CheckBox ) {
-			((CheckBox)control).setIndeterminate(grayed);
+		if (nativeControl instanceof CheckBox) {
+			((CheckBox) nativeControl).setIndeterminate(grayed);
 		}
 	}
 
@@ -484,9 +487,9 @@ public class Button extends Control {
 		this.image = image;
 		
 		if( image != null ) {
-			control.setGraphic(new ImageView(image.internal_getImage()));
+			((ButtonBase) nativeControl).setGraphic(new ImageView(image.internal_getImage()));
 		} else {
-			control.setGraphic(null);
+			((ButtonBase) nativeControl).setGraphic(null);
 		}
 	}
 
@@ -511,10 +514,10 @@ public class Button extends Control {
 	 */
 	public void setSelection(boolean selected) {
 		checkWidget ();
-		if( control instanceof RadioButton ) {
-			((RadioButton) control).setSelected(selected);
-		} else if( control instanceof CheckBox ) {
-			((CheckBox) control).setSelected(selected);
+		if (nativeControl instanceof RadioButton) {
+			((RadioButton) nativeControl).setSelected(selected);
+		} else if (nativeControl instanceof CheckBox) {
+			((CheckBox) nativeControl).setSelected(selected);
 		}
 	}
 
@@ -555,7 +558,7 @@ public class Button extends Control {
 	 *                </ul>
 	 */
 	public void setText(String string) {
-		control.setText(Util.fixMnemonic(string));
+		((ButtonBase) nativeControl).setText(Util.fixMnemonic(string));
 	}
 
 }

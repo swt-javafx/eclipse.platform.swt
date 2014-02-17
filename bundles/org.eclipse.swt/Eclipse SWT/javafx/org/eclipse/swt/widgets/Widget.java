@@ -10,12 +10,11 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
-import java.util.WeakHashMap;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.internal.SWTEventListener;
+import org.eclipse.swt.internal.Util;
 
 /**
  * This class is the abstract superclass of all user interface objects. Widgets
@@ -45,82 +44,57 @@ import org.eclipse.swt.internal.SWTEventListener;
  *      information</a>
  */
 public abstract class Widget {
-	
-	/* Using the same numbers as the win32 port for now */
-	/* Global state flags */
-	static final int DISPOSED		= 1<<0;
-	static final int KEYED_DATA		= 1<<2;
-	static final int DISABLED       = 1 << 3;
-	
-	/* A layout was requested on this widget */
-	static final int LAYOUT_NEEDED	= 1<<12;
-	
-	
-	/* The preferred size of a child has changed */
-	static final int LAYOUT_CHANGED = 1<<13;
-	
-	/* A layout was requested in this widget hierarchy */
-	static final int LAYOUT_CHILD = 1<<14;
-	
-	/* Background flags */
-	static final int THEME_BACKGROUND = 1<<8;
-	static final int DRAW_BACKGROUND = 1<<9;
-	static final int PARENT_BACKGROUND = 1<<10;
 
-	static final int DISPOSE_SENT = 1<<16;
-	static final int RELEASED = 1<<15;
-	
-	static final int DRAG_DETECT	= 1<<15;
-	
-	/* Notify of the opportunity to skin this widget */
-	static final int SKIN_NEEDED = 1<<21;
-	
-	/* Tom's flags */
-	static final int DATA_SET = 1 << 27;
-	static final int MOUSE_EXIT = 1<<28;
-	static final int MOUSE_ENTER = 1<<29;
-	static final int CSS_PROCESSED  = 1<<30;
-	static final int NO_EVENT = 1 << 31;
-	
-	static final int RESIZE_ATTACHED = 1 << 29;
-
-	static final int DEFAULT_WIDTH	= 64;
-	static final int DEFAULT_HEIGHT	= 64;
-	
 	private boolean noEvent;
 	EventTable eventTable;
 	Display display;
 	int style;
 	long state;
 	private Object data;
-	
-	static final WeakHashMap<Object, Widget> NATIVE_WIDGET_MAP = new WeakHashMap<Object, Widget>();
-	protected Object nativeObject;
+
+	/* Using the same numbers as the win32 port for now */
+	/* Global state flags */
+	static final int DISPOSED		= 1 << 0;
+	static final int KEYED_DATA		= 1 << 2;
+	static final int DISABLED       = 1 << 3;
+
+	/* A layout was requested on this widget */
+	static final int LAYOUT_NEEDED	= 1 << 12;
+
+	/* The preferred size of a child has changed */
+	static final int LAYOUT_CHANGED = 1 << 13;
+
+	/* A layout was requested in this widget hierarchy */
+	static final int LAYOUT_CHILD = 1 << 14;
+
+	/* Background flags */
+	static final int THEME_BACKGROUND = 1 << 8;
+	static final int DRAW_BACKGROUND = 1 << 9;
+	static final int PARENT_BACKGROUND = 1 << 10;
+
+	static final int DISPOSE_SENT = 1 << 16;
+	static final int RELEASED = 1 << 15;
+
+	static final int DRAG_DETECT	= 1 << 17;
+
+	/* Notify of the opportunity to skin this widget */
+	static final int SKIN_NEEDED = 1 << 21;
+
+	/* Tom's flags */
+	static final int DATA_SET = 1 << 27;
+	static final int MOUSE_EXIT = 1 << 28;
+	static final int MOUSE_ENTER = 1 << 29;
+	static final int CSS_PROCESSED  = 1 << 30;
+	static final int NO_EVENT = 1 << 31;
+
+	static final int RESIZE_ATTACHED = 1 << 18;
+
+	static final int DEFAULT_WIDTH	= 64;
+	static final int DEFAULT_HEIGHT	= 64;
 
 	Widget() {
-		display = getDisplay();
-	}
-	
-	// Not API
-	public Widget(Display display, int style) {
-		this.display = display;
-		this.style = style;
-		this.state |= MOUSE_EXIT;
-		nativeObject = createWidget();
-		initListeners();
-		registerConnection(internal_getNativeObject()); 
 	}
 
-	// Not API
-	public Widget(Display display, Object nativeObject, int style) {
-		this.display = display;
-		this.style = style;
-		this.state |= MOUSE_EXIT;
-		this.nativeObject = nativeObject;
-		initListeners();
-		registerConnection(internal_getNativeObject()); 
-	}
-	
 	/**
 	 * Constructs a new instance of this class given its parent and a style
 	 * value describing its behavior and appearance.
@@ -157,12 +131,21 @@ public abstract class Widget {
 	 * @see #getStyle
 	 */
 	public Widget(Widget parent, int style) {
-		this(parent.display,style);
+		checkSubclass ();
+		checkParent (parent);
+		this.style = style;
+		display = parent.display;
+		reskinWidget ();
 	}
 
 	void _addListener (int eventType, Listener listener) {
 		if (eventTable == null) eventTable = new EventTable ();
 		eventTable.hook (eventType, listener);
+	}
+
+	void _removeListener (int eventType, Listener listener) {
+		if (eventTable == null) return;
+		eventTable.unhook (eventType, listener);
 	}
 
 	/**
@@ -232,6 +215,23 @@ public abstract class Widget {
 		addListener (SWT.Dispose, typedListener);
 	}
 
+	/**
+	 * Returns a style with exactly one style bit set out of
+	 * the specified set of exclusive style bits. All other
+	 * possible bits are cleared when the first matching bit
+	 * is found. Bits that are not part of the possible set
+	 * are untouched.
+	 *
+	 * @param style the original style bits
+	 * @param int0 the 0th possible style bit
+	 * @param int1 the 1st possible style bit
+	 * @param int2 the 2nd possible style bit
+	 * @param int3 the 3rd possible style bit
+	 * @param int4 the 4th possible style bit
+	 * @param int5 the 5th possible style bit
+	 *
+	 * @return the new style bits
+	 */
 	static int checkBits (int style, int int0, int int1, int int2, int int3, int int4, int int5) {
 		int mask = int0 | int1 | int2 | int3 | int4 | int5;
 		if ((style & mask) == 0) style |= int0;
@@ -310,8 +310,7 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkSubclass() {
-		// TODO allow subclassing for now
-		//if (!isValidSubclass ()) error (SWT.ERROR_INVALID_SUBCLASS);
+		if (!isValidSubclass ()) error (SWT.ERROR_INVALID_SUBCLASS);
 	}
 
 	/**
@@ -341,20 +340,49 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	protected void checkWidget() {
-		if (isDisposed())
-			error(SWT.ERROR_WIDGET_DISPOSED);
+		Display display = this.display;
+		if (display == null) error (SWT.ERROR_WIDGET_DISPOSED);
+		if ((state & DISPOSED) != 0) error (SWT.ERROR_WIDGET_DISPOSED);
 		// Not throwing ERROR_THREAD_INVALID_ACCESS since JavaFX will do it for us
 	}
 
-	protected Object createWidget() {
-		return null;
+	/**
+	 * Create the native objects to populate the scene graph.
+	 */
+	void createHandle() {
 	}
 
-	void deregister() {
+	/**
+	 * The standard flow for creating the native object that implement this widget.
+	 * First the scene graph is created. This is followed by registering of the
+	 * event handlers on the graph to hook them up to the Widget's event system.
+	 */
+	void createWidget() {
+		createHandle();
+		registerHandle();
 	}
 
+	/**
+	 * Destroys the widget in the operating system and releases
+	 * the widget's handle.  If the widget does not have a handle,
+	 * this method may hide the widget, mark the widget as destroyed
+	 * or do nothing, depending on the widget.
+	 * <p>
+	 * When a widget is destroyed in the operating system, its
+	 * descendants are also destroyed by the operating system.
+	 * This means that it is only necessary to call <code>destroyWidget</code>
+	 * on the root of the widget tree.
+	 * </p><p>
+	 * This method is called after <code>releaseWidget()</code>.
+	 * </p><p>
+	 * See also <code>releaseChild()</code>, <code>releaseWidget()</code>
+	 * and <code>releaseHandle()</code>.
+	 * </p>
+	 * 
+	 * @see #dispose
+	 */
 	void destroyWidget () {
-		releaseNativeObject();
+		releaseHandle();
 	}
 
 	/**
@@ -393,6 +421,33 @@ public abstract class Widget {
 
 	void error (int code) {
 		SWT.error (code);
+	}
+
+	boolean filters (int eventType) {
+		return display.filters (eventType);
+	}
+
+	char [] fixMnemonic (String string) {
+		return fixMnemonic (string, false);
+	}
+
+	char [] fixMnemonic (String string, boolean spaces) {
+		char [] buffer = new char [string.length () + 1];
+		string.getChars (0, string.length (), buffer, 0);
+		int i = 0, j = 0;
+		while (i < buffer.length) {
+			if (buffer [i] == '&') {
+				if (i + 1 < buffer.length && buffer [i + 1] == '&') {
+					buffer [j++] = spaces ? ' ' : buffer [i];
+					i++;
+				}
+				i++;
+			} else {
+				buffer [j++] = buffer [i++];
+			}
+		}
+		while (j < buffer.length) buffer [j++] = 0;
+		return buffer;
 	}
 
 	/**
@@ -479,6 +534,8 @@ public abstract class Widget {
 	 *                </ul>
 	 */
 	public Display getDisplay() {
+		Display display = this.display;
+		if (display == null) error (SWT.ERROR_WIDGET_DISPOSED);
 		return display;
 	}
 
@@ -513,13 +570,23 @@ public abstract class Widget {
 		return eventTable.getListeners(eventType);
 	}
 
-	protected String getName () {
+	Menu getMenu () {
+		return null;
+	}
+
+	/**
+	 * Returns the name of the widget. This is the name of
+	 * the class without the package name.
+	 *
+	 * @return the name of the widget
+	 */
+	String getName () {
 		String string = getClass ().getName ();
 		int index = string.lastIndexOf ('.');
 		if (index == -1) return string;
 		return string.substring (index + 1, string.length ());
 	}
-	
+
 	/*
 	 * Returns a short printable representation for the contents
 	 * of a widget. For example, a button may answer the label
@@ -562,11 +629,6 @@ public abstract class Widget {
 		return style;
 	}
 
-	@SuppressWarnings("unchecked")
-	static <W extends Widget> W getWidget(Object o) {
-		return (W) NATIVE_WIDGET_MAP.get(o);
-	}
-	
 	/*
 	 * Returns <code>true</code> if the specified eventType is
 	 * hooked, and <code>false</code> otherwise. Implementations
@@ -585,41 +647,12 @@ public abstract class Widget {
 		return eventTable.hooks (eventType);
 	}
 
-	protected void initListeners() {
-	}
-	
-	public Object internal_getNativeObject() {
-		return nativeObject;
-	}
-
 	protected void internal_runNoEvent(Runnable runnable) {
 		try {
 			noEvent = true;
 			runnable.run();
 		} finally {
 			noEvent = false;
-		}
-	}
-	
-	protected void internal_sendEvent (int eventType, Event event, boolean send) {
-		if( noEvent ) {
-			return;
-		}
-		
-		if (eventTable == null && !display.filters (eventType)) {
-			return;
-		}
-		if (event == null) event = new Event ();
-		event.type = eventType;
-		event.display = display;
-		event.widget = this;
-		if (event.time == 0) {
-			event.time = display.getLastEventTime ();
-		}
-		if (send) {
-			sendEvent (event);
-		} else {
-			display.postEvent (event);
 		}
 	}
 	
@@ -664,10 +697,16 @@ public abstract class Widget {
 		return hooks (eventType);
 	}
 
-	boolean isValidSubclass() {
-		return Display.isValidClass(getClass());
+	/*
+	 * Returns <code>true</code> when subclassing is
+	 * allowed and <code>false</code> otherwise
+	 *
+	 * @return <code>true</code> when subclassing is allowed and <code>false</code> otherwise
+	 */
+	boolean isValidSubclass () {
+		return Display.isValidClass (getClass ());
 	}
-	
+
 	/*
 	 * Returns <code>true</code> when the current thread is
 	 * the thread that created the widget and <code>false</code>
@@ -676,7 +715,7 @@ public abstract class Widget {
 	 * @return <code>true</code> when the current thread is the thread that created the widget and <code>false</code> otherwise
 	 */
 	boolean isValidThread () {
-		return getDisplay().isValidThread();
+		return getDisplay ().isValidThread ();
 	}
 
 	/**
@@ -706,10 +745,10 @@ public abstract class Widget {
 	public void notifyListeners(int eventType, Event event) {
 		checkWidget();
 		if (event == null) event = new Event ();
-		internal_sendEvent (eventType, event, true);
+		sendEvent (eventType, event, true);
 	}
 
-	protected static String notNullString(String s) {
+	static String notNullString(String s) {
 		return s == null ? "" : s;
 	}
 	
@@ -721,19 +760,12 @@ public abstract class Widget {
 		sendEvent (eventType, event, false);
 	}
 
-	void register() {
+	/**
+	 * Register the event listeners on the native objects for this Widget.
+	 */
+	void registerHandle() {
 	}
 
-	protected void registerConnection(Object o) {
-		NATIVE_WIDGET_MAP.put(o, this);
-	}
-	
-	protected void registerListener(int eventType, Listener listener) {
-		if (eventTable == null)
-			eventTable = new EventTable();
-		eventTable.hook(eventType, listener);
-	}
-	
 	/*
 	 * Releases the widget hierarchy and optionally destroys
 	 * the receiver.
@@ -754,33 +786,28 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 * @see #releaseWidget
 	*/
-	void release(boolean destroy) {
+	void release (boolean destroy) {
 		if ((state & DISPOSE_SENT) == 0) {
 			state |= DISPOSE_SENT;
-			internal_sendEvent (SWT.Dispose, new Event(), true);
+			sendEvent (SWT.Dispose);
 		}
-		
-//		if ((state & DISPOSED) == 0) {
-//			releaseChildren (destroy);
-//		}
-//		if ((state & RELEASED) == 0) {
-//			state |= RELEASED;
-//			if (destroy) {
-//				releaseParent ();
-//				releaseWidget ();
-//				destroyWidget ();
-//			} else {
-//				releaseWidget ();
-//				releaseHandle ();
-//			}
-//		}
-	}
-	
-	void releaseChildren (boolean destroy) {
+		if ((state & DISPOSED) == 0) {
+			releaseChildren (destroy);
+		}
+		if ((state & RELEASED) == 0) {
+			state |= RELEASED;
+			if (destroy) {
+				releaseParent ();
+				releaseWidget ();
+				destroyWidget ();
+			} else {
+				releaseWidget ();
+				releaseHandle ();
+			}
+		}
 	}
 
-	void releaseHandle() {
-		releaseNativeObject();
+	void releaseChildren (boolean destroy) {
 	}
 
 	/*
@@ -801,7 +828,7 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 * @see #releaseWidget
 	 */
-	void releaseNativeObject () {
+	void releaseHandle () {
 		state |= DISPOSED;
 		display = null;
 	}
@@ -848,44 +875,36 @@ public abstract class Widget {
 	 * @see #releaseParent
 	 */
 	void releaseWidget () {
-		deregister ();
 		eventTable = null;
 		data = null;
 	}
 	
 	/**
-	 * Removes the listener from the collection of listeners who will be
-	 * notified when an event of the given type occurs. The event type is one of
-	 * the event constants defined in class <code>SWT</code>.
-	 * 
-	 * @param eventType
-	 *            the type of event to listen for
-	 * @param listener
-	 *            the listener which should no longer be notified
-	 * 
-	 * @exception IllegalArgumentException
-	 *                <ul>
-	 *                <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
-	 *                </ul>
-	 * @exception SWTException
-	 *                <ul>
-	 *                <li>ERROR_WIDGET_DISPOSED - if the receiver has been
-	 *                disposed</li>
-	 *                <li>ERROR_THREAD_INVALID_ACCESS - if not called from the
-	 *                thread that created the receiver</li>
-	 *                </ul>
-	 * 
+	 * Removes the listener from the collection of listeners who will
+	 * be notified when an event of the given type occurs. The event
+	 * type is one of the event constants defined in class <code>SWT</code>.
+	 *
+	 * @param eventType the type of event to listen for
+	 * @param listener the listener which should no longer be notified
+	 *
+	 * @exception IllegalArgumentException <ul>
+	 *    <li>ERROR_NULL_ARGUMENT - if the listener is null</li>
+	 * </ul>
+	 * @exception SWTException <ul>
+	 *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+	 *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+	 * </ul>
+	 *
 	 * @see Listener
 	 * @see SWT
 	 * @see #addListener
 	 * @see #getListeners(int)
 	 * @see #notifyListeners
 	 */
-	public void removeListener(int eventType, Listener listener) {
-		checkWidget ();
+	public void removeListener (int eventType, Listener listener) {
+		checkWidget();
 		if (listener == null) error (SWT.ERROR_NULL_ARGUMENT);
-		if (eventTable == null) return;
-		eventTable.unhook (eventType, listener);
+		_removeListener (eventType, listener);
 	}
 
 	/**
@@ -995,10 +1014,11 @@ public abstract class Widget {
 	}
 
 	void reskinWidget() {
-//		if ((state & SKIN_NEEDED) == 0) {
-//			state |= SKIN_NEEDED;
+		if ((state & SKIN_NEEDED) == 0) {
+			this.state |= SKIN_NEEDED;
 //			display.addSkinnableWidget(this);
-//		}
+			// TODO
+		}
 	}
 
 	void sendEvent (Event event) {
@@ -1017,6 +1037,9 @@ public abstract class Widget {
 	}
 
 	void sendEvent (int eventType, Event event, boolean send) {
+		if (noEvent) {
+			return;
+		}
 		if (eventTable == null && !display.filters (eventType)) {
 			return;
 		}
@@ -1047,6 +1070,8 @@ public abstract class Widget {
 		sendEvent (type, event, send);
 	}
 	
+	// TODO send drag, key, mouse, etc. events
+
 	/**
 	 * Sets the application defined widget data associated with the receiver to
 	 * be the argument. The <em>widget
@@ -1164,6 +1189,33 @@ public abstract class Widget {
 	void setOrientation () {
 	}
 
+	boolean showMenu (int x, int y) {
+		return showMenu (x, y, SWT.MENU_MOUSE);
+	}
+
+	boolean showMenu (int x, int y, int detail) {
+		Event event = new Event ();
+		event.x = x;
+		event.y = y;
+		event.detail = detail;
+		if (event.detail == SWT.MENU_KEYBOARD) {
+			updateMenuLocation (event);
+		}
+		sendEvent (SWT.MenuDetect, event);
+		// widget could be disposed at this point
+		if (isDisposed ()) return false;
+		if (!event.doit) return true;
+		Menu menu = getMenu ();
+		if (menu != null && !menu.isDisposed ()) {
+			if (x != event.x || y != event.y) {
+				menu.setLocation (event.x, event.y);
+			}
+			menu.setVisible (true);
+			return true;
+		}
+		return false;
+	}
+
 	public String toString () {
 		String string = "*Disposed*"; //$NON-NLS-1$
 		if (!isDisposed ()) {
@@ -1173,16 +1225,8 @@ public abstract class Widget {
 		return getName () + " {" + string + "}"; //$NON-NLS-1$ //$NON-NLS-2$
 	}
 	
-	protected void uninitListeners() {
+	void updateMenuLocation (Event event) {
+		/* Do nothing */
 	}
-	
-	protected void unregisterConnection(Object o) {
-		NATIVE_WIDGET_MAP.remove(o);
-	}
-	
-	void unregisterListener(int eventType, SWTEventListener listener) {
-		if (eventTable == null) return;
-		eventTable.unhook (eventType, listener);
-	}
-	
+
 }
