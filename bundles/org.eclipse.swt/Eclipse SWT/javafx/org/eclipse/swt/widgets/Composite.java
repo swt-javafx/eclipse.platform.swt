@@ -138,22 +138,27 @@ public class Composite extends Scrollable {
 		if (controlContainer == null)
 			return new Control[0];
 		Control[] children = new Control[controlContainer.getChildren().size()];
-		int i = 0;
+		int i = children.length;
 		for (Node child : controlContainer.getChildren()) {
 			Control cc = (Control)child.getUserData();
 			if (cc != null)
-				children[i++] = cc;
+				children[--i] = cc;
 		}
-		if (i == children.length)
+		if (i == 0)
 			return children;
 		else {
 			Control[] rc = new Control[i];
-			System.arraycopy(children, 0, rc, 0, i);
+			System.arraycopy(children, i, rc, 0, children.length - i);
 			return rc;
 		}
 	}
 	
 	void addChild(Control child) {
+		if (child instanceof ToolBar) {
+			for (Control kid : _getChildren())
+				if (kid instanceof ToolBar)
+					System.out.println("Hey");
+		}
 		controlContainer.getChildren().add(child.nativeControl);
 	}
 
@@ -981,7 +986,9 @@ public class Composite extends Scrollable {
 			children.add(0, control.nativeControl);
 		} else {
 			int i = children.indexOf(other.nativeControl);
-			children.add(i, control.nativeControl);
+			if (i > 0)
+				children.add(i, control.nativeControl);
+			// TODO why wouldn't it be there
 		}
 	}
 

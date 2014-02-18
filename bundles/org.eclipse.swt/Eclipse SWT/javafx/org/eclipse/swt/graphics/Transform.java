@@ -155,7 +155,8 @@ public class Transform extends Resource {
 	public Transform(Device device, float m11, float m12, float m21, float m22,
 			float dx, float dy) {
 		super(device);
-		SWT.error(SWT.ERROR_NO_GRAPHICS_LIBRARY);
+		// TODO why was this here?
+//		SWT.error(SWT.ERROR_NO_GRAPHICS_LIBRARY);
 		this.transform = new Affine(m11, m12, dx, m21, m22, dy);
 	}
 

@@ -783,6 +783,16 @@ public class Shell extends Decorations {
 		return getVisible();
 	}
 	
+	@Override
+	public void moveAbove(Control control) {
+		Util.logNotImplemented();
+	}
+	
+	@Override
+	public void moveBelow(Control control) {
+		Util.logNotImplemented();
+	}
+	
 	/**
 	 * Moves the receiver to the top of the drawing order for the display on
 	 * which it was created (so that all other shells on that display, which are
@@ -812,6 +822,12 @@ public class Shell extends Decorations {
 	@Override
 	public void pack() {
 		stage.sizeToScene();
+	}
+	
+	@Override
+	void releaseParent() {
+		if (parent != null)
+			super.releaseParent();
 	}
 	
 	/**
