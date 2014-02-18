@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.eclipse.swt.widgets;
 
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.collections.ObservableList;
@@ -27,6 +28,7 @@ import javafx.scene.layout.StackPane;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.PaintListener;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -73,7 +75,8 @@ public class Composite extends Scrollable {
 	Pane controlContainer;
 	ToggleGroup group;
 	
-	private Layout layout;
+	Layout layout;
+	int layoutCount;
 
 	private javafx.scene.canvas.Canvas canvas;
 	
@@ -154,16 +157,13 @@ public class Composite extends Scrollable {
 	}
 	
 	void addChild(Control child) {
-		if (child instanceof ToolBar) {
-			for (Control kid : _getChildren())
-				if (kid instanceof ToolBar)
-					System.out.println("Hey");
-		}
-		controlContainer.getChildren().add(child.nativeControl);
+		if (controlContainer != null)
+			controlContainer.getChildren().add(child.nativeControl);
 	}
 
 	void addChild(int index, Control child) {
-		controlContainer.getChildren().add(index, child.nativeControl);
+		if (controlContainer != null)
+			controlContainer.getChildren().add(index, child.nativeControl);
 	}
 
 	void applyBorderStyle() {
@@ -176,16 +176,16 @@ public class Composite extends Scrollable {
 	public void addListener(int eventType, Listener listener) {
 		super.addListener(eventType, listener);
 		if( eventType == SWT.Paint ) {
-//TODO			internal_initCanvas();
+			Platform.runLater(new Runnable() {
+				@Override
+				public void run() {
+					if (!isDisposed())
+						internal_initCanvas();
+				}
+			});
 		} else if( eventType == SWT.KeyDown || eventType == SWT.KeyUp ) {
 			internal_enableFocusTraversable();
 		}
-	}
-	
-	@Override
-	public void addPaintListener(PaintListener listener) {
-		super.addPaintListener(listener);
-//TODO		internal_initCanvas();
 	}
 	
 	/**
@@ -318,7 +318,7 @@ public class Composite extends Scrollable {
 		
 		if( (style & SWT.V_SCROLL) == SWT.V_SCROLL ) {
 			AnchorPane.setRightAnchor(controlContainer, SCROLLBAR_WIDTH);
-			vScroll = new ScrollBar(this,SWT.VERTICAL);
+			vScroll = new ScrollBar(this, SWT.VERTICAL);
 			Node n = vScroll.nativeScrollBar;
 			n.setManaged(false);
 			scrollable.getChildren().add(n);
@@ -328,7 +328,7 @@ public class Composite extends Scrollable {
 		
 		if( (style & SWT.H_SCROLL) == SWT.H_SCROLL ) {
 			AnchorPane.setBottomAnchor(controlContainer, SCROLLBAR_WIDTH);
-			hScroll = new ScrollBar(this,SWT.HORIZONTAL);
+			hScroll = new ScrollBar(this, SWT.HORIZONTAL);
 			Node n = hScroll.nativeScrollBar;
 			n.setManaged(false);
 			scrollable.getChildren().add(n);
@@ -341,10 +341,10 @@ public class Composite extends Scrollable {
 	        corner.getStyleClass().setAll("corner");
 	        scrollable.getChildren().add(corner);
 		}
-
-		applyBorderStyle();
 		
 		nativeControl = scrollable;
+
+		applyBorderStyle();
 	}
 	
 	/**
@@ -389,12 +389,13 @@ public class Composite extends Scrollable {
 	 */
 	public void drawBackground(GC gc, int x, int y, int width, int height,
 			int offsetX, int offsetY) {
-		Util.logNotImplemented(); 
+		// TODO for real
+		gc.setBackground(new Color(getDisplay(), 0, 0, 0));
+		gc.fillRectangle (x, y, width, height);
 	}
 
 	Composite findDeferredControl () {
-		return this;
-		// TODO return layoutCount > 0 ? this : parent.findDeferredControl ();
+		return layoutCount > 0 ? this : parent.findDeferredControl ();
 	}
 
 	/**
@@ -502,8 +503,8 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public boolean getLayoutDeferred() {
-		// TODO
-		return false;
+		checkWidget ();
+		return layoutCount > 0;
 	}
 
 	@Override
@@ -1020,7 +1021,8 @@ public class Composite extends Scrollable {
 	}
 
 	void removeChild (Control control) {
-		controlContainer.getChildren().remove(control.nativeControl);
+		if (controlContainer != null)
+			controlContainer.getChildren().remove(control.nativeControl);
 	}
 
 	void reskinChildren (int flags) {
@@ -1079,7 +1081,8 @@ public class Composite extends Scrollable {
 	 * @since 3.2
 	 */
 	public void setBackgroundMode(int mode) {
-		Util.logNotImplemented();
+		backgroundMode = mode;
+		// TODO need to do anything?
 	}
 
 	/**
@@ -1128,7 +1131,16 @@ public class Composite extends Scrollable {
 	 * @since 3.1
 	 */
 	public void setLayoutDeferred(boolean defer) {
-		Util.logNotImplemented();
+		checkWidget();
+		if (!defer) {
+			if (--layoutCount == 0) {
+				if ((state & LAYOUT_CHILD) != 0 || (state & LAYOUT_NEEDED) != 0) {
+					updateLayout (true);
+				}
+			}
+		} else {
+			layoutCount++;
+		}
 	}
 
 	@Override

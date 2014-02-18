@@ -161,6 +161,7 @@ public class TabFolder extends Composite {
 	@Override
 	void createHandle() {
 		tabPane = new TabPane();
+		nativeControl = tabPane;
 	}
 
 	/**

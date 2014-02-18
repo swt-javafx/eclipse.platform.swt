@@ -1242,7 +1242,7 @@ public final class GC extends Resource {
 //		}
 		Region reg = new Region();
 		reg.add(r);
-		if( clipping != null ) {
+		if (clipping != null && !clipping.isDisposed()) {
 			reg.intersect(clipping);
 		}
 		return reg.getBounds();
@@ -1269,7 +1269,7 @@ public final class GC extends Resource {
 	public void getClipping(Region region) {
 		region.subtract(region);
 		region.add(drawable.getBounds());
-		if( clipping != null ) {
+		if (clipping != null && !clipping.isDisposed()) {
 			region.intersect(clipping);
 		}
 	}

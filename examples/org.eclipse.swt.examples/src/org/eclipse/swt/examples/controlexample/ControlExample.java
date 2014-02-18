@@ -12,6 +12,8 @@ package org.eclipse.swt.examples.controlexample;
 
 
 import org.eclipse.swt.*;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.layout.*;
 import org.eclipse.swt.widgets.*;
@@ -19,6 +21,7 @@ import org.eclipse.swt.widgets.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 public class ControlExample {
 	private static ResourceBundle resourceBundle =
@@ -212,17 +215,32 @@ public class ControlExample {
 	 * Invokes as a standalone program.
 	 */
 	public static void main(String[] args) {
-		Display display = new Display();
-		Shell shell = new Shell(display, SWT.SHELL_TRIM);
-		shell.setLayout(new FillLayout());
-		ControlExample instance = new ControlExample(shell);
-		shell.setText(getResourceString("window.title"));
-		setShellSize(instance, shell);
-		shell.open();
-		while (! shell.isDisposed()) {
-			if (! display.readAndDispatch()) display.sleep();
+		final Display display = new Display();
+		final ControlExample[] example = new ControlExample[1];
+		final CountDownLatch latch = new CountDownLatch(1);
+		display.syncExec(new Runnable() {
+			@Override
+			public void run() {
+				Shell shell = new Shell(display, SWT.SHELL_TRIM);
+				shell.setLayout(new FillLayout());
+				example[0] = new ControlExample(shell);
+				shell.setText(getResourceString("window.title"));
+				setShellSize(example[0], shell);
+				shell.open();
+				shell.addDisposeListener(new DisposeListener() {
+					@Override
+					public void widgetDisposed(DisposeEvent e) {
+						latch.countDown();
+					}
+				});
+			}
+		});
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
-		instance.dispose();
+		example[0].dispose();
 		display.dispose();
 	}
 	

@@ -152,6 +152,7 @@ public class CoolBar extends Composite {
 	@Override
 	void createHandle() {
 		pane = new FlowPane(0,2);
+		nativeControl = pane;
 	}
 
 	@Override

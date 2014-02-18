@@ -900,7 +900,6 @@ public class Display extends Device {
 
 	@Override
 	public int getDepth() {
-		Util.logNotImplemented();
 		return 32;
 	}
 	
@@ -993,7 +992,7 @@ public class Display extends Device {
 	 * @since 3.0
 	 */
 	public boolean getHighContrast() {
-		Util.logNotImplemented();
+		// TODO
 		return false;
 	}
 
@@ -1603,11 +1602,11 @@ public class Display extends Device {
 			}
 		}
 
-		Point2D localToScreen = node.localToScreen(x, y);
+		Point2D localToScene = node.localToScene(x, y);
 		if( to == null ) {
-			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
+			return new Point((int)localToScene.getX(), (int)localToScene.getY());
 		} else {
-			Point2D sceneToLocal = to.nativeControl.screenToLocal(localToScreen);
+			Point2D sceneToLocal = to.nativeControl.sceneToLocal(localToScene);
 			return new Point((int)sceneToLocal.getX(), (int)sceneToLocal.getY());
 		}
 	}

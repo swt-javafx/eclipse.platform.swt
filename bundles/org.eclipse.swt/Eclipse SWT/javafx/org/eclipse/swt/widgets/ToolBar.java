@@ -96,7 +96,6 @@ public class ToolBar extends Composite {
 	 */
 	public ToolBar(Composite parent, int style) {
 		super(parent, style);
-		creationStack = Thread.currentThread().getStackTrace();
 		if ((style & SWT.VERTICAL) != 0) {
 			this.style |= SWT.VERTICAL; 
 		} else {
@@ -104,8 +103,6 @@ public class ToolBar extends Composite {
 		}
 	}
 
-	private StackTraceElement[] creationStack;
-	
 	@Override
 	void createHandle() {
 		toolbar = new javafx.scene.control.ToolBar();

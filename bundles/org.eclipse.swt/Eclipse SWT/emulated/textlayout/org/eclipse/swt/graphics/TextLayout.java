@@ -33,7 +33,6 @@ import org.eclipse.swt.*;
  * @since 3.0
  */
 public final class TextLayout extends Resource {
-	Device device;
 	Font font;
 	String text;
 	int lineSpacing;

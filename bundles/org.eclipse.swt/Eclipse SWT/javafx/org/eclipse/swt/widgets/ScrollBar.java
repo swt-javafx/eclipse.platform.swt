@@ -103,11 +103,14 @@ public class ScrollBar extends Widget {
 	ScrollBar(Scrollable parent, int style) {
 		this.parent = parent;
 		this.style = style;
+		this.display = parent.display;
 		createWidget();
 	}
 
 	ScrollBar(Scrollable parent, javafx.scene.control.ScrollBar scrollBar, int style) {
-		this(parent, checkStyle(style));
+		this.parent = parent;
+		this.style = style;
+		this.display = parent.display;
 		nativeScrollBar = scrollBar;
 	}
 

@@ -29,7 +29,7 @@ public final class FontMetrics {
 	private final int leading;
 	private final int height;
 	
-	public FontMetrics(int ascent, int descent, int averageCharWidth, int leading, int height) {
+	FontMetrics(int ascent, int descent, int averageCharWidth, int leading, int height) {
 		this.ascent = ascent;
 		this.descent = descent;
 		this.averageCharWidth = averageCharWidth;
@@ -37,6 +37,10 @@ public final class FontMetrics {
 		this.height = height;
 	}
 	
+	public static FontMetrics internal_new(int ascent, int descent, int averageCharWidth, int leading, int height) {
+		return new FontMetrics(ascent, descent, averageCharWidth, leading, height);
+	}
+
 	/**
 	 * Returns the ascent of the font described by the receiver. A font's
 	 * <em>ascent</em> is the distance from the baseline to the top of actual

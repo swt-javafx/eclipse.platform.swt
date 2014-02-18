@@ -12,6 +12,7 @@
 	<classpathentry kind="src" path="Eclipse SWT/emulated/datetime"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/expand"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/taskbar"/>
+	<classpathentry kind="src" path="Eclipse SWT/emulated/textlayout"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/tooltip"/>
 	<classpathentry kind="src" path="Eclipse SWT/emulated/tray"/>
 	<classpathentry kind="src" path="Eclipse SWT/javafx"/>

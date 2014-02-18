@@ -87,6 +87,7 @@ public abstract class Control extends Widget implements Drawable {
 	Composite parent;
 	private Color foreground;
 	private Color background;
+	private Image backgroundImage;
 	private Font font;
 
 	private static Control LAST_ENTER;
@@ -987,7 +988,7 @@ public abstract class Control extends Widget implements Drawable {
 	}
 
 	void forceSizeProcessing() {
-		if ((state & CSS_PROCESSED) != CSS_PROCESSED
+		if ((state & CSS_PROCESSED) == 0
 				&& (nativeControl.getScene() == null
 						|| nativeControl.getScene().getWindow() == null
 						|| !nativeControl.getScene().getWindow().isShowing())) {
@@ -1020,7 +1021,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 2.0
 	 */
 	public Accessible getAccessible() {
-		Util.logNotImplemented();
+		// TODO
 		return new Accessible(null);
 	}
 
@@ -1063,8 +1064,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.2
 	 */
 	public Image getBackgroundImage() {
-		Util.logNotImplemented();
-		return null;
+		return backgroundImage;
 	}
 
 	/**
@@ -1081,7 +1081,7 @@ public abstract class Control extends Widget implements Drawable {
 	 *                </ul>
 	 */
 	public int getBorderWidth() {
-		Util.logNotImplemented();
+		// TODO
 		return 0;
 	}
 
@@ -2639,7 +2639,8 @@ public abstract class Control extends Widget implements Drawable {
 	 * @since 3.2
 	 */
 	public void setBackgroundImage(Image image) {
-		Util.logNotImplemented();
+		backgroundImage = image;
+		// TODO show it
 	}
 
 	/**
@@ -3636,7 +3637,7 @@ public abstract class Control extends Widget implements Drawable {
 	 * @see SWT#Paint
 	 */
 	public void update() {
-		Util.logNotImplemented();
+		// TODO do nothing for now
 	}
 
 	void updateLayout (boolean resize, boolean all) {

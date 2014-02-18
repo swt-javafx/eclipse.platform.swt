@@ -82,8 +82,8 @@ public class TabItem extends Item {
 	 */
 	public TabItem(TabFolder parent, int style) {
 		super(parent, style);
-		parent.internal_addTabItem(this);
 		this.parent = parent;
+		createWidget();
 	}
 
 	/**
@@ -128,7 +128,8 @@ public class TabItem extends Item {
 	 */
 	public TabItem(TabFolder parent, int style, int index) {
 		super(parent, style);
-		parent.internal_addTabItem(this, index);
+		this.parent = parent;
+		createWidget();
 	}
 
 	@Override
@@ -226,6 +227,11 @@ public class TabItem extends Item {
 		return rv;
 	}
 
+	@Override
+	void registerHandle() {
+		parent.internal_addTabItem(this);
+	}
+	
 	/**
 	 * Sets the control that is used to fill the client area of the tab folder
 	 * when the user selects the tab item.
