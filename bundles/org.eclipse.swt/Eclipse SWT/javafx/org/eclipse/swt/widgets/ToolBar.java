@@ -12,6 +12,8 @@ package org.eclipse.swt.widgets;
 
 import java.util.ArrayList;
 
+import javafx.geometry.Orientation;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Point;
@@ -107,6 +109,10 @@ public class ToolBar extends Composite {
 	void createHandle() {
 		toolbar = new javafx.scene.control.ToolBar();
 		toolbar.getStyleClass().add("swt-toolbar");
+		if ((style & SWT.HORIZONTAL) != 0)
+			toolbar.setOrientation(Orientation.HORIZONTAL);
+		else
+			toolbar.setOrientation(Orientation.VERTICAL);
 		nativeControl = toolbar;
 	}
 	
@@ -286,9 +292,4 @@ public class ToolBar extends Composite {
 			item.release(destroy);
 	}
 
-	@Override
-	public void setLayoutData(Object layoutData) {
-		// TODO Auto-generated method stub
-		super.setLayoutData(layoutData);
-	}
 }
