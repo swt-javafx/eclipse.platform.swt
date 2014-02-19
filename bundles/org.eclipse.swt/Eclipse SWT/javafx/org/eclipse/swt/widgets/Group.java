@@ -95,6 +95,7 @@ public class Group extends Composite {
 		layoutPane = new FXLayoutPane(this);
 		pane.setContent(layoutPane);
 		nativeControl = pane;
+		controlContainer = layoutPane;
 	}
 	
 	@Override

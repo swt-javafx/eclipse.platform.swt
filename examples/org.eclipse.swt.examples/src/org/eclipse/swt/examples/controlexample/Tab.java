@@ -913,9 +913,14 @@ abstract class Tab {
 		}
 		dialog.setLocation(bounds.x, clientArea.y);
 		dialog.open ();
-		while (! dialog.isDisposed()) {
-			if (! display.readAndDispatch()) display.sleep();
-		}
+		Object key = new Object();
+		dialog.addDisposeListener(new DisposeListener() {
+			@Override
+			public void widgetDisposed(DisposeEvent e) {
+				display.exitNestedEventLoop(key, null);
+			}
+		});
+		display.enterNestedEventLoop(key);
 	}
 
 	/**

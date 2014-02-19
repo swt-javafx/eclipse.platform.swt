@@ -535,9 +535,12 @@ public class Shell extends Decorations {
 	
 	@Override
 	public void dispose() {
-		getDisplay().unregisterShell(this);
+		if (!isDisposed()) {
+			stage.close();
+			if (display != null)
+				display.unregisterShell(this);
+		}
 		super.dispose();
-		stage.close();
 	}
 
 	Composite findDeferredControl () {

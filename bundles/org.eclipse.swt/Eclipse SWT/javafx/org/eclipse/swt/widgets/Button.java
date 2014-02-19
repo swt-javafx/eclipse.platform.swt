@@ -172,7 +172,7 @@ public class Button extends Control {
 	}
 	
 	@Override
-	void createWidget() {
+	void createHandle() {
 		ButtonBase control;
 		if( (style & SWT.RADIO) != 0 ) {
 			control = new RadioButton();
@@ -196,10 +196,10 @@ public class Button extends Control {
 
 	@Override
 	void releaseParent() {
-		super.releaseParent();
 		if ((style & SWT.RADIO) != 0 && (parent.style & SWT.NO_RADIO_GROUP) == 0) {
 			parent.group.getToggles().remove((Toggle) nativeControl);
 		}
+		super.releaseParent();
 	}
 
 	/**

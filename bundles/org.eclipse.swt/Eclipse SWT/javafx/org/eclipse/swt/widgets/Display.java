@@ -244,7 +244,7 @@ public class Display extends Device {
 		hoverTimer.setOnFinished(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				if( hoverControl != null ) {
+				if (hoverControl != null && !hoverControl.isDisposed()) {
 					Event evt = new Event();
 					Point p = hoverControl.toControl(getCursorLocation());
 					evt.x = p.x;

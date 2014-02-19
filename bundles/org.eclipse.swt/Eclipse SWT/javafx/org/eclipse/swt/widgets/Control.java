@@ -125,6 +125,8 @@ public abstract class Control extends Widget implements Drawable {
 	private EventHandler<javafx.scene.input.MouseEvent> mouseHandler = new EventHandler<javafx.scene.input.MouseEvent>() {
 		@Override
 		public void handle(javafx.scene.input.MouseEvent event) {
+			if (isDisposed())
+				return;
 			int type = SWT.None;
 
 			if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_EXITED) {

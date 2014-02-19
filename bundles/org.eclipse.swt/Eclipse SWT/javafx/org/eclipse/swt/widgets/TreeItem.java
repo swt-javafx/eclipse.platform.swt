@@ -123,6 +123,7 @@ public class TreeItem extends Item {
 		super(parent, style);
 		this.tree = parent;
 		this.registrations = new ArrayList<>();
+		createWidget();
 		tree.internal_itemAdded(this);
 	}
 
@@ -170,6 +171,7 @@ public class TreeItem extends Item {
 		super(parent, style);
 		this.tree = parent;
 		this.registrations = new ArrayList<>();
+		createWidget();
 		tree.internal_itemAdded(this, index);
 	}
 
@@ -213,6 +215,7 @@ public class TreeItem extends Item {
 		super(parentItem, style);
 		this.parentItem = parentItem;
 		this.registrations = new ArrayList<>();
+		createWidget();
 		parentItem.nativeObject.getChildren().add(nativeObject);
 	}
 
@@ -260,6 +263,7 @@ public class TreeItem extends Item {
 		super(parentItem, style);
 		this.parentItem = parentItem;
 		this.registrations = new ArrayList<>();
+		createWidget();
 		parentItem.nativeObject.getChildren().add(index, nativeObject);
 	}
 
