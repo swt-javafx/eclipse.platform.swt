@@ -1575,7 +1575,8 @@ public class Display extends Device {
 		}
 		
 		if( from == null ) {
-			Point2D localToScreen = to.nativeControl.screenToLocal(x, y);
+			// TODO not sure this is right, but screenToLocal NPEs.
+			Point2D localToScreen = to.nativeControl.sceneToLocal(x, y);
 			return new Point((int)localToScreen.getX(), (int)localToScreen.getY());
 		}
 		

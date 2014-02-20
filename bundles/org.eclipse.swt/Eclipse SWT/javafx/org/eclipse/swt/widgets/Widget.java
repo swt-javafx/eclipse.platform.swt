@@ -14,7 +14,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.internal.SWTEventListener;
-import org.eclipse.swt.internal.Util;
 
 /**
  * This class is the abstract superclass of all user interface objects. Widgets
@@ -45,7 +44,7 @@ import org.eclipse.swt.internal.Util;
  */
 public abstract class Widget {
 
-	private boolean noEvent;
+	boolean noEvent;
 	EventTable eventTable;
 	Display display;
 	int style;
@@ -55,40 +54,42 @@ public abstract class Widget {
 	/* Using the same numbers as the win32 port for now */
 	/* Global state flags */
 	static final int DISPOSED		= 1 << 0;
-	static final int KEYED_DATA		= 1 << 2;
-	static final int DISABLED       = 1 << 3;
+	static final int KEYED_DATA		= 1 << 1;
+	static final int DISABLED       = 1 << 2;
 
 	/* A layout was requested on this widget */
-	static final int LAYOUT_NEEDED	= 1 << 12;
+	static final int LAYOUT_NEEDED	= 1 << 3;
 
 	/* The preferred size of a child has changed */
-	static final int LAYOUT_CHANGED = 1 << 13;
+	static final int LAYOUT_CHANGED = 1 << 4;
 
 	/* A layout was requested in this widget hierarchy */
-	static final int LAYOUT_CHILD = 1 << 14;
+	static final int LAYOUT_CHILD = 1 << 5;
 
 	/* Background flags */
-	static final int THEME_BACKGROUND = 1 << 8;
-	static final int DRAW_BACKGROUND = 1 << 9;
-	static final int PARENT_BACKGROUND = 1 << 10;
+	static final int THEME_BACKGROUND = 1 << 6;
+	static final int DRAW_BACKGROUND = 1 << 7;
+	static final int PARENT_BACKGROUND = 1 << 8;
 
-	static final int DISPOSE_SENT = 1 << 16;
-	static final int RELEASED = 1 << 15;
+	static final int DISPOSE_SENT = 1 << 9;
+	static final int RELEASED = 1 << 10;
 
-	static final int DRAG_DETECT	= 1 << 17;
+	static final int DRAG_DETECT	= 1 << 11;
 
 	/* Notify of the opportunity to skin this widget */
-	static final int SKIN_NEEDED = 1 << 21;
+	static final int SKIN_NEEDED = 1 << 12;
 
 	/* Tom's flags */
-	static final int DATA_SET = 1 << 27;
-	static final int MOUSE_EXIT = 1 << 28;
-	static final int MOUSE_ENTER = 1 << 29;
-	static final int CSS_PROCESSED  = 1 << 30;
-	static final int NO_EVENT = 1 << 31;
+	static final int DATA_SET = 1 << 13;
+	static final int MOUSE_EXIT = 1 << 14;
+	static final int MOUSE_ENTER = 1 << 15;
+	static final int CSS_PROCESSED  = 1 << 16;
 
-	static final int RESIZE_ATTACHED = 1 << 18;
+	static final int RESIZE_ATTACHED = 1 << 17;
 
+	/* Doug's flags */
+	static final int SETTING_SELECTION = 1 << 18;
+	
 	static final int DEFAULT_WIDTH	= 64;
 	static final int DEFAULT_HEIGHT	= 64;
 

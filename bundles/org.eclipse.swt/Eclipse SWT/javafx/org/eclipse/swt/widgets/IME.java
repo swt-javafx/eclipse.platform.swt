@@ -210,7 +210,7 @@ public class IME extends Widget {
 	 */
 	public String getText() {
 		// TODO
-		return null;
+		return "";
 	}
 
 	/**

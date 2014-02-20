@@ -276,7 +276,6 @@ public class List extends Scrollable {
 			}
 		});
 		control.getSelectionModel().getSelectedItems().addListener(new InvalidationListener() {
-			
 			@Override
 			public void invalidated(Observable observable) {
 				Event evt = new Event();
@@ -1022,8 +1021,12 @@ public class List extends Scrollable {
 	 */
 	public void setSelection(int index) {
 		checkWidget ();
+		if ((state & SETTING_SELECTION) != 0)
+			return;
+		state |= SETTING_SELECTION;
 		control.getSelectionModel().clearAndSelect(index);
 		control.getFocusModel().focus(index);
+		state &= ~SETTING_SELECTION;
 	}
 
 	/**

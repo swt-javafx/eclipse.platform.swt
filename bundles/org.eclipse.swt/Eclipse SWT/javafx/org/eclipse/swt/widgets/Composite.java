@@ -143,7 +143,15 @@ public class Composite extends Scrollable {
 		Control[] children = new Control[controlContainer.getChildren().size()];
 		int i = 0;
 		for (Node child : controlContainer.getChildren()) {
-			Control cc = (Control)child.getUserData();
+			Object obj = child.getUserData();
+			if (obj == null) {
+				Util.logNotImplemented();
+				continue;
+			}
+			
+			if (!(obj instanceof Control))
+				continue;
+			Control cc = (Control)obj;
 			if (cc != null)
 				children[i++] = cc;
 		}

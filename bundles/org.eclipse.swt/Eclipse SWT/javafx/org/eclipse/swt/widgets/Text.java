@@ -1010,6 +1010,7 @@ public class Text extends Scrollable {
 
 	@Override
 	void registerHandle() {
+		super.registerHandle();
 		control.addEventFilter(KeyEvent.KEY_TYPED, new EventHandler<KeyEvent>() {
 			@Override
 			public void handle(KeyEvent event) {

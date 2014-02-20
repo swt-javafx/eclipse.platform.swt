@@ -49,7 +49,7 @@ import org.eclipse.swt.graphics.Rectangle;
 public class Caret extends Widget {
 
 	javafx.scene.control.Label nativeControl;
-	
+
 	private int x = 0;
 	private int y = 0;
 	private int width = 1;
@@ -102,6 +102,7 @@ public class Caret extends Widget {
 	public Caret(Canvas parent, int style) {
 		super(parent, style);
 		this.parent = parent;
+		createWidget();
 		parent.setCaret(this);
 	}
 
@@ -111,6 +112,7 @@ public class Caret extends Widget {
 		nativeControl.setManaged(false);
 		nativeControl.setVisible(false);
 		nativeControl.setStyle("-fx-background-color: black;");
+		nativeControl.setUserData(this);
 		
 		blinkTimeline = new Timeline();
 		blinkTimeline.setCycleCount(Timeline.INDEFINITE);
