@@ -399,9 +399,7 @@ public class Composite extends Scrollable {
 	 */
 	public void drawBackground(GC gc, int x, int y, int width, int height,
 			int offsetX, int offsetY) {
-		// TODO for real
-		gc.setBackground(new Color(getDisplay(), 0, 0, 0));
-		gc.fillRectangle (x, y, width, height);
+		gc.fillRectangle(x, y, width, height);
 	}
 
 	Composite findDeferredControl () {
