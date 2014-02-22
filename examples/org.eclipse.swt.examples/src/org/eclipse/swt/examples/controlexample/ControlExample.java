@@ -11,17 +11,23 @@
 package org.eclipse.swt.examples.controlexample;
 
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.layout.*;
-import org.eclipse.swt.widgets.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
-import java.io.*;
-import java.text.*;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
 
 public class ControlExample {
 	private static ResourceBundle resourceBundle =
@@ -215,33 +221,32 @@ public class ControlExample {
 	 * Invokes as a standalone program.
 	 */
 	public static void main(String[] args) {
-		final Display display = new Display();
-		final ControlExample[] example = new ControlExample[1];
-		final CountDownLatch latch = new CountDownLatch(1);
-		display.syncExec(new Runnable() {
+		new Runnable() {
+			Display display = new Display();
+			Shell shell;
+			ControlExample example;
+			
 			@Override
 			public void run() {
-				Shell shell = new Shell(display, SWT.SHELL_TRIM);
-				shell.setLayout(new FillLayout());
-				example[0] = new ControlExample(shell);
-				shell.setText(getResourceString("window.title"));
-				setShellSize(example[0], shell);
-				shell.open();
-				shell.addDisposeListener(new DisposeListener() {
+				// TODO Auto-generated method stub
+				display.syncExec(new Runnable() {
 					@Override
-					public void widgetDisposed(DisposeEvent e) {
-						latch.countDown();
+					public void run() {
+						shell = new Shell(display, SWT.SHELL_TRIM);
+						shell.setLayout(new FillLayout());
+						example = new ControlExample(shell);
+						shell.setText(getResourceString("window.title"));
+						setShellSize(example, shell);
+						shell.open();
 					}
 				});
+				while (!shell.isDisposed())
+					if (!display.readAndDispatch())
+						display.sleep();
+				example.dispose();
+				display.dispose();
 			}
-		});
-		try {
-			latch.await();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		example[0].dispose();
-		display.dispose();
+		}.run();
 	}
 	
 	/**
