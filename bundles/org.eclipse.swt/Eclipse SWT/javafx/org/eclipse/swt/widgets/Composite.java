@@ -72,7 +72,7 @@ import org.eclipse.swt.internal.Util;
  */
 public class Composite extends Scrollable {
 
-	Pane controlContainer;
+	public Pane controlContainer;
 	ToggleGroup group;
 	
 	Layout layout;
@@ -145,7 +145,6 @@ public class Composite extends Scrollable {
 		for (Node child : controlContainer.getChildren()) {
 			Object obj = child.getUserData();
 			if (obj == null) {
-				Util.logNotImplemented();
 				continue;
 			}
 			

@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.swt.browser;
 
+import javafx.scene.web.WebView;
+
 import org.eclipse.swt.widgets.Composite;
 
 
@@ -17,7 +19,8 @@ class BrowserFactory {
 
 	WebBrowser createWebBrowser(int style) {
 		return new WebBrowser() {
-
+			WebView webView;
+			
 			@Override
 			public boolean back() {
 				// TODO Auto-generated method stub
@@ -26,8 +29,8 @@ class BrowserFactory {
 
 			@Override
 			public void create(Composite parent, int style) {
-				// TODO Auto-generated method stub
-				
+				webView = new WebView();
+				parent.controlContainer.getChildren().add(webView);
 			}
 
 			@Override
@@ -44,8 +47,7 @@ class BrowserFactory {
 
 			@Override
 			public String getBrowserType() {
-				// TODO Auto-generated method stub
-				return null;
+				return "javafx";
 			}
 
 			@Override
@@ -80,14 +82,14 @@ class BrowserFactory {
 
 			@Override
 			public boolean setText(String html, boolean trusted) {
-				// TODO Auto-generated method stub
-				return false;
+				webView.getEngine().loadContent(html);
+				return true;
 			}
 
 			@Override
 			public boolean setUrl(String url, String postData, String[] headers) {
-				// TODO Auto-generated method stub
-				return false;
+				webView.getEngine().load(url);
+				return true;
 			}
 
 			@Override
