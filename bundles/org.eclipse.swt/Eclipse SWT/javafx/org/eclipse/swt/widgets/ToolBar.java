@@ -97,14 +97,16 @@ public class ToolBar extends Composite {
 	 * @see Widget#getStyle()
 	 */
 	public ToolBar(Composite parent, int style) {
-		super(parent, style);
-		if ((style & SWT.VERTICAL) != 0) {
-			this.style |= SWT.VERTICAL; 
-		} else {
-			this.style |= SWT.HORIZONTAL;
-		}
+		super(parent, checkStyle(style));
 	}
 
+	static int checkStyle(int style) {
+		if ((style & SWT.VERTICAL) == 0) {
+			style |= SWT.HORIZONTAL;
+		}
+		return style;
+	}
+	
 	@Override
 	void createHandle() {
 		toolbar = new javafx.scene.control.ToolBar();

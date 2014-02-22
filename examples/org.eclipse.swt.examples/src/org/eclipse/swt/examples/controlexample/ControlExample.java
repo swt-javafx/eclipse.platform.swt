@@ -18,6 +18,8 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.Point;
@@ -221,32 +223,28 @@ public class ControlExample {
 	 * Invokes as a standalone program.
 	 */
 	public static void main(String[] args) {
-		new Runnable() {
-			Display display = new Display();
-			Shell shell;
-			ControlExample example;
-			
+		final Display display = new Display();
+
+		display.syncExec(new Runnable() {
 			@Override
 			public void run() {
-				// TODO Auto-generated method stub
-				display.syncExec(new Runnable() {
+				Shell shell = new Shell(display, SWT.SHELL_TRIM);
+				shell.setLayout(new FillLayout());
+				ControlExample example = new ControlExample(shell);
+				shell.setText(getResourceString("window.title"));
+				setShellSize(example, shell);
+				shell.addDisposeListener(new DisposeListener() {
 					@Override
-					public void run() {
-						shell = new Shell(display, SWT.SHELL_TRIM);
-						shell.setLayout(new FillLayout());
-						example = new ControlExample(shell);
-						shell.setText(getResourceString("window.title"));
-						setShellSize(example, shell);
-						shell.open();
+					public void widgetDisposed(DisposeEvent e) {
+						display.exitNestedEventLoop(example, null);
 					}
 				});
-				while (!shell.isDisposed())
-					if (!display.readAndDispatch())
-						display.sleep();
+				shell.open();
+				display.enterNestedEventLoop(example);
 				example.dispose();
-				display.dispose();
 			}
-		}.run();
+		});
+		display.dispose();
 	}
 	
 	/**

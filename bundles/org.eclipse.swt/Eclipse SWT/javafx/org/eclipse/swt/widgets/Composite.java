@@ -269,7 +269,9 @@ public class Composite extends Scrollable {
 				size = new Point (wHint, hHint);
 			}
 		} else {
-			size = minimumSize (wHint, hHint, changed);
+			size = new Point((int) Math.ceil(internal_getPrefWidth()), (int) Math.ceil(internal_getPrefHeight()));
+			// TODO should the above move into the minimum size method?
+			//size = minimumSize (wHint, hHint, changed);
 			if (size.x == 0) size.x = DEFAULT_WIDTH;
 			if (size.y == 0) size.y = DEFAULT_HEIGHT;
 		}
