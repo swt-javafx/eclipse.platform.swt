@@ -982,10 +982,10 @@ public class Composite extends Scrollable {
 		ObservableList<Node> children = controlContainer.getChildren();
 		children.remove(control.nativeControl);
 		if (other == null) {
-			children.add(control.nativeControl);
+			children.add(0, control.nativeControl);
 		} else {
 			int i = children.indexOf(other.nativeControl);
-			children.add(i + 1, control.nativeControl);
+			children.add(i, control.nativeControl);
 		}		
 		
 	}
@@ -994,12 +994,15 @@ public class Composite extends Scrollable {
 		ObservableList<Node> children = controlContainer.getChildren();
 		children.remove(control.nativeControl);
 		if (other == null) {
-			children.add(0, control.nativeControl);
+			children.add(control.nativeControl);
 		} else {
 			int i = children.indexOf(other.nativeControl);
-			if (i > 0)
-				children.add(i, control.nativeControl);
-			// TODO why wouldn't it be there
+			if (i > 0) { // TODO why wouldn't it be there
+				if (i < children.size() - 1)
+					children.add(i + 1, control.nativeControl);
+				else
+					children.add(control.nativeControl);
+			}
 		}
 	}
 
