@@ -792,12 +792,12 @@ public class Shell extends Decorations {
 	
 	@Override
 	public void moveAbove(Control control) {
-		Util.logNotImplemented();
+		stage.toFront();
 	}
 	
 	@Override
 	public void moveBelow(Control control) {
-		Util.logNotImplemented();
+		stage.toBack();
 	}
 	
 	/**
@@ -888,7 +888,7 @@ public class Shell extends Decorations {
 	 */
 	public void setActive() {
 		stage.toFront();
-		stage.setFocused(true);
+		stage.requestFocus();
 	}
 
 	/**
