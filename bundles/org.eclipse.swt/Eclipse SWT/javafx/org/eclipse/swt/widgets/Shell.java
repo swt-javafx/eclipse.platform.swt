@@ -18,6 +18,8 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -441,6 +443,10 @@ public class Shell extends Decorations {
 	void createHandle() {
 		super.createHandle();
 
+		BorderPane borderPane = new BorderPane();
+		borderPane.setCenter(nativeControl);
+		nativeControl = borderPane;
+		
 		stage = new Stage();
 		scene = new Scene(nativeControl);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("org/eclipse/swt/internal/swt.css").toExternalForm());
@@ -800,6 +806,18 @@ public class Shell extends Decorations {
 		stage.toBack();
 	}
 	
+	@Override
+	void moveChildAbove(Control control, Control other) {
+		// TODO Auto-generated method stub
+		super.moveChildAbove(control, other);
+	}
+	
+	@Override
+	void moveChildBelow(Control control, Control other) {
+		// TODO Auto-generated method stub
+		super.moveChildBelow(control, other);
+	}
+	
 	/**
 	 * Moves the receiver to the top of the drawing order for the display on
 	 * which it was created (so that all other shells on that display, which are
@@ -1019,9 +1037,11 @@ public class Shell extends Decorations {
 	}
 
 	public void setMenuBar (Menu menu) {
-		if( (menu.style & SWT.BAR) == SWT.BAR ) {
-			menu.bar.setUseSystemMenuBar(true);
+		if ((menu.style & SWT.BAR) == SWT.BAR) {
+			//menu.bar.setUseSystemMenuBar(true);
+			((BorderPane)nativeControl).setTop(menu.bar);
 		}
+		
 		super.setMenuBar(menu);
 	}
 
