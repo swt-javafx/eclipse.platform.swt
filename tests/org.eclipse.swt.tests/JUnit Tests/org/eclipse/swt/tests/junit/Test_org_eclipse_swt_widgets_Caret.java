@@ -11,12 +11,12 @@
 package org.eclipse.swt.tests.junit;
 
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.widgets.*;
-import org.eclipse.swt.graphics.*;
-
-import junit.framework.*;
-import junit.textui.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Canvas;
+import org.eclipse.swt.widgets.Caret;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.widgets.Caret
@@ -30,10 +30,6 @@ Caret caret;
 
 public Test_org_eclipse_swt_widgets_Caret(String name) {
 	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
 }
 
 @Override
@@ -81,7 +77,7 @@ public void test_isVisible() {
 	shell.setVisible(true);
 	assertTrue(caret.getVisible() == true);
 	canvas.setVisible(false);
-	if (fCheckVisibility) {
+	if (SwtTestUtil.fCheckVisibility) {
 		assertTrue(!caret.getVisible());
 	}
 
@@ -112,7 +108,7 @@ public void test_setFontLorg_eclipse_swt_graphics_Font() {
 	assertEquals(font, caret.getFont());
 	caret.setFont(null);
 	
-	font = new Font(caret.getDisplay(), SwtJunit.testFontName, 10, SWT.NORMAL);
+	font = new Font(caret.getDisplay(), SwtTestUtil.testFontName, 10, SWT.NORMAL);
 	caret.setFont(font);
 	assertEquals(font, caret.getFont());
 
@@ -154,42 +150,5 @@ public void test_setVisibleZ() {
 
 	caret.setVisible(false);
 	assertTrue("Caret should not be visible", caret.getVisible()==false);
-}
-
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_widgets_Caret(e.nextElement()));
-	}
-	return suite;
-}
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_ConstructorLorg_eclipse_swt_widgets_CanvasI");
-	methodNames.addElement("test_getBounds");
-	methodNames.addElement("test_getParent");
-	methodNames.addElement("test_isVisible");
-	methodNames.addElement("test_setBoundsIIII");
-	methodNames.addElement("test_setBoundsLorg_eclipse_swt_graphics_Rectangle");
-	methodNames.addElement("test_setFontLorg_eclipse_swt_graphics_Font");
-	methodNames.addElement("test_setImageLorg_eclipse_swt_graphics_Image");
-	methodNames.addElement("test_setVisibleZ");
-	methodNames.addAll(Test_org_eclipse_swt_widgets_Widget.methodNames()); // add superclass method names
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_ConstructorLorg_eclipse_swt_widgets_CanvasI")) test_ConstructorLorg_eclipse_swt_widgets_CanvasI();
-	else if (getName().equals("test_getBounds")) test_getBounds();
-	else if (getName().equals("test_getParent")) test_getParent();
-	else if (getName().equals("test_isVisible")) test_isVisible();
-	else if (getName().equals("test_setBoundsIIII")) test_setBoundsIIII();
-	else if (getName().equals("test_setBoundsLorg_eclipse_swt_graphics_Rectangle")) test_setBoundsLorg_eclipse_swt_graphics_Rectangle();
-	else if (getName().equals("test_setFontLorg_eclipse_swt_graphics_Font")) test_setFontLorg_eclipse_swt_graphics_Font();
-	else if (getName().equals("test_setImageLorg_eclipse_swt_graphics_Image")) test_setImageLorg_eclipse_swt_graphics_Image();
-	else if (getName().equals("test_setVisibleZ")) test_setVisibleZ();
-	else super.runTest();
 }
 }

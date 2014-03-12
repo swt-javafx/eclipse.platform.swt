@@ -2339,8 +2339,10 @@ void initializeSystemColors () {
 	} else {
 		gdkColor.blue = (short)0xeeee;
 	}
-	long /*int*/ colormap = OS.gdk_colormap_get_system();
-	OS.gdk_colormap_alloc_color(colormap, gdkColor, true, true);
+	if (!OS.GTK3) {
+		long /*int*/ colormap = OS.gdk_colormap_get_system();
+		OS.gdk_colormap_alloc_color(colormap, gdkColor, true, true);
+	}
 	COLOR_LINK_FOREGROUND = gdkColor;
 
 	if (OS.GTK3) {

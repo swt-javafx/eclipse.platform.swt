@@ -36,6 +36,7 @@ import org.eclipse.swt.internal.gtk.*;
 public class DirectoryDialog extends Dialog {
 	String message = "", filterPath = "";
 	static final String SEPARATOR = System.getProperty ("file.separator");
+	private static final int PATH_MAX = 1024;
 
 /**
  * Constructs a new instance of this class given only its parent.
@@ -145,14 +146,25 @@ String openChooserDialog () {
 		stringBuffer.append (filterPath);
 		byte [] buffer = Converter.wcsToMbcs (null, stringBuffer.toString (), true);
 		/*
-		* Bug in GTK. GtkFileChooser may crash on GTK versions 2.4.10 to 2.6
-		* when setting a file name that is not a true canonical path. 
-		* The fix is to use the canonical path.
-		*/
-		long /*int*/ ptr = OS.realpath (buffer, null);
-		if (ptr != 0) {
-			OS.gtk_file_chooser_set_current_folder (handle, ptr);
-			OS.g_free (ptr);
+		 * in GTK version 2.10, gtk_file_chooser_set_current_folder requires path
+		 * to be true canonical path. So using realpath to convert the path to 
+		 * true canonical path.
+		 */
+		if (OS.IsAIX) {
+			byte [] outputBuffer = new byte [PATH_MAX];
+			long /*int*/ ptr = OS.realpath (buffer, outputBuffer);
+			if (ptr != 0) {
+				OS.gtk_file_chooser_set_current_folder (handle, ptr);
+			}
+			/* We are not doing free here because realpath returns the address of outputBuffer
+			 * which is created in this code and we let the garbage collector to take care of this
+			 */
+		} else {
+			long /*int*/ ptr = OS.realpath (buffer, null);
+			if (ptr != 0) {
+				OS.gtk_file_chooser_set_current_folder (handle, ptr);
+				OS.g_free (ptr);
+			}
 		}
 	}
 	if (message.length () > 0) {

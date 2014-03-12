@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -49,6 +49,7 @@ public class FileDialog extends Dialog {
 	static final char SEPARATOR = System.getProperty ("file.separator").charAt (0);
 	static final char EXTENSION_SEPARATOR = ';';
 	static final char FILE_EXTENSION_SEPARATOR = '.';
+	private static final int PATH_MAX = 1024;
 	
 /**
  * Constructs a new instance of this class given only its parent.
@@ -199,20 +200,6 @@ String computeResultChooserDialog () {
 		int separatorIndex = fullPath.lastIndexOf (SEPARATOR);
 		fileName = fullPath.substring (separatorIndex + 1);
 		filterPath = fullPath.substring (0, separatorIndex);
-		int fileExtensionIndex = fileName.indexOf(FILE_EXTENSION_SEPARATOR);
-		if ((style & SWT.SAVE) != 0 && fileExtensionIndex == -1 && filterIndex != -1) {
-			if (filterExtensions.length > filterIndex) {
-				String selection = filterExtensions [filterIndex];
-				int length = selection.length ();
-				int index = selection.indexOf (EXTENSION_SEPARATOR);
-				if (index == -1) index = length;
-				String extension = selection.substring (0, index).trim ();
-				if (!extension.equals ("*") && !extension.equals ("*.*")) {
-					if (extension.startsWith ("*.")) extension = extension.substring (1);
-					fullPath = fullPath + extension;
-				}	
-			}
-		}
 	}
 	return fullPath;
 }
@@ -379,6 +366,9 @@ void presetChooserDialog () {
 	if (filterPath == null) filterPath = "";
 	if (fileName == null) fileName = "";
 	if ((style & SWT.SAVE) != 0) {
+		if (fileName.equals ("")) {
+			fileName = "Untitled";
+		}
 		if (filterPath.length () > 0) {
 			if (uriMode) {
 				byte [] buffer = Converter.wcsToMbcs (null, filterPath, true);
@@ -386,19 +376,56 @@ void presetChooserDialog () {
 			} else {
 				/* filename must be a full path */
 				byte [] buffer = Converter.wcsToMbcs (null, SEPARATOR + filterPath, true);
-				
 				/*
-				* Bug in GTK. GtkFileChooser may crash on GTK versions 2.4.10 to 2.6
-				* when setting a file name that is not a true canonical path. 
-				* The fix is to use the canonical path.
-				*/
-				long /*int*/ ptr = OS.realpath (buffer, null);
-				OS.gtk_file_chooser_set_current_folder (handle, ptr);
-				OS.g_free (ptr);
+				 * in GTK version 2.10, gtk_file_chooser_set_current_folder requires path
+				 * to be true canonical path. So using realpath to convert the path to 
+				 * true canonical path.
+				 */
+				if (OS.IsAIX) {
+					byte [] outputBuffer = new byte [PATH_MAX];
+					long /*int*/ ptr = OS.realpath (buffer, outputBuffer);
+					if (ptr != 0) {
+						OS.gtk_file_chooser_set_current_folder (handle, ptr);
+					}
+					/* We are not doing free here because realpath returns the address of outputBuffer
+					 * which is created in this code and we let the garbage collector to take care of this
+					 */
+				} else {
+					long /*int*/ ptr = OS.realpath (buffer, null);
+					if (ptr != 0) {
+						OS.gtk_file_chooser_set_current_folder (handle, ptr);
+						OS.g_free (ptr);
+					}
+				}
 			}
 		}
 		if (fileName.length () > 0) {
-			byte [] buffer = Converter.wcsToMbcs (null, fileName, true);
+			StringBuffer filenameWithExt = new StringBuffer();
+			filenameWithExt.append (fileName);
+			if ((fileName.lastIndexOf (FILE_EXTENSION_SEPARATOR) == -1) &&
+					(filterExtensions.length != 0)) {  // Filename doesn't contain the extension and user has provided filter extensions
+				String selectedFilter = null;
+				if (this.filterIndex == -1) {
+					selectedFilter = filterExtensions[0];
+				} else {
+					selectedFilter = filterExtensions[filterIndex];
+				}
+				String extFilter = null;
+				int index = selectedFilter.indexOf (EXTENSION_SEPARATOR);
+				if (index == -1) {
+					extFilter = selectedFilter.trim ();
+				} else {
+					extFilter = selectedFilter.substring (0, index).trim ();
+				}
+
+				int separatorIndex = extFilter.lastIndexOf (FILE_EXTENSION_SEPARATOR);
+				String extension = extFilter.substring (separatorIndex);
+
+				if (!isGlobPattern (extension)) { //if the extension is of type glob pattern we should not add the extension
+					filenameWithExt.append (extension);
+				}
+			}
+			byte [] buffer = Converter.wcsToMbcs (null, filenameWithExt.toString (), true);
 			OS.gtk_file_chooser_set_current_name (handle, buffer);
 		}
 	} else {
@@ -419,18 +446,33 @@ void presetChooserDialog () {
 			OS.gtk_file_chooser_set_uri (handle, buffer);
 		} else {
 			/*
-			* Bug in GTK. GtkFileChooser may crash on GTK versions 2.4.10 to 2.6
-			* when setting a file name that is not a true canonical path. 
-			* The fix is to use the canonical path.
-			*/
-			long /*int*/ ptr = OS.realpath (buffer, null);
-			if (ptr != 0) {
-				if (fileName.length() > 0) {
-					OS.gtk_file_chooser_set_filename (handle, ptr);
-				} else { 
-					OS.gtk_file_chooser_set_current_folder (handle, ptr);	
+			 * in GTK version 2.10, gtk_file_chooser_set_current_folder requires path
+			 * to be true canonical path. So using realpath to convert the path to 
+			 * true canonical path.
+			 */
+			if (OS.IsAIX) {
+				byte [] outputBuffer = new byte [PATH_MAX];
+				long /*int*/ ptr = OS.realpath (buffer, outputBuffer);
+				if (ptr != 0) {
+					if (fileName.length() > 0) {
+						OS.gtk_file_chooser_set_filename (handle, ptr);
+					} else {
+						OS.gtk_file_chooser_set_current_folder (handle, ptr);
+					}
+					/* We are not doing free here because realpath returns the address of outputBuffer
+					 * which is created in this code and we let the garbage collector to take care of this
+					 */
 				}
-				OS.g_free (ptr);
+			} else {
+				long /*int*/ ptr = OS.realpath (buffer, null);
+				if (ptr != 0) {
+					if (fileName.length() > 0) {
+						OS.gtk_file_chooser_set_filename (handle, ptr);
+					} else {
+						OS.gtk_file_chooser_set_current_folder (handle, ptr);
+					}
+					OS.g_free (ptr);
+				}
 			}
 		}
 	}
@@ -477,6 +519,25 @@ void presetChooserDialog () {
 	}
 	fullPath = null;
 	fileNames = new String [0];
+}
+/**
+ * Check whether the file extension is a glob pattern.
+ * For example, *.* is a glob pattern which corresponds to all files
+ * *.jp* corresponds to all the files with extension starting with jp like jpg,jpeg etc
+ * *.jp? corresponds to 3 letter extension starting with jp with any 3rd letter
+ * *.[pq]ng this corresponds to *.png and *.qng
+ * 
+ * @param extension file extension as a string
+ * 
+ * @returns true if the extension contains any of the glob pattern wildcards
+ */
+private boolean isGlobPattern (String extension) {
+	if (extension.contains ("*") ||
+			extension.contains ("?") ||
+			(extension.contains ("[") && extension.contains ("]"))) {
+		return true;
+	}
+	return false;
 }
 /**
  * Set the initial filename which the dialog will

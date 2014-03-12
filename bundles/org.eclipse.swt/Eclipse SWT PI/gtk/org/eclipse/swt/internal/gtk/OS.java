@@ -615,6 +615,7 @@ public class OS extends C {
 	public static final byte[] inconsistent = ascii("inconsistent");
 	public static final byte[] indicator_size = ascii("indicator-size");
 	public static final byte[] indicator_spacing = ascii("indicator-spacing");
+	public static final byte[] initial_gap = ascii("initial-gap");
 	public static final byte[] interior_focus = ascii("interior-focus");
 	public static final byte[] mode = ascii("mode");
 	public static final byte[] model = ascii("model");
@@ -5305,19 +5306,6 @@ public static final void gdk_window_begin_paint_rect(long /*int*/ window, GdkRec
 	lock.lock();
 	try {
 		_gdk_window_begin_paint_rect(window, rectangle);
-	} finally {
-		lock.unlock();
-	}
-}
-/**
- * @method flags=dynamic
- * @param window cast=(GdkWindow *)
- */
-public static final native void _gdk_window_begin_paint_region(long /*int*/ window, long /*int*/ region);
-public static final void gdk_window_begin_paint_region(long /*int*/ window, long /*int*/ region) {
-	lock.lock();
-	try {
-		_gdk_window_begin_paint_region(window, region);
 	} finally {
 		lock.unlock();
 	}

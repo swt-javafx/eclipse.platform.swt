@@ -271,18 +271,18 @@ abstract class Tab {
 			}
 		};
 		Control [] children = styleGroup.getChildren ();
-		for (int i=0; i<children.length; i++) {
-			if (children [i] instanceof Button) {
-				Button button = (Button) children [i];
+		for (Control child : children) {
+			if (child instanceof Button) {
+				Button button = (Button) child;
 				button.addSelectionListener (selectionListener);
 			} else {
-				if (children [i] instanceof Composite) {
+				if (child instanceof Composite) {
 					/* Look down one more level of children in the style group. */
-					Composite composite = (Composite) children [i];
+					Composite composite = (Composite) child;
 					Control [] grandchildren = composite.getChildren ();
-					for (int j=0; j<grandchildren.length; j++) {
-						if (grandchildren [j] instanceof Button) {
-							Button button = (Button) grandchildren [j];
+					for (Control grandchild : grandchildren) {
+						if (grandchild instanceof Button) {
+							Button button = (Button) grandchild;
 							button.addSelectionListener (selectionListener);
 						}
 					}
@@ -1319,8 +1319,7 @@ abstract class Tab {
 	
 	void setExampleWidgetPopupMenu() {
 		Control[] controls = getExampleControls();
-		for (int i = 0; i < controls.length; i++) {
-			final Control control = controls [i];
+		for (final Control control : controls) {
 			control.addListener(SWT.MenuDetect, new Listener() {
 				public void handleEvent(Event event) {
 		        	Menu menu = control.getMenu();
@@ -1349,8 +1348,8 @@ abstract class Tab {
 	 */
 	void disposeExampleWidgets () {
 		Widget [] widgets = getExampleWidgets ();
-		for (int i=0; i<widgets.length; i++) {
-			widgets [i].dispose ();
+		for (Widget widget : widgets) {
+			widget.dispose ();
 		}
 	}
 	
@@ -1456,12 +1455,12 @@ abstract class Tab {
 	Control [] getExampleControls () {
 		Widget [] widgets = getExampleWidgets ();
 		Control [] controls = new Control [0];
-		for (int i = 0; i < widgets.length; i++) {
-			if (widgets[i] instanceof Control) {
+		for (Widget widget : widgets) {
+			if (widget instanceof Control) {
 				Control[] newControls = new Control[controls.length + 1];
 				System.arraycopy(controls, 0, newControls, 0, controls.length);
 				controls = newControls;
-				controls[controls.length - 1] = (Control)widgets[i];
+				controls[controls.length - 1] = (Control)widget;
 			}
 		}
 		return controls;
@@ -1501,12 +1500,12 @@ abstract class Tab {
 	void hookExampleWidgetListeners () {
 		if (logging) {
 			Widget[] widgets = getExampleWidgets ();
-			for (int i = 0; i < widgets.length; i++) {
-				hookListeners (widgets [i]);
+			for (Widget widget : widgets) {
+				hookListeners (widget);
 			}
 			Item[] exampleItems = getExampleWidgetItems ();
-			for (int i = 0; i < exampleItems.length; i++) {
-				hookListeners (exampleItems [i]);
+			for (Item exampleItem : exampleItems) {
+				hookListeners (exampleItem);
 			}
 			String [] customNames = getCustomEventNames ();
 			for (int i = 0; i < customNames.length; i++) {
@@ -1704,8 +1703,8 @@ abstract class Tab {
 		if (colorAndFontTable == null) return; // user cannot change color/font on this tab
 		Control [] controls = getExampleControls ();
 		if (!instance.startup) {
-			for (int i = 0; i < controls.length; i++) {
-				controls[i].setBackground (backgroundColor);
+			for (Control control : controls) {
+				control.setBackground (backgroundColor);
 			}
 		}
 		// Set the background color item's image to match the background color of the example widget(s).
@@ -1723,8 +1722,8 @@ abstract class Tab {
 	 */
 	void setExampleWidgetEnabled () {
 		Control [] controls = getExampleControls ();
-		for (int i=0; i<controls.length; i++) {
-			controls [i].setEnabled (enabledButton.getSelection ());
+		for (Control control : controls) {
+			control.setEnabled (enabledButton.getSelection ());
 		}
 	}
 	
@@ -1735,8 +1734,8 @@ abstract class Tab {
 		if (colorAndFontTable == null) return; // user cannot change color/font on this tab
 		Control [] controls = getExampleControls ();
 		if (!instance.startup) {
-			for (int i = 0; i < controls.length; i++) {
-				controls[i].setFont(font);
+			for (Control control : controls) {
+				control.setFont(font);
 			}
 		}
 		/* Set the font item's image and font to match the font of the example widget(s). */
@@ -1758,8 +1757,8 @@ abstract class Tab {
 		if (colorAndFontTable == null) return; // user cannot change color/font on this tab
 		Control [] controls = getExampleControls ();
 		if (!instance.startup) {
-			for (int i = 0; i < controls.length; i++) {
-				controls[i].setForeground (foregroundColor);
+			for (Control control : controls) {
+				control.setForeground (foregroundColor);
 			}
 		}
 		/* Set the foreground color item's image to match the foreground color of the example widget(s). */
@@ -1783,13 +1782,13 @@ abstract class Tab {
 		if (smallButton.getSelection()) size = SMALL_SIZE;
 		if (largeButton.getSelection()) size = LARGE_SIZE;
 		Control [] controls = getExampleControls ();
-		for (int i=0; i<controls.length; i++) {
+		for (Control control : controls) {
 			GridData gridData = new GridData(size, size); 
 			gridData.grabExcessHorizontalSpace = fillHButton.getSelection();
 			gridData.grabExcessVerticalSpace = fillVButton.getSelection();
 			gridData.horizontalAlignment = fillHButton.getSelection() ? SWT.FILL : SWT.LEFT;
 			gridData.verticalAlignment = fillVButton.getSelection() ? SWT.FILL : SWT.TOP;
-			controls [i].setLayoutData (gridData);
+			control.setLayoutData (gridData);
 		}
 		tabFolderPage.layout (controls);
 	}
@@ -1825,8 +1824,8 @@ abstract class Tab {
 	 */
 	void setExampleWidgetVisibility () {
 		Control [] controls = getExampleControls ();
-		for (int i=0; i<controls.length; i++) {
-			controls [i].setVisible (visibleButton.getSelection ());
+		for (Control control : controls) {
+			control.setVisible (visibleButton.getSelection ());
 		}
 	}
 
@@ -1836,8 +1835,8 @@ abstract class Tab {
 	void setExampleWidgetBackgroundImage () {
 		if (backgroundImageButton != null && backgroundImageButton.isDisposed()) return;
 		Control [] controls = getExampleControls ();
-		for (int i=0; i<controls.length; i++) {
-			controls [i].setBackgroundImage (backgroundImageButton.getSelection () ? instance.images[ControlExample.ciBackground] : null);
+		for (Control control : controls) {
+			control.setBackgroundImage (backgroundImageButton.getSelection () ? instance.images[ControlExample.ciBackground] : null);
 		}
 	}
 	

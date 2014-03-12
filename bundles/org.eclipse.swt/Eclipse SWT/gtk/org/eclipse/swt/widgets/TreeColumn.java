@@ -434,7 +434,12 @@ public void pack () {
 		width = requisition.width;
 	}
 	if ((parent.style & SWT.VIRTUAL) != 0) {
-		//NOT DONE
+		for (int i=0; i<parent.items.length; i++) {
+			TreeItem item = parent.items [i];
+			if (item != null && item.cached) {
+				width = Math.max (width, parent.calculateWidth (handle, item.handle, true));
+			}
+		}
 	} else {
 		long /*int*/ iter = OS.g_malloc (OS.GtkTreeIter_sizeof ());
 		if (OS.gtk_tree_model_get_iter_first (parent.modelHandle, iter)) {
@@ -689,6 +694,14 @@ public void setWidth (int width) {
 	if (width == lastWidth) return;
 	if (width > 0) {
 		useFixedWidth = true;
+		/*
+		 * From GTK3 docs:
+		 *  Note that fixed_width is only a hint to GTK+; the width actually allocated to the column may be greater or less than requested.
+		 * Thus setting the min_width to is required in order to not be zero.
+		 */
+		if (OS.GTK3) {
+			OS.gtk_tree_view_column_set_min_width (handle, width);
+		}
 		OS.gtk_tree_view_column_set_fixed_width (handle, width);
 	}
 	/*

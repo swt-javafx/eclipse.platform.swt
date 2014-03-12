@@ -10,13 +10,12 @@
  *******************************************************************************/
 package org.eclipse.swt.tests.junit;
 
-import java.io.*;
-
-import junit.framework.*;
-import junit.textui.TestRunner;
+import java.io.IOException;
+import java.io.InputStream;
 
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.widgets.Item;
+import org.eclipse.swt.widgets.Widget;
 
 /**
  * Automated Test Suite for class org.eclipse.swt.widgets.Item
@@ -27,10 +26,6 @@ public class Test_org_eclipse_swt_widgets_Item extends Test_org_eclipse_swt_widg
 
 public Test_org_eclipse_swt_widgets_Item(String name) {
 	super(name);
-}
-
-public static void main(String[] args) {
-	TestRunner.run(suite());
 }
 
 @Override
@@ -68,42 +63,18 @@ public void test_setTextLjava_lang_String() {
 	}
 }
 
-public static Test suite() {
-	TestSuite suite = new TestSuite();
-	java.util.Vector<String> methodNames = methodNames();
-	java.util.Enumeration<String> e = methodNames.elements();
-	while (e.hasMoreElements()) {
-		suite.addTest(new Test_org_eclipse_swt_widgets_Item(e.nextElement()));
-	}
-	return suite;
-}
-
-public static java.util.Vector<String> methodNames() {
-	java.util.Vector<String> methodNames = new java.util.Vector<String>();
-	methodNames.addElement("test_setImageLorg_eclipse_swt_graphics_Image");
-	methodNames.addElement("test_setTextLjava_lang_String");
-	methodNames.addAll(Test_org_eclipse_swt_widgets_Widget.methodNames()); // add superclass method names
-	return methodNames;
-}
-@Override
-protected void runTest() throws Throwable {
-	if (getName().equals("test_setImageLorg_eclipse_swt_graphics_Image")) test_setImageLorg_eclipse_swt_graphics_Image();
-	else if (getName().equals("test_setTextLjava_lang_String")) test_setTextLjava_lang_String();
-	else super.runTest();
-}
-
 /* custom */
 Item item;
-Image[] images = new Image [SwtTestCase.imageFormats.length*SwtTestCase.imageFilenames.length];
+Image[] images = new Image [SwtTestUtil.imageFormats.length*SwtTestUtil.imageFilenames.length];
 
 private void loadImages() {
-	int numFormats = SwtTestCase.imageFormats.length;
-	int numFiles = SwtTestCase.imageFilenames.length;
+	int numFormats = SwtTestUtil.imageFormats.length;
+	int numFiles = SwtTestUtil.imageFilenames.length;
 	for (int i=0; i<numFormats; i++) {
-		String format = SwtTestCase.imageFormats[i];
+		String format = SwtTestUtil.imageFormats[i];
 		int index = i*numFiles;
 		for (int j=0; j<numFiles; j++){
-			String fileName = SwtTestCase.imageFilenames[j];
+			String fileName = SwtTestUtil.imageFilenames[j];
 			InputStream  resource = this.getClass().getResourceAsStream(fileName + "." + format);
 			images [index+j] = new Image (shell.getDisplay(), resource);
 			try {
