@@ -225,21 +225,23 @@ public class Display extends Device {
 		if (DEFAULT != null)
 			throw new UnsupportedOperationException();
 		DEFAULT = this;
-
-		startupLatch = new CountDownLatch(1);
-		new Thread("SWT JavaFX Launcher") {
-			public void run() {
-				Application.launch(SWTApplication.class, new String[0]);
-				dispose();
-			};
-		}.start();
-		try {
-			startupLatch.await();
-			startupLatch = null;
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		
+		if (!Platform.isFxApplicationThread()) {
+			startupLatch = new CountDownLatch(1);
+			new Thread("SWT JavaFX Launcher") {
+				public void run() {
+					Application.launch(SWTApplication.class, new String[0]);
+					dispose();
+				};
+			}.start();
+			try {
+				startupLatch.await();
+				startupLatch = null;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
 		hoverTimer.getKeyFrames().add(new KeyFrame(Duration.millis(560)));
 		hoverTimer.setOnFinished(new EventHandler<ActionEvent>() {
 			@Override
@@ -1915,7 +1917,10 @@ public class Display extends Device {
 	 * @since 2.0
 	 */
 	public void removeListener(int eventType, Listener listener) {
-		Util.logNotImplemented();
+		checkDevice ();
+		if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+		if (eventTable == null) return;
+		eventTable.unhook (eventType, listener);
 	}
 
 	void removeShell(Shell shell) {
@@ -2372,7 +2377,6 @@ public class Display extends Device {
 	 */
 	public void wake() {
 		Util.logNotImplemented();
-		new Exception().printStackTrace();
 	}
 
 	void wakeThread() {

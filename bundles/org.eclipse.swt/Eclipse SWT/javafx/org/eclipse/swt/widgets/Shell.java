@@ -382,8 +382,10 @@ public class Shell extends Decorations {
 	 */
 	public Shell(Shell parent, int style) {
 		this(parent != null ? parent.getDisplay() : Display.getDefault(), style);
-		stage.initOwner(parent.stage);
-		this.parentShell = parent;
+		if (parent != null) {
+			stage.initOwner(parent.stage);
+			this.parentShell = parent;
+		}
 	}
 
 	public Shell(Stage stage) {
