@@ -393,6 +393,9 @@ public class Shell extends Decorations {
 		this.stage = stage;
 	}
 	
+	public void activateShell() {
+		sendEvent(SWT.Activate);
+	}
 	/**
 	 * Adds the listener to the collection of listeners who will be notified
 	 * when operations are performed on the receiver, by sending the listener
